@@ -17,7 +17,7 @@
 #include "esp_efuse_table.h"
 #include "stdlib.h"
 #include "esp_types.h"
-#include "esp32s2beta/rom/efuse.h"
+#include "esp32s2/rom/efuse.h"
 #include "assert.h"
 #include "esp_err.h"
 #include "esp_log.h"
@@ -33,7 +33,7 @@ const static char *TAG = "efuse";
 uint8_t esp_efuse_get_chip_ver(void)
 {
     uint32_t chip_ver = 0;
-    // TODO: ESP32S2BETA does not have this field
+    // TODO: ESP32S2 does not have this field
     return chip_ver;
 }
 
@@ -41,7 +41,7 @@ uint8_t esp_efuse_get_chip_ver(void)
 uint32_t esp_efuse_get_pkg_ver(void)
 {
     uint32_t pkg_ver = 0;
-    // TODO: ESP32S2BETA does not have this field
+    // TODO: ESP32S2 does not have this field
     return pkg_ver;
 }
 

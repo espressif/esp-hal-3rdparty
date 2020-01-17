@@ -19,7 +19,7 @@ extern "C" {
 #endif
 
 /**
- * @brief Type of eFuse blocks ESP32S2BETA
+ * @brief Type of eFuse blocks ESP32S2
  */
 typedef enum {
     EFUSE_BLK0                 = 0,   /**< Number of eFuse BLOCK0. REPEAT_DATA */

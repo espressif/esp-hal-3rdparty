@@ -18,7 +18,7 @@
  * See readme.md in soc/include/hal/readme.md
  ******************************************************************************/
 
-// The HAL layer for touch sensor (esp32s2beta specific part)
+// The HAL layer for touch sensor (esp32s2 specific part)
 
 #pragma once
 

@@ -405,7 +405,7 @@ static inline bool touch_ll_meas_is_done(void)
     return (bool)SENS.sar_touch_chn_st.touch_meas_done;
 }
 
-/************************* esp32s2beta only *************************/
+/************************* esp32s2 only *************************/
 
 /**
  * Reset the whole of touch module.

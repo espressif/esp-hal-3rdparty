@@ -1,4 +1,4 @@
-/* These are the stdio related newlib functions present in ESP32S2beta ROM.
+/* These are the stdio related newlib functions present in ESP32-S2 ROM.
    They are not used when compiling with newlib 3.
 */
 

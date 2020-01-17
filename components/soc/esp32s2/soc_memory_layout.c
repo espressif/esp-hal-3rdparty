@@ -46,7 +46,7 @@ const soc_memory_type_desc_t soc_memory_types[] = {
     //Type 2: DRAM which has an alias on the I-port
     { "D/IRAM", { 0, MALLOC_CAP_DMA|MALLOC_CAP_8BIT|MALLOC_CAP_INTERNAL|MALLOC_CAP_DEFAULT, MALLOC_CAP_32BIT|MALLOC_CAP_EXEC }, true, false},
     //Type 3: IRAM
-    //In ESP32S2beta, All IRAM region are available by D-port (D/IRAM).
+    //In ESP32S2, All IRAM region are available by D-port (D/IRAM).
     { "IRAM", { MALLOC_CAP_EXEC|MALLOC_CAP_32BIT|MALLOC_CAP_INTERNAL, 0, 0 }, false, false},
     //Type 4: SPI SRAM data
     //TODO, in fact, part of them support EDMA, to be supported.

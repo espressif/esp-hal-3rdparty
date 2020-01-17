@@ -21,6 +21,6 @@ set(SOC_SRCS    "adc_periph.c"
                 "touch_sensor_periph.c")
 
 if(NOT CMAKE_BUILD_EARLY_EXPANSION)
-    set_source_files_properties("esp32s2beta/rtc_clk.c" PROPERTIES
+    set_source_files_properties("esp32s2/rtc_clk.c" PROPERTIES
                                 COMPILE_FLAGS "-fno-jump-tables -fno-tree-switch-conversion")
 endif()

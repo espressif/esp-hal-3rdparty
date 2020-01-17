@@ -18,7 +18,7 @@
  * See readme.md in soc/include/hal/readme.md
  ******************************************************************************/
 
-// The LL layer for ESP32s2beta SPI register operations
+// The LL layer for ESP32-S2 SPI register operations
 
 #pragma once
 
@@ -27,7 +27,7 @@
 #include "hal/hal_defs.h"
 #include "esp_types.h"
 #include "soc/spi_periph.h"
-#include "esp32s2beta/rom/lldesc.h"
+#include "esp32s2/rom/lldesc.h"
 
 /// Registers to reset during initialization. Don't use in app.
 #define SPI_LL_RST_MASK (SPI_OUT_RST | SPI_IN_RST | SPI_AHBM_RST | SPI_AHBM_FIFO_RST)

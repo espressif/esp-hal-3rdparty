@@ -25,7 +25,7 @@
 #include "gpspi_flash_ll.h"
 #include "spimem_flash_ll.h"
 
-// For esp32s2beta, spimem is equivalent to traditional spi peripherals found
+// For esp32s2, spimem is equivalent to traditional spi peripherals found
 // in esp32. Let the spi flash clock reg definitions reflect this.
 #define SPI_FLASH_LL_CLKREG_VAL_5MHZ   {.spimem=SPIMEM_FLASH_LL_CLKREG_VAL_5MHZ}
 #define SPI_FLASH_LL_CLKREG_VAL_10MHZ  {.spimem=SPIMEM_FLASH_LL_CLKREG_VAL_10MHZ}
