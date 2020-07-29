@@ -1,4 +1,4 @@
-// Copyright 2019 Espressif Systems (Shanghai) PTE LTD
+// Copyright 2020 Espressif Systems (Shanghai) PTE LTD
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,8 +18,12 @@
 extern "C" {
 #endif
 
-#define TWAI_BRP_MIN                2
-#define TWAI_BRP_MAX                32768
+#define COUNT_EFUSE_BLOCKS        11     /* The number of blocks. */
+#define COUNT_EFUSE_REG_PER_BLOCK 8      /* The number of registers per block. */
+
+#define ESP_EFUSE_SECURE_VERSION_NUM_BLOCK EFUSE_BLK0
+
+#define ESP_EFUSE_FIELD_CORRESPONDS_CODING_SCHEME(scheme, max_num_bit)
 
 #ifdef __cplusplus
 }
