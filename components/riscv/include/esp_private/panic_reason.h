@@ -1,9 +1,9 @@
-// Copyright 2015-2016 Espressif Systems (Shanghai) PTE LTD
+// Copyright 2020 Espressif Systems (Shanghai) PTE LTD
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
@@ -13,8 +13,8 @@
 // limitations under the License.
 #pragma once
 
-/* This header exists to avoid making esp_common depend on gdbstub component for panic handler support */
-
-typedef void esp_gdbstub_frame_t;
-
-void esp_gdbstub_panic_handler(esp_gdbstub_frame_t *frame) __attribute__((noreturn));
+#define PANIC_RSN_NONE 0
+#define PANIC_RSN_INTWDT_CPU0 1
+#define PANIC_RSN_INTWDT_CPU1 2
+#define PANIC_RSN_CACHEERR 3
+#define PANIC_RSN_MAX 3
