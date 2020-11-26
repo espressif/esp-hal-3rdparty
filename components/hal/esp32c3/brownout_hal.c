@@ -1,9 +1,10 @@
+
 // Copyright 2020 Espressif Systems (Shanghai) PTE LTD
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
@@ -12,30 +13,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
-
-#include "sdkconfig.h"
-
-/* Use enum from rom for backwards compatibility */
-#if CONFIG_IDF_TARGET_ESP32
-#include "esp32/rom/sha.h"
-typedef enum SHA_TYPE esp_sha_type;
-#elif CONFIG_IDF_TARGET_ESP32S2
-#include "esp32s2/rom/sha.h"
-typedef SHA_TYPE esp_sha_type;
-#elif CONFIG_IDF_TARGET_ESP32S3
-#include "esp32s3/rom/sha.h"
-typedef SHA_TYPE esp_sha_type;
-#elif CONFIG_IDF_TARGET_ESP32C3
-#include "esp32c3/rom/sha.h"
-typedef SHA_TYPE esp_sha_type;
-#endif
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "hal/brownout_hal.h"
+#include "soc/rtc_cntl_struct.h"
+#include "soc/rtc_cntl_reg.h"
+#include "i2c_rtc_clk.h"
+#include "i2c_brownout.h"
 
 
-#ifdef __cplusplus
+void brownout_hal_config(const brownout_hal_config_t *cfg)
+{
+    // TODO ESP32-C3 IDF-2397
 }
-#endif
+
+void brownout_hal_intr_enable(bool enable)
+{
+    // TODO ESP32-C3 IDF-2397
+}
+
+void brownout_hal_intr_clear(void)
+{
+    // TODO ESP32-C3 IDF-2397
+}

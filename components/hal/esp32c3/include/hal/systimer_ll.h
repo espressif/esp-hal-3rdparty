@@ -20,7 +20,7 @@ extern "C" {
 #include <stdint.h>
 #include <stdbool.h>
 #include "soc/soc.h"
-#include "soc/sys_timer_reg.h"
+#include "soc/systimer_reg.h"
 
 // All these functions get invoked either from ISR or HAL that linked to IRAM.
 // Always inline these functions even no gcc optimization is applied.

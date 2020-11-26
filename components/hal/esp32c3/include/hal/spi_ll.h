@@ -1,4 +1,4 @@
-// Copyright 2015-2020 Espressif Systems (Shanghai) PTE LTD
+// Copyright 2020 Espressif Systems (Shanghai) PTE LTD
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,10 +15,10 @@
 /*******************************************************************************
  * NOTICE
  * The hal is not public api, don't use in application code.
- * See readme.md in hal/include/hal/readme.md
+ * See readme.md in soc/include/hal/readme.md
  ******************************************************************************/
 
-// The LL layer for ESP32-S3 SPI register operations
+// The LL layer for SPI register operations
 
 #pragma once
 
@@ -27,7 +27,7 @@
 #include "hal/hal_defs.h"
 #include "esp_types.h"
 #include "soc/spi_periph.h"
-#include "esp32s3/rom/lldesc.h"
+#include "esp32c3/rom/lldesc.h"
 #include "esp_attr.h"
 
 #ifdef __cplusplus
@@ -40,7 +40,7 @@ extern "C" {
 #define HAL_SPI_SWAP_DATA_TX(data, len) HAL_SWAP32((uint32_t)data<<(32-len))
 /// This is the expected clock frequency
 #define SPI_LL_PERIPH_CLK_FREQ (80 * 1000000)
-#define SPI_LL_GET_HW(ID) ((ID)==0? ({abort();NULL;}):((ID)==1? &GPSPI2 : &GPSPI3))
+#define SPI_LL_GET_HW(ID) ((ID)==0? ({abort();NULL;}):&GPSPI2)
 
 /**
  * The data structure holding calculated clock configuration. Since the
@@ -220,7 +220,7 @@ static inline void spi_ll_slave_reset(spi_dev_t *hw)
 /**
  * Reset SPI CPU TX FIFO
  *
- * On ESP32S3, this function is not seperated
+ * On ESP32C3, this function is not seperated
  *
  * @param hw Beginning address of the peripheral registers.
  */
@@ -233,7 +233,7 @@ static inline void spi_ll_cpu_tx_fifo_reset(spi_dev_t *hw)
 /**
  * Reset SPI CPU RX FIFO
  *
- * On ESP32S3, this function is not seperated
+ * On ESP32C3, this function is not seperated
  *
  * @param hw Beginning address of the peripheral registers.
  */
@@ -594,20 +594,12 @@ static inline void spi_ll_slave_set_seg_mode(spi_dev_t *hw, bool seg_trans)
  */
 static inline void spi_ll_master_select_cs(spi_dev_t *hw, int cs_id)
 {
-    if (hw == &GPSPI2) {
-        hw->misc.cs0_dis = (cs_id == 0) ? 0 : 1;
-        hw->misc.cs1_dis = (cs_id == 1) ? 0 : 1;
-        hw->misc.cs2_dis = (cs_id == 2) ? 0 : 1;
-        hw->misc.cs3_dis = (cs_id == 3) ? 0 : 1;
-        hw->misc.cs4_dis = (cs_id == 4) ? 0 : 1;
-        hw->misc.cs5_dis = (cs_id == 5) ? 0 : 1;
-    }
-
-    if (hw == &GPSPI3) {
-        hw->misc.cs0_dis = (cs_id == 0) ? 0 : 1;
-        hw->misc.cs1_dis = (cs_id == 1) ? 0 : 1;
-        hw->misc.cs2_dis = (cs_id == 2) ? 0 : 1;
-    }
+    hw->misc.cs0_dis = (cs_id == 0) ? 0 : 1;
+    hw->misc.cs1_dis = (cs_id == 1) ? 0 : 1;
+    hw->misc.cs2_dis = (cs_id == 2) ? 0 : 1;
+    hw->misc.cs3_dis = (cs_id == 3) ? 0 : 1;
+    hw->misc.cs4_dis = (cs_id == 4) ? 0 : 1;
+    hw->misc.cs5_dis = (cs_id == 5) ? 0 : 1;
 }
 
 /*------------------------------------------------------------------------------
@@ -679,8 +671,8 @@ static inline int spi_ll_master_cal_clock(int fapb, int hz, int duty_cycle, spi_
             if (pre <= 0) {
                 pre = 1;
             }
-            if (pre > 8192) {
-                pre = 8192;
+            if (pre > 16) {
+                pre = 16;
             }
             errval = abs(spi_ll_freq_for_pre_n(fapb, pre, n) - hz);
             if (bestn == -1 || errval <= besterr) {
@@ -920,7 +912,6 @@ static inline void spi_ll_set_command(spi_dev_t *hw, uint16_t cmd, int cmdlen, b
          * more straightly.
          */
         hw->user2.usr_command_value = HAL_SPI_SWAP_DATA_TX(cmd, cmdlen);
-
     }
 }
 
