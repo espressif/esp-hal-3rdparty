@@ -1,4 +1,4 @@
-// Copyright 2015-2016 Espressif Systems (Shanghai) PTE LTD
+// Copyright 2015-2021 Espressif Systems (Shanghai) PTE LTD
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,4 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// ESP32H2-TODO: IDF-3398
+#pragma once
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * @brief Memprot LL error codes
+ *
+ */
+typedef enum {
+    MEMP_LL_OK = 0,
+    MEMP_LL_FAIL = 1,
+    MEMP_LL_ERR_SPLIT_ADDR_INVALID = 2,
+    MEMP_LL_ERR_SPLIT_ADDR_UNALIGNED = 3,
+    MEMP_LL_ERR_UNI_BLOCK_INVALID = 4
+} memprot_ll_err_t;
+
+#ifdef __cplusplus
+}
+#endif
