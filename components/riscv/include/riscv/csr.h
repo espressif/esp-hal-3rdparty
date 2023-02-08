@@ -87,6 +87,11 @@ extern "C" {
  (privileged spec)
  ********************************************************/
 
+#ifdef __NuttX__
+#undef CSR_PMPCFG0
+#undef CSR_PMPADDR0
+#endif
+
 /* Value of pmpcfg0 CSR. Note this macro is only needed for calculations like (CSR_PMPCFG0 + 1), which must
    still be constant at compile time. Use the assembler name pmpcfg0, pmpcfg1, pmpcfg2, etc. in other cases */
 #define CSR_PMPCFG0 0x3A0
