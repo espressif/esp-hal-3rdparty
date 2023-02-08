@@ -28,6 +28,15 @@
 
 #pragma once
 
+/* Special case for NuttX to prevent redefinition of some CSR macros in by checking
+ * if nuttx/arch/risc-v/include/csr.h has already been included at this point.
+ */
+
+#ifdef __ARCH_RISCV_INCLUDE_CSR_H
+#define CSR_REGS_ALREADY_DEFINED 1
+#endif
+
+#ifndef CSR_REGS_ALREADY_DEFINED
 
 #define MSTATUS_UIE         0x00000001
 #define MSTATUS_SIE         0x00000002
@@ -66,6 +75,8 @@
 #define SSTATUS32_SD        0x80000000
 #define SSTATUS_UXL         0x0000000300000000
 #define SSTATUS64_SD        0x8000000000000000
+
+#endif /* CSR_REGS_ALREADY_DEFINED */
 
 #define USTATUS_UIE         0x00000001
 #define USTATUS_UPIE        0x00000010
@@ -126,6 +137,8 @@
 #define MCONTROL_MATCH_MASK_LOW  4
 #define MCONTROL_MATCH_MASK_HIGH 5
 
+#ifndef CSR_REGS_ALREADY_DEFINED
+
 #define MIP_USIP            (1 << IRQ_U_SOFT)
 #define MIP_SSIP            (1 << IRQ_S_SOFT)
 #define MIP_HSIP            (1 << IRQ_H_SOFT)
@@ -141,6 +154,8 @@
 
 #define SIP_SSIP MIP_SSIP
 #define SIP_STIP MIP_STIP
+
+#endif /* CSR_REGS_ALREADY_DEFINED */
 
 #define PRV_U 0
 #define PRV_S 1
