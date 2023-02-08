@@ -17,6 +17,15 @@ const static char *TAG = "efuse";
 #define EFUSE_LOCK_ACQUIRE_RECURSIVE()
 #define EFUSE_LOCK_RELEASE_RECURSIVE()
 #else
+#ifdef __NuttX__
+#include <nuttx/arch.h>
+#include <nuttx/mutex.h>
+#include <pthread.h>
+static pthread_once_t mutex_is_initialized = PTHREAD_ONCE_INIT;
+static mutex_t s_efuse_lock;
+#define EFUSE_LOCK_ACQUIRE_RECURSIVE() nxmutex_lock(&s_efuse_lock)
+#define EFUSE_LOCK_RELEASE_RECURSIVE() nxmutex_unlock(&s_efuse_lock)
+#else
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include <sys/lock.h>
@@ -24,8 +33,16 @@ static _lock_t s_efuse_lock;
 #define EFUSE_LOCK_ACQUIRE_RECURSIVE() _lock_acquire_recursive(&s_efuse_lock)
 #define EFUSE_LOCK_RELEASE_RECURSIVE() _lock_release_recursive(&s_efuse_lock)
 #endif
+#endif
 
 static int s_batch_writing_mode = 0;
+
+#ifdef __NuttX__
+static void esp_efuse_init_mutex(void)
+{
+    nxmutex_init(&s_efuse_lock);
+}
+#endif
 
 // Public API functions
 
@@ -41,7 +58,11 @@ esp_err_t esp_efuse_read_field_blob(const esp_efuse_desc_t* field[], void* dst, 
             err = esp_efuse_utility_process(field, dst, dst_size_bits, esp_efuse_utility_fill_buff);
 #ifndef BOOTLOADER_BUILD
             if (err == ESP_ERR_DAMAGED_READING) {
+#ifdef __NuttX__
+                up_udelay(1000);
+#else
                 vTaskDelay(1);
+#endif
             }
 #endif // BOOTLOADER_BUILD
         } while (err == ESP_ERR_DAMAGED_READING);
@@ -69,7 +90,11 @@ esp_err_t esp_efuse_read_field_cnt(const esp_efuse_desc_t* field[], size_t* out_
             err = esp_efuse_utility_process(field, out_cnt, 0, esp_efuse_utility_count_once);
 #ifndef BOOTLOADER_BUILD
             if (err == ESP_ERR_DAMAGED_READING) {
+#ifdef __NuttX__
+                up_udelay(1000);
+#else
                 vTaskDelay(1);
+#endif
             }
 #endif // BOOTLOADER_BUILD
         } while (err == ESP_ERR_DAMAGED_READING);
@@ -80,6 +105,9 @@ esp_err_t esp_efuse_read_field_cnt(const esp_efuse_desc_t* field[], size_t* out_
 // write array to EFUSE
 esp_err_t esp_efuse_write_field_blob(const esp_efuse_desc_t* field[], const void* src, size_t src_size_bits)
 {
+#ifdef __NuttX__
+    pthread_once(&mutex_is_initialized, esp_efuse_init_mutex);
+#endif
     EFUSE_LOCK_ACQUIRE_RECURSIVE();
     esp_err_t err = ESP_OK;
     if (field == NULL || src == NULL || src_size_bits == 0) {
@@ -107,6 +135,9 @@ esp_err_t esp_efuse_write_field_blob(const esp_efuse_desc_t* field[], const void
 // program cnt bits to "1"
 esp_err_t esp_efuse_write_field_cnt(const esp_efuse_desc_t* field[], size_t cnt)
 {
+#ifdef __NuttX__
+    pthread_once(&mutex_is_initialized, esp_efuse_init_mutex);
+#endif
     EFUSE_LOCK_ACQUIRE_RECURSIVE();
     esp_err_t err = ESP_OK;
     if (field == NULL || cnt == 0) {
@@ -185,6 +216,9 @@ uint32_t esp_efuse_read_reg(esp_efuse_block_t blk, unsigned int num_reg)
 // writing efuse register.
 esp_err_t esp_efuse_write_reg(esp_efuse_block_t blk, unsigned int num_reg, uint32_t val)
 {
+#ifdef __NuttX__
+    pthread_once(&mutex_is_initialized, esp_efuse_init_mutex);
+#endif
     EFUSE_LOCK_ACQUIRE_RECURSIVE();
     if (s_batch_writing_mode == 0) {
         esp_efuse_utility_reset();
@@ -245,6 +279,9 @@ esp_err_t esp_efuse_write_block(esp_efuse_block_t blk, const void* src_key, size
 
 esp_err_t esp_efuse_batch_write_begin(void)
 {
+#ifdef __NuttX__
+    pthread_once(&mutex_is_initialized, esp_efuse_init_mutex);
+#endif
     EFUSE_LOCK_ACQUIRE_RECURSIVE();
     assert(s_batch_writing_mode >= 0);
     if (++s_batch_writing_mode == 1) {
