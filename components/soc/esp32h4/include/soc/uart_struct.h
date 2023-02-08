@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-typedef volatile struct uart_dev_s {
+typedef volatile struct hal_uart_dev_s {
     union {
         struct {
             uint32_t rw_byte;                 /*a*/
@@ -388,9 +388,9 @@ typedef volatile struct uart_dev_s {
         };
         uint32_t val;
     } id;
-} uart_dev_t;
-extern uart_dev_t UART0;
-extern uart_dev_t UART1;
+} hal_uart_dev_t;
+extern hal_uart_dev_t UART0;
+extern hal_uart_dev_t UART1;
 #ifdef __cplusplus
 }
 #endif

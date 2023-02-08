@@ -1195,14 +1195,14 @@ typedef struct {
     volatile uart_clk_conf_reg_t clk_conf;
     volatile uart_date_reg_t date;
     volatile uart_id_reg_t id;
-} uart_dev_t;
+} hal_uart_dev_t;
 
-extern uart_dev_t UART0;
-extern uart_dev_t UART1;
-extern uart_dev_t UART2;
+extern hal_uart_dev_t UART0;
+extern hal_uart_dev_t UART1;
+extern hal_uart_dev_t UART2;
 
 #ifndef __cplusplus
-_Static_assert(sizeof(uart_dev_t) == 0x84, "Invalid size of uart_dev_t structure");
+_Static_assert(sizeof(hal_uart_dev_t) == 0x84, "Invalid size of hal_uart_dev_t structure");
 _Static_assert(sizeof(UART0.fifo.rxfifo_rd_byte) == 4, "FIFO, must be a uint32_t, not bitfield!");
 _Static_assert(sizeof(UART1.fifo.rxfifo_rd_byte) == 4, "FIFO, must be a uint32_t, not bitfield!");
 _Static_assert(sizeof(UART2.fifo.rxfifo_rd_byte) == 4, "FIFO, must be a uint32_t, not bitfield!");

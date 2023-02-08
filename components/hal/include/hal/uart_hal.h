@@ -26,7 +26,7 @@ extern "C" {
  * Context that should be maintained by both the driver and the HAL
  */
 typedef struct {
-    uart_dev_t *dev;
+    hal_uart_dev_t *dev;
 } uart_hal_context_t;
 
 /**

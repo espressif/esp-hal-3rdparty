@@ -17,14 +17,36 @@
 
 #include "sdkconfig.h"
 #include "esp_log.h"
-#include "freertos/FreeRTOS.h"
 #include "esp_private/sar_periph_ctrl.h"
 #include "hal/sar_ctrl_ll.h"
 #include "hal/adc_ll.h"
 
-static const char *TAG = "sar_periph_ctrl";
-extern portMUX_TYPE rtc_spinlock;
+#ifdef __ZEPHYR__
+#include <zephyr/kernel.h>
+#elif defined(__NuttX__)
+#include <nuttx/irq.h>
+#else
+#include "freertos/FreeRTOS.h"
+#endif
 
+#ifdef __ZEPHYR__
+#define ENTER_CRITICAL_SECTION(state)   do { (state) = irq_lock(); } while(0)
+#define LEAVE_CRITICAL_SECTION(state)   irq_unlock((state))
+
+static unsigned int rtc_spinlock;
+#elif defined(__NuttX__)
+#define ENTER_CRITICAL_SECTION(state)   do { (state) = enter_critical_section(); } while(0)
+#define LEAVE_CRITICAL_SECTION(state)   leave_critical_section((state))
+
+static irqstate_t rtc_spinlock;
+#else
+#define ENTER_CRITICAL_SECTION(state)   portENTER_CRITICAL_SAFE(&(state))
+#define LEAVE_CRITICAL_SECTION(state)   portEXIT_CRITICAL_SAFE(&(state))
+
+extern portMUX_TYPE rtc_spinlock;
+#endif
+
+static const char *TAG = "sar_periph_ctrl";
 
 void sar_periph_ctrl_init(void)
 {
@@ -36,9 +58,9 @@ void sar_periph_ctrl_init(void)
 
 void sar_periph_ctrl_power_disable(void)
 {
-    portENTER_CRITICAL_SAFE(&rtc_spinlock);
+    ENTER_CRITICAL_SECTION(rtc_spinlock);
     sar_ctrl_ll_set_power_mode(SAR_CTRL_LL_POWER_OFF);
-    portEXIT_CRITICAL_SAFE(&rtc_spinlock);
+    LEAVE_CRITICAL_SECTION(rtc_spinlock);
 }
 
 
@@ -49,27 +71,27 @@ static int s_pwdet_power_on_cnt;
 
 void sar_periph_ctrl_pwdet_power_acquire(void)
 {
-    portENTER_CRITICAL_SAFE(&rtc_spinlock);
+    ENTER_CRITICAL_SECTION(rtc_spinlock);
     s_pwdet_power_on_cnt++;
     if (s_pwdet_power_on_cnt == 1) {
         sar_ctrl_ll_set_power_mode_from_pwdet(SAR_CTRL_LL_POWER_ON);
     }
-    portEXIT_CRITICAL_SAFE(&rtc_spinlock);
+    LEAVE_CRITICAL_SECTION(rtc_spinlock);
 }
 
 void sar_periph_ctrl_pwdet_power_release(void)
 {
-    portENTER_CRITICAL_SAFE(&rtc_spinlock);
+    ENTER_CRITICAL_SECTION(rtc_spinlock);
     s_pwdet_power_on_cnt--;
     /* Sanity check */
     if (s_pwdet_power_on_cnt < 0) {
-        portEXIT_CRITICAL(&rtc_spinlock);
+        LEAVE_CRITICAL_SECTION(rtc_spinlock);
         ESP_LOGE(TAG, "%s called, but s_pwdet_power_on_cnt == 0", __func__);
         abort();
     } else if (s_pwdet_power_on_cnt == 0) {
         sar_ctrl_ll_set_power_mode_from_pwdet(SAR_CTRL_LL_POWER_FSM);
     }
-    portEXIT_CRITICAL_SAFE(&rtc_spinlock);
+    LEAVE_CRITICAL_SECTION(rtc_spinlock);
 }
 
 
@@ -80,26 +102,26 @@ static int s_saradc_power_on_cnt;
 
 static void s_sar_adc_power_acquire(void)
 {
-    portENTER_CRITICAL_SAFE(&rtc_spinlock);
+    ENTER_CRITICAL_SECTION(rtc_spinlock);
     s_saradc_power_on_cnt++;
     if (s_saradc_power_on_cnt == 1) {
         adc_ll_digi_set_power_manage(ADC_LL_POWER_SW_ON);
     }
-    portEXIT_CRITICAL_SAFE(&rtc_spinlock);
+    LEAVE_CRITICAL_SECTION(rtc_spinlock);
 }
 
 static void s_sar_adc_power_release(void)
 {
-    portENTER_CRITICAL_SAFE(&rtc_spinlock);
+    ENTER_CRITICAL_SECTION(rtc_spinlock);
     s_saradc_power_on_cnt--;
     if (s_saradc_power_on_cnt < 0) {
-        portEXIT_CRITICAL(&rtc_spinlock);
+        LEAVE_CRITICAL_SECTION(rtc_spinlock);
         ESP_LOGE(TAG, "%s called, but s_saradc_power_on_cnt == 0", __func__);
         abort();
     } else if (s_saradc_power_on_cnt == 0) {
         adc_ll_digi_set_power_manage(ADC_LL_POWER_BY_FSM);
     }
-    portEXIT_CRITICAL_SAFE(&rtc_spinlock);
+    LEAVE_CRITICAL_SECTION(rtc_spinlock);
 }
 
 void sar_periph_ctrl_adc_oneshot_power_acquire(void)

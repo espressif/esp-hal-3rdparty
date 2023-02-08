@@ -8,7 +8,13 @@
 #include <sys/param.h>
 #include <sys/lock.h>
 
+#ifdef __ZEPHYR__
+#include <zephyr/kernel.h>
+#elif defined(__NuttX__)
+#include <nuttx/irq.h>
+#else
 #include "freertos/FreeRTOS.h"
+#endif
 #include "esp_attr.h"
 #include "soc/rtc.h"
 #include "soc/soc_caps.h"
@@ -45,6 +51,23 @@
 
 #define MHZ (1000000)
 
+#ifdef __ZEPHYR__
+#define ENTER_CRITICAL_SECTION(state)   do { (state) = irq_lock(); } while(0)
+#define LEAVE_CRITICAL_SECTION(state)   irq_unlock((state))
+
+static unsigned int s_esp_rtc_time_lock;
+#elif defined(__NuttX__)
+#define ENTER_CRITICAL_SECTION(state)   do { (state) = enter_critical_section(); } while(0)
+#define LEAVE_CRITICAL_SECTION(state)   leave_critical_section((state))
+
+static irqstate_t s_esp_rtc_time_lock;
+#else
+#define ENTER_CRITICAL_SECTION(state)   portENTER_CRITICAL_SAFE(&(state))
+#define LEAVE_CRITICAL_SECTION(state)   portEXIT_CRITICAL_SAFE(&(state))
+
+static portMUX_TYPE s_esp_rtc_time_lock = portMUX_INITIALIZER_UNLOCKED;
+#endif
+
 // g_ticks_us defined in ROMs for PRO and APP CPU
 extern uint32_t g_ticks_per_us_pro;
 #if SOC_CPU_CORES_NUM > 1
@@ -52,8 +75,6 @@ extern uint32_t g_ticks_per_us_pro;
 extern uint32_t g_ticks_per_us_app;
 #endif
 #endif
-
-static portMUX_TYPE s_esp_rtc_time_lock = portMUX_INITIALIZER_UNLOCKED;
 
 #if SOC_RTC_FAST_MEM_SUPPORTED
 static RTC_NOINIT_ATTR uint64_t s_esp_rtc_time_us, s_rtc_last_ticks;
@@ -103,7 +124,7 @@ void IRAM_ATTR ets_update_cpu_frequency(uint32_t ticks_per_us)
 
 uint64_t esp_rtc_get_time_us(void)
 {
-    portENTER_CRITICAL_SAFE(&s_esp_rtc_time_lock);
+    ENTER_CRITICAL_SECTION(s_esp_rtc_time_lock);
     const uint32_t cal = esp_clk_slowclk_cal_get();
 #if SOC_RTC_FAST_MEM_SUPPORTED
     if (cal == 0) {
@@ -133,11 +154,11 @@ uint64_t esp_rtc_get_time_us(void)
 #if SOC_RTC_FAST_MEM_SUPPORTED
     s_esp_rtc_time_us += delta_time_us;
     s_rtc_last_ticks = rtc_this_ticks;
-    portEXIT_CRITICAL_SAFE(&s_esp_rtc_time_lock);
+    LEAVE_CRITICAL_SECTION(s_esp_rtc_time_lock);
     return s_esp_rtc_time_us;
 #else
     uint64_t esp_rtc_time_us = delta_time_us + clk_ll_rtc_slow_load_rtc_fix_us();
-    portEXIT_CRITICAL_SAFE(&s_esp_rtc_time_lock);
+    LEAVE_CRITICAL_SECTION(s_esp_rtc_time_lock);
     return esp_rtc_time_us;
 #endif
 }
@@ -151,7 +172,7 @@ void esp_clk_slowclk_cal_set(uint32_t new_cal)
 #if SOC_RTC_FAST_MEM_SUPPORTED
     esp_rtc_get_time_us();
 #else
-    portENTER_CRITICAL_SAFE(&s_esp_rtc_time_lock);
+    ENTER_CRITICAL_SECTION(s_esp_rtc_time_lock);
     uint32_t old_cal = clk_ll_rtc_slow_load_cal();
     if (old_cal != 0) {
         /**
@@ -174,7 +195,7 @@ void esp_clk_slowclk_cal_set(uint32_t new_cal)
         new_fix_us = old_fix_us - new_fix_us;
         clk_ll_rtc_slow_store_rtc_fix_us(new_fix_us);
     }
-    portEXIT_CRITICAL_SAFE(&s_esp_rtc_time_lock);
+    LEAVE_CRITICAL_SECTION(s_esp_rtc_time_lock);
 #endif // SOC_RTC_FAST_MEM_SUPPORTED
 #endif // CONFIG_ESP_TIME_FUNCS_USE_RTC_TIMER
     clk_ll_rtc_slow_store_cal(new_cal);
@@ -196,10 +217,10 @@ uint64_t esp_clk_rtc_time(void)
 
 void esp_clk_private_lock(void)
 {
-    portENTER_CRITICAL(&s_esp_rtc_time_lock);
+    ENTER_CRITICAL_SECTION(s_esp_rtc_time_lock);
 }
 
 void esp_clk_private_unlock(void)
 {
-    portEXIT_CRITICAL(&s_esp_rtc_time_lock);
+    LEAVE_CRITICAL_SECTION(s_esp_rtc_time_lock);
 }
