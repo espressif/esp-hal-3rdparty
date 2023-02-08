@@ -11,7 +11,7 @@
 extern "C" {
 #endif
 
-typedef volatile struct uart_dev_s {
+typedef volatile struct hal_uart_dev_s {
     union {
         struct {
             uint32_t rw_byte;/*note: rw_byte is a uint8_t field, however, ESP32-S2 do not support 8 bits read/write*/
@@ -360,9 +360,9 @@ typedef volatile struct uart_dev_s {
     } negpulse;
     uint32_t date;                                  /**/
     uint32_t id;                                    /**/
-} uart_dev_t;
-extern uart_dev_t UART0;
-extern uart_dev_t UART1;
+} hal_uart_dev_t;
+extern hal_uart_dev_t UART0;
+extern hal_uart_dev_t UART1;
 #ifdef __cplusplus
 }
 #endif

@@ -1188,7 +1188,7 @@ typedef union {
 } uart_id_reg_t;
 
 
-typedef struct uart_dev_s {
+typedef struct hal_uart_dev_s {
     volatile uart_fifo_reg_t fifo;
     volatile uart_int_raw_reg_t int_raw;
     volatile uart_int_st_reg_t int_st;
@@ -1229,13 +1229,13 @@ typedef struct uart_dev_s {
     uint32_t reserved_094;
     volatile uart_reg_update_reg_t reg_update;
     volatile uart_id_reg_t id;
-} uart_dev_t;
+} hal_uart_dev_t;
 
-extern uart_dev_t UART0;
-extern uart_dev_t UART1;
+extern hal_uart_dev_t UART0;
+extern hal_uart_dev_t UART1;
 
 #ifndef __cplusplus
-_Static_assert(sizeof(uart_dev_t) == 0xa0, "Invalid size of uart_dev_t structure");
+_Static_assert(sizeof(hal_uart_dev_t) == 0xa0, "Invalid size of hal_uart_dev_t structure");
 #endif
 
 #ifdef __cplusplus

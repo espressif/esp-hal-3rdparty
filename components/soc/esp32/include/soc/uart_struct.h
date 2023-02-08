@@ -20,7 +20,7 @@
 extern "C" {
 #endif
 
-typedef volatile struct uart_dev_s {
+typedef volatile struct hal_uart_dev_s {
     union {
         struct {
             uint32_t rw_byte:          8;           /*This register stores one byte data  read by rx fifo.*/
@@ -371,10 +371,10 @@ typedef volatile struct uart_dev_s {
     uint32_t reserved_74;
     uint32_t date;                                    /**/
     uint32_t id;                                      /**/
-} uart_dev_t;
-extern uart_dev_t UART0;
-extern uart_dev_t UART1;
-extern uart_dev_t UART2;
+} hal_uart_dev_t;
+extern hal_uart_dev_t UART0;
+extern hal_uart_dev_t UART1;
+extern hal_uart_dev_t UART2;
 
 #ifdef __cplusplus
 }
