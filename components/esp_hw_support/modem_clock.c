@@ -10,11 +10,38 @@
 #include "sdkconfig.h"
 #include "esp_attr.h"
 #include "soc/soc.h"
-#include "freertos/FreeRTOS.h"
 #include "hal/clk_gate_ll.h"
 #include "esp_private/esp_modem_clock.h"
 #include "esp_private/esp_pmu.h"
 #include "esp_sleep.h"
+
+#ifdef __ZEPHYR__
+#include <zephyr/kernel.h>
+#elif defined(__NuttX__)
+#include <nuttx/irq.h>
+#else
+#include "freertos/FreeRTOS.h"
+#endif
+
+#ifdef __ZEPHYR__
+#define ENTER_CRITICAL_SECTION(state)   do { (state) = irq_lock(); } while(0)
+#define LEAVE_CRITICAL_SECTION(state)   irq_unlock((state))
+#define LOCK_INITIALIZER_UNLOCKED       (0)
+
+typedef unsigned int lock_type_t;
+#elif defined(__NuttX__)
+#define ENTER_CRITICAL_SECTION(state)   do { (state) = enter_critical_section(); } while(0)
+#define LEAVE_CRITICAL_SECTION(state)   leave_critical_section((state))
+#define LOCK_INITIALIZER_UNLOCKED       (0)
+
+typedef irqstate_t lock_type_t;
+#else
+#define ENTER_CRITICAL_SECTION(state)   portENTER_CRITICAL_SAFE(&(state))
+#define LEAVE_CRITICAL_SECTION(state)   portEXIT_CRITICAL_SAFE(&(state))
+#define LOCK_INITIALIZER_UNLOCKED       portMUX_INITIALIZER_UNLOCKED
+
+typedef portMUX_TYPE lock_type_t;
+#endif
 
 // Please define the frequently called modules in the low bit,
 // which will improve the execution efficiency
@@ -35,7 +62,7 @@ typedef enum {
 
 typedef struct modem_clock_context {
     modem_clock_hal_context_t *hal;
-    portMUX_TYPE              lock;
+    lock_type_t               lock;
     struct {
         int16_t     refs;
         uint16_t    reserved;   /* reserved for 4 bytes aligned */
@@ -117,7 +144,7 @@ modem_clock_context_t * __attribute__((weak)) IRAM_ATTR MODEM_CLOCK_instance(voi
     /* It should be explicitly defined in the internal RAM */
     static DRAM_ATTR modem_clock_hal_context_t modem_clock_hal = { .syscon_dev = &MODEM_SYSCON, .lpcon_dev = &MODEM_LPCON };
     static DRAM_ATTR modem_clock_context_t modem_clock_context = {
-        .hal = &modem_clock_hal, .lock = portMUX_INITIALIZER_UNLOCKED,
+        .hal = &modem_clock_hal, .lock = LOCK_INITIALIZER_UNLOCKED,
         .dev = {
             { .refs = 0, .configure = modem_clock_fe_configure             },
             { .refs = 0, .configure = modem_clock_coex_configure           },
@@ -169,7 +196,7 @@ void modem_clock_domain_pmu_state_icg_map_init(void)
 static void IRAM_ATTR modem_clock_device_enable(modem_clock_context_t *ctx, uint32_t dev_map)
 {
     int16_t refs = 0;
-    portENTER_CRITICAL_SAFE(&ctx->lock);
+    ENTER_CRITICAL_SECTION(ctx->lock);
     for (int i = 0; dev_map; dev_map >>= 1, i++) {
         if (dev_map & BIT(0)) {
             refs = ctx->dev[i].refs++;
@@ -178,14 +205,14 @@ static void IRAM_ATTR modem_clock_device_enable(modem_clock_context_t *ctx, uint
             }
         }
     }
-    portEXIT_CRITICAL_SAFE(&ctx->lock);
+    LEAVE_CRITICAL_SECTION(ctx->lock);
     assert(refs >= 0);
 }
 
 static void IRAM_ATTR modem_clock_device_disable(modem_clock_context_t *ctx, uint32_t dev_map)
 {
     int16_t refs = 0;
-    portENTER_CRITICAL_SAFE(&ctx->lock);
+    ENTER_CRITICAL_SECTION(ctx->lock);
     for (int i = 0; dev_map; dev_map >>= 1, i++) {
         if (dev_map & BIT(0)) {
             refs = --ctx->dev[i].refs;
@@ -194,7 +221,7 @@ static void IRAM_ATTR modem_clock_device_disable(modem_clock_context_t *ctx, uin
             }
         }
     }
-    portEXIT_CRITICAL_SAFE(&ctx->lock);
+    LEAVE_CRITICAL_SECTION(ctx->lock);
     assert(refs >= 0);
 }
 
@@ -231,7 +258,7 @@ void IRAM_ATTR modem_clock_module_disable(periph_module_t module)
 void modem_clock_select_lp_clock_source(periph_module_t module, modem_clock_lpclk_src_t src, uint32_t divider)
 {
     assert(IS_MODEM_MODULE(module));
-    portENTER_CRITICAL_SAFE(&MODEM_CLOCK_instance()->lock);
+    ENTER_CRITICAL_SECTION(MODEM_CLOCK_instance()->lock);
     switch (module)
     {
     case PERIPH_WIFI_MODULE:
@@ -257,10 +284,11 @@ void modem_clock_select_lp_clock_source(periph_module_t module, modem_clock_lpcl
     }
     modem_clock_lpclk_src_t last_src = MODEM_CLOCK_instance()->lpclk_src[module - PERIPH_MODEM_MODULE_MIN];
     MODEM_CLOCK_instance()->lpclk_src[module - PERIPH_MODEM_MODULE_MIN] = src;
-    portEXIT_CRITICAL_SAFE(&MODEM_CLOCK_instance()->lock);
+    LEAVE_CRITICAL_SECTION(MODEM_CLOCK_instance()->lock);
 
     /* The power domain of the low-power clock source required by the modem
      * module remains powered on during sleep */
+/*
     esp_sleep_pd_domain_t pd_domain = (esp_sleep_pd_domain_t) ( \
               (last_src == MODEM_CLOCK_LPCLK_SRC_RC_FAST)  ? ESP_PD_DOMAIN_RC_FAST  \
             : (last_src == MODEM_CLOCK_LPCLK_SRC_MAIN_XTAL) ? ESP_PD_DOMAIN_XTAL    \
@@ -275,12 +303,13 @@ void modem_clock_select_lp_clock_source(periph_module_t module, modem_clock_lpcl
             : ESP_PD_DOMAIN_MAX);
     esp_sleep_pd_config(pd_domain, ESP_PD_OPTION_OFF);
     esp_sleep_pd_config(pu_domain, ESP_PD_OPTION_ON);
+*/
 }
 
 void modem_clock_deselect_lp_clock_source(periph_module_t module)
 {
     assert(IS_MODEM_MODULE(module));
-    portENTER_CRITICAL_SAFE(&MODEM_CLOCK_instance()->lock);
+    ENTER_CRITICAL_SECTION(MODEM_CLOCK_instance()->lock);
     switch (module)
     {
     case PERIPH_WIFI_MODULE:
@@ -300,7 +329,7 @@ void modem_clock_deselect_lp_clock_source(periph_module_t module)
     }
     modem_clock_lpclk_src_t last_src = MODEM_CLOCK_instance()->lpclk_src[module - PERIPH_MODEM_MODULE_MIN];
     MODEM_CLOCK_instance()->lpclk_src[module - PERIPH_MODEM_MODULE_MIN] = MODEM_CLOCK_LPCLK_SRC_INVALID;
-    portEXIT_CRITICAL_SAFE(&MODEM_CLOCK_instance()->lock);
+    LEAVE_CRITICAL_SECTION(MODEM_CLOCK_instance()->lock);
 
     esp_sleep_pd_domain_t pd_domain = (esp_sleep_pd_domain_t) ( \
               (last_src == MODEM_CLOCK_LPCLK_SRC_RC_FAST)  ? ESP_PD_DOMAIN_RC_FAST  \
