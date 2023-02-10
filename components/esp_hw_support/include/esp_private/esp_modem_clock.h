@@ -10,6 +10,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "soc/soc_caps.h"
 #include "soc/periph_defs.h"
 #include "hal/modem_clock_types.h"
 
