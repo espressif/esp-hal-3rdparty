@@ -10,17 +10,19 @@
 #include <stdbool.h>
 #include "esp_private/system_internal.h"
 #include "esp_private/rtc_ctrl.h"
-#include "esp_private/spi_flash_os.h"
 #include "esp_rom_sys.h"
 #include "esp_cpu.h"
 #include "soc/soc.h"
 #include "soc/rtc_periph.h"
 #include "esp_attr.h"
-#include "bootloader_flash.h"
 #include "esp_intr_alloc.h"
 #include "hal/brownout_hal.h"
 #include "hal/brownout_ll.h"
 #include "sdkconfig.h"
+#if CONFIG_SPI_FLASH_BROWNOUT_RESET
+#include "esp_private/spi_flash_os.h"
+#include "bootloader_flash.h"
+#endif
 
 #if defined(CONFIG_ESP_BROWNOUT_DET_LVL)
 #define BROWNOUT_DET_LVL CONFIG_ESP_BROWNOUT_DET_LVL
