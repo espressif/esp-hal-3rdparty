@@ -44,7 +44,6 @@ ${PREFIX}ld --unresolved-symbols=ignore-all --entry 0 -o ${ELF_FILE} \
     -u g_wifi_type_md5 \
     -u g_wifi_he_type_md5 \
     -u g_wifi_osi_funcs_md5 \
-    -u g_coex_adapter_funcs_md5 \
     -u g_wifi_supplicant_funcs_md5 \
     ${IDF_PATH}/components/esp_wifi/lib/${LIB_DIR}/*.a
 
@@ -75,7 +74,6 @@ check_md5 ${IDF_PATH}/components/esp_wifi/include/esp_private/wifi_os_adapter.h 
 check_md5 ${IDF_PATH}/components/esp_wifi/include/esp_wifi_crypto_types.h g_wifi_crypto_funcs_md5
 check_md5 ${IDF_PATH}/components/esp_wifi/include/esp_wifi_types.h g_wifi_type_md5
 check_md5 ${IDF_PATH}/components/esp_wifi/include/esp_wifi_he_types.h g_wifi_he_type_md5
-check_md5 ${IDF_PATH}/components/esp_wifi/include/esp_coexist_adapter.h g_coex_adapter_funcs_md5
 check_md5 ${IDF_PATH}/components/wpa_supplicant/esp_supplicant/src/esp_wifi_driver.h g_wifi_supplicant_funcs_md5
 
 if [ $FAILURES -gt 0 ]; then
