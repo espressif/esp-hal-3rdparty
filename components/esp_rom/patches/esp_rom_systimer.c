@@ -6,6 +6,9 @@
 
 #include "sdkconfig.h"
 #include <stddef.h>
+
+#include "esp_rom_caps.h"
+
 #include "hal/systimer_hal.h"
 #include "hal/systimer_ll.h"
 
