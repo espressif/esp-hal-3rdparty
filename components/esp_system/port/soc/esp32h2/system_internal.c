@@ -20,10 +20,11 @@
 #include "esp_private/rtc_clk.h"
 #include "soc/rtc_periph.h"
 #include "soc/uart_reg.h"
+#include "hal/cache_hal.h"
+#include "hal/cache_types.h"
 #include "hal/wdt_hal.h"
 #include "hal/spimem_flash_ll.h"
 #include "esp_private/cache_err_int.h"
-#include "esp_private/spi_flash_os.h"
 
 #include "esp32h2/rom/cache.h"
 #include "esp32h2/rom/rtc.h"
@@ -90,7 +91,9 @@ void IRAM_ATTR esp_restart_noos(void)
     CLEAR_PERI_REG_MASK(PCR_MODEM_CONF_REG, PCR_MODEM_RST_EN);
 
     // If we set mspi clock frequency to PLL, but ROM does not have such clock source option. So reset the clock to XTAL when software restart.
-    spi_flash_set_clock_src(MSPI_CLK_SRC_ROM_DEFAULT);
+    cache_hal_freeze(CACHE_TYPE_INSTRUCTION);
+    spimem_flash_ll_set_clock_source(MSPI_CLK_SRC_ROM_DEFAULT);
+    cache_hal_unfreeze(CACHE_TYPE_INSTRUCTION);
 
     // Set CPU back to XTAL source, same as hard reset, but keep BBPLL on so that USB Serial JTAG can log at 1st stage bootloader.
 #if !CONFIG_IDF_ENV_FPGA
