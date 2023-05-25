@@ -1,0 +1,19 @@
+stages:
+  - sync
+
+sync_from_idf:
+  image: $CI_DOCKER_REGISTRY/esp-env-v5.1:1
+  stage: sync
+  tags:
+    - build
+  variables:
+    IDF_URL: ${CI_IDF_URL}
+    ESP_HAL_3RDPARTY_URL: https://gitlab-ci-token:${CI_ESP_HAL_3RDPARTY_TOKEN}@${CI_SERVER_HOST}:${CI_SERVER_PORT}/${CI_PROJECT_PATH}.git
+  script:
+    - pip install git-filter-repo
+    - tools/extract_idf_components.sh
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+      when: manual
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
