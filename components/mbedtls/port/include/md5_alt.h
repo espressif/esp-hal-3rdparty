@@ -17,6 +17,16 @@ extern "C" {
 #if defined(MBEDTLS_MD5_ALT)
 #include "md/esp_md.h"
 
+#ifdef __NuttX__
+#define esp_mbedtls_md5_init                    esp_md5_init
+#define esp_mbedtls_md5_update                  esp_md5_update
+#define esp_mbedtls_md5_finish                  esp_md5_finish
+#define esp_mbedtls_md5_starts                  esp_md5_starts
+
+#define esp_mbedtls_md5_free                    esp_md5_free
+#define esp_mbedtls_md5_clone                   esp_md5_clone
+#define esp_mbedtls_internal_md5_process        esp_md5_process
+#else
 #define mbedtls_md5_init                        esp_md5_init
 #define mbedtls_md5_update                      esp_md5_update
 #define mbedtls_md5_finish                      esp_md5_finish
@@ -25,6 +35,7 @@ extern "C" {
 #define mbedtls_md5_free                        esp_md5_free
 #define mbedtls_md5_clone                       esp_md5_clone
 #define mbedtls_internal_md5_process            esp_md5_process
+#endif
 
 #endif /* MBEDTLS_MD5_ALT */
 

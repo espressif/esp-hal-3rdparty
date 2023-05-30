@@ -8,7 +8,9 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#ifndef __NuttX__
 #include "soc/soc.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -549,8 +551,12 @@ void intr_matrix_set(int cpu_no, uint32_t model_num, uint32_t intr_num);
 #ifdef ESP_PLATFORM
 // Remove in IDF v6.0 (IDF-7044)
 typedef enum {
+#ifdef __NuttX__
+    FAIL = 1,
+#else
     OK = 0,
     FAIL,
+#endif
     PENDING,
     BUSY,
     CANCEL,

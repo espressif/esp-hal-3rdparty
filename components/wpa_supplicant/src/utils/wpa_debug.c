@@ -8,7 +8,40 @@
 #ifdef ESP_SUPPLICANT
 #include "utils/includes.h"
 #include "utils/common.h"
+#ifndef __NuttX__
 #include "utils/wpa_debug.h"
+#else
+int wpa_debug_level = MSG_DEBUG;
+
+#ifdef DEBUG_PRINT
+
+/**
+ * wpa_printf - conditional printf
+ * @level: priority level (MSG_*) of the message
+ * @fmt: printf format string, followed by optional arguments
+ *
+ * This function is used to print conditional debugging and error messages. The
+ * output may be directed to stdout, stderr, and/or syslog based on
+ * configuration.
+ *
+ * Note: New line '\n' is added to the end of the text when printing to stdout.
+ */
+void wpa_printf(int level, const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	if (level >= wpa_debug_level) {
+		wpa_debug_print_timestamp();
+		vprintf(fmt, ap);
+		printf("\n");
+        fflush(stdout);
+	}
+	va_end(ap);
+}
+
+#endif /* DEBUG_PRINT */
+#endif
 
 static inline int
 _wpa_snprintf_hex(char *buf, size_t buf_size, const u8 *data, size_t len,
@@ -72,10 +105,12 @@ void  wpa_dump_mem(char* desc, uint8_t *addr, uint16_t len)
 
 void  wpa_debug_print_timestamp(void)
 {
+#ifndef __NuttX__
 #ifdef DEBUG_PRINT
     struct os_time tv;
     os_get_time(&tv);
     wpa_printf(MSG_DEBUG, "%ld.%06u: ", (long) tv.sec, (unsigned int) tv.usec);
+#endif
 #endif
 }
 

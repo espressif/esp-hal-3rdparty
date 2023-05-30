@@ -1395,7 +1395,7 @@ u32 wpa_cipher_to_suite(int proto, int cipher)
 			RSN_CIPHER_SUITE_NONE : WPA_CIPHER_SUITE_NONE);
 	if (cipher & WPA_CIPHER_AES_128_CMAC)
 		return RSN_CIPHER_SUITE_AES_128_CMAC;
-#if CONFIG_GMAC
+#ifdef CONFIG_GMAC
 	if (cipher & WPA_CIPHER_BIP_GMAC_128)
 		return RSN_CIPHER_SUITE_BIP_GMAC_128;
 	if (cipher & WPA_CIPHER_BIP_GMAC_256)

@@ -66,7 +66,11 @@ void esp_md5_clone( mbedtls_md5_context *dst, const mbedtls_md5_context *src );
  *                 stronger message digests instead.
  *
  */
+#ifdef __NuttX__
+int esp_mbedtls_md5_starts( mbedtls_md5_context *ctx );
+#else
 int mbedtls_md5_starts( mbedtls_md5_context *ctx );
+#endif
 
 /**
  * \brief          MD5 process buffer

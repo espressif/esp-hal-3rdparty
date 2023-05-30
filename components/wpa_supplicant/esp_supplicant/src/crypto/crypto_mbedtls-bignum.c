@@ -16,6 +16,12 @@
 #include "sha256.h"
 #include "mbedtls/pk.h"
 
+#ifdef __NuttX__
+#include "esp_mbedtls.h"
+
+#define ALLOW_EVEN_MOD 1
+#endif
+
 static int crypto_rng_wrapper(void *ctx, unsigned char *buf, size_t len)
 {
     return random_get_bytes(buf, len);
