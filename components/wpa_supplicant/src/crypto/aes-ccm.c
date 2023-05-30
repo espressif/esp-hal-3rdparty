@@ -10,7 +10,11 @@
 #ifdef CONFIG_IEEE80211W
 #include "includes.h"
 
+#ifdef __NuttX__
+#include "utils/common.h"
+#else
 #include "common.h"
+#endif
 #include "aes.h"
 #include "aes_wrap.h"
 

@@ -21,8 +21,10 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#ifndef __NuttX__
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
+#endif
 #include "sys/queue.h"
 #include "esp_err.h"
 #include "esp_wifi_types.h"
@@ -33,6 +35,10 @@
 
 #ifdef __cplusplus
 extern "C" {
+#endif
+
+#ifdef __NuttX__
+typedef void*           QueueHandle_t;
 #endif
 
 typedef struct {

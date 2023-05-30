@@ -1,0 +1,9 @@
+[submodule "components/mbedtls/mbedtls"]
+	path = components/mbedtls/mbedtls
+	url = ../../espressif/mbedtls.git
+[submodule "components/esp_phy/lib"]
+	path = components/esp_phy/lib
+	url = ../../espressif/esp-phy-lib.git
+[submodule "components/esp_wifi/lib"]
+	path = components/esp_wifi/lib
+	url = ../../espressif/esp32-wifi-lib.git

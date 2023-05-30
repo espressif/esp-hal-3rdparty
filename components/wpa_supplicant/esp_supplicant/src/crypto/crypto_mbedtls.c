@@ -36,6 +36,10 @@
 #include "crypto.h"
 #include "mbedtls/esp_config.h"
 
+#ifdef __NuttX__
+#include "esp_mbedtls.h"
+#endif
+
 static int digest_vector(mbedtls_md_type_t md_type, size_t num_elem,
 			 const u8 *addr[], const size_t *len, u8 *mac)
 {

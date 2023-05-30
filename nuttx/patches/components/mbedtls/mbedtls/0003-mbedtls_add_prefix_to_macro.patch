@@ -1,0 +1,63 @@
+diff --git a/library/ecp_curves.c b/library/ecp_curves.c
+index 2c41d4d87a7cd884d2ab24921c50717e8948588d..1b4f93f6bc0e72a4f4b55e239884c3d45190ba20 100644
+--- a/library/ecp_curves.c
++++ b/library/ecp_curves.c
+@@ -4592,7 +4592,7 @@ MBEDTLS_STATIC_TESTABLE
+ int esp_mbedtls_ecp_mod_p521_raw(mbedtls_mpi_uint *N_p, size_t N_n);
+ #endif
+ 
+-#define NIST_MODP(P)      grp->modp = ecp_mod_ ## P;
++#define NIST_MODP(P)      grp->modp = esp_ecp_mod_ ## P;
+ #else
+ #define NIST_MODP(P)
+ #endif /* MBEDTLS_ECP_NIST_OPTIM */
+@@ -4616,23 +4616,23 @@ static int esp_ecp_mod_p256k1(mbedtls_mpi *);
+ 
+ #if defined(ECP_LOAD_GROUP)
+ #define LOAD_GROUP_A(G)   esp_ecp_group_load(grp,            \
+-                                         G ## _p,  sizeof(G ## _p),   \
+-                                         G ## _a,  sizeof(G ## _a),   \
+-                                         G ## _b,  sizeof(G ## _b),   \
+-                                         G ## _gx, sizeof(G ## _gx),   \
+-                                         G ## _gy, sizeof(G ## _gy),   \
+-                                         G ## _n,  sizeof(G ## _n),   \
+-                                         G ## _T                         \
++                                         esp_ ## G ## _p,  sizeof(esp_ ## G ## _p),   \
++                                         esp_ ## G ## _a,  sizeof(esp_ ## G ## _a),   \
++                                         esp_ ## G ## _b,  sizeof(esp_ ## G ## _b),   \
++                                         esp_ ## G ## _gx, sizeof(esp_ ## G ## _gx),   \
++                                         esp_ ## G ## _gy, sizeof(esp_ ## G ## _gy),   \
++                                         esp_ ## G ## _n,  sizeof(esp_ ## G ## _n),   \
++                                         esp_ ## G ## _T                         \
+                                          )
+ 
+ #define LOAD_GROUP(G)     esp_ecp_group_load(grp,            \
+-                                         G ## _p,  sizeof(G ## _p),   \
++                                         esp_ ## G ## _p,  sizeof(esp_ ## G ## _p),   \
+                                          NULL,     0,                    \
+-                                         G ## _b,  sizeof(G ## _b),   \
+-                                         G ## _gx, sizeof(G ## _gx),   \
+-                                         G ## _gy, sizeof(G ## _gy),   \
+-                                         G ## _n,  sizeof(G ## _n),   \
+-                                         G ## _T                         \
++                                         esp_ ## G ## _b,  sizeof(esp_ ## G ## _b),   \
++                                         esp_ ## G ## _gx, sizeof(esp_ ## G ## _gx),   \
++                                         esp_ ## G ## _gy, sizeof(esp_ ## G ## _gy),   \
++                                         esp_ ## G ## _n,  sizeof(esp_ ## G ## _n),   \
++                                         esp_ ## G ## _T                         \
+                                          )
+ #endif /* ECP_LOAD_GROUP */
+ 
+diff --git a/library/md.c b/library/md.c
+index fd5a31cd2a836d2ff252a26c6a619d9fe734b1c1..22979f53b240e3c3d8ea3ab15791f99bf1175e7a 100644
+--- a/library/md.c
++++ b/library/md.c
+@@ -370,7 +370,7 @@ int esp_mbedtls_md_clone(mbedtls_md_context_t *dst,
+         ctx->md_ctx = esp_mbedtls_calloc(1, sizeof(mbedtls_##type##_context)); \
+         if (ctx->md_ctx == NULL)                                       \
+         return MBEDTLS_ERR_MD_ALLOC_FAILED;                      \
+-        mbedtls_##type##_init(ctx->md_ctx);                           \
++        esp_mbedtls_##type##_init(ctx->md_ctx);                           \
+     }                                                                   \
+     while (0)
+ 

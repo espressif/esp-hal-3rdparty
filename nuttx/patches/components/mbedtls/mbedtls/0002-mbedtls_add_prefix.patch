@@ -1,0 +1,248 @@
+diff --git a/include/mbedtls/ecp.h b/include/mbedtls/ecp.h
+index e685d4b0ddf27045d6851795efaa9b66267639df..01595552afff77fd3fdbd88589c4792dd934b56d 100644
+--- a/include/mbedtls/ecp.h
++++ b/include/mbedtls/ecp.h
+@@ -775,7 +775,7 @@ int esp_mbedtls_ecp_point_write_binary(const mbedtls_ecp_group *grp,
+  * \brief           This function imports a point from unsigned binary data.
+  *
+  * \note            This function does not check that the point actually
+- *                  belongs to the given group, see mbedtls_ecp_check_pubkey()
++ *                  belongs to the given group, see esp_mbedtls_ecp_check_pubkey()
+  *                  for that.
+  *
+  * \note            For compressed points, see #MBEDTLS_ECP_PF_COMPRESSED for
+@@ -1113,7 +1113,7 @@ int esp_mbedtls_ecp_muladd_restartable(
+  *                  a valid public key for the given curve.
+  * \return          Another negative error code on other kinds of failure.
+  */
+-int mbedtls_ecp_check_pubkey(const mbedtls_ecp_group *grp,
++int esp_mbedtls_ecp_check_pubkey(const mbedtls_ecp_group *grp,
+                              const mbedtls_ecp_point *pt);
+ 
+ /**
+diff --git a/library/ecp.c b/library/ecp.c
+index 20b43fa204d9fbc632b142545913fdff3a272c7e..03e4505fe03a18dd146aeccb067fbe00c1c8709d 100644
+--- a/library/ecp.c
++++ b/library/ecp.c
+@@ -2682,7 +2682,7 @@ static int ecp_mul_restartable_internal(mbedtls_ecp_group *grp, mbedtls_ecp_poin
+ 
+         /* Common sanity checks */
+         MBEDTLS_MPI_CHK(esp_mbedtls_ecp_check_privkey(grp, m));
+-        MBEDTLS_MPI_CHK(mbedtls_ecp_check_pubkey(grp, P));
++        MBEDTLS_MPI_CHK(esp_mbedtls_ecp_check_pubkey(grp, P));
+     }
+ 
+     ret = MBEDTLS_ERR_ECP_BAD_INPUT_DATA;
+@@ -2799,13 +2799,13 @@ static int esp_mbedtls_ecp_mul_shortcuts(mbedtls_ecp_group *grp,
+     esp_mbedtls_mpi_init(&tmp);
+ 
+     if (esp_mbedtls_mpi_cmp_int(m, 0) == 0) {
+-        MBEDTLS_MPI_CHK(mbedtls_ecp_check_pubkey(grp, P));
++        MBEDTLS_MPI_CHK(esp_mbedtls_ecp_check_pubkey(grp, P));
+         MBEDTLS_MPI_CHK(esp_mbedtls_ecp_set_zero(R));
+     } else if (esp_mbedtls_mpi_cmp_int(m, 1) == 0) {
+-        MBEDTLS_MPI_CHK(mbedtls_ecp_check_pubkey(grp, P));
++        MBEDTLS_MPI_CHK(esp_mbedtls_ecp_check_pubkey(grp, P));
+         MBEDTLS_MPI_CHK(esp_mbedtls_ecp_copy(R, P));
+     } else if (esp_mbedtls_mpi_cmp_int(m, -1) == 0) {
+-        MBEDTLS_MPI_CHK(mbedtls_ecp_check_pubkey(grp, P));
++        MBEDTLS_MPI_CHK(esp_mbedtls_ecp_check_pubkey(grp, P));
+         MBEDTLS_MPI_CHK(esp_mbedtls_ecp_copy(R, P));
+         MPI_ECP_NEG(&R->Y);
+     } else {
+@@ -3058,7 +3058,7 @@ static int esp_ecp_check_pubkey_mx(const mbedtls_ecp_group *grp, const mbedtls_e
+ int esp_mbedtls_ecp_check_pubkey_soft(const mbedtls_ecp_group *grp,
+                                 const mbedtls_ecp_point *pt)
+ #else
+-int mbedtls_ecp_check_pubkey(const mbedtls_ecp_group *grp,
++int esp_mbedtls_ecp_check_pubkey(const mbedtls_ecp_group *grp,
+                              const mbedtls_ecp_point *pt)
+ #endif
+ {
+diff --git a/library/pkparse.c b/library/pkparse.c
+index ead6fe4548e9c1d98abb250d3ada9d0f95612fc7..8eedb18f5d8ce98d6d483c672d3a87c849f6ea8a 100644
+--- a/library/pkparse.c
++++ b/library/pkparse.c
+@@ -501,7 +501,7 @@ static int esp_pk_get_ecpubkey(unsigned char **p, const unsigned char *end,
+ 
+     if ((ret = esp_mbedtls_ecp_point_read_binary(&key->grp, &key->Q,
+                                              (const unsigned char *) *p, end - *p)) == 0) {
+-        ret = mbedtls_ecp_check_pubkey(&key->grp, &key->Q);
++        ret = esp_mbedtls_ecp_check_pubkey(&key->grp, &key->Q);
+     }
+ 
+     /*
+diff --git a/library/psa_crypto_ecp.c b/library/psa_crypto_ecp.c
+index 1f700a073be766dd1844bd1a04aad4d111d778b0..31b30c0b78adfce16ceb11208cfbbdfa36a13c99 100644
+--- a/library/psa_crypto_ecp.c
++++ b/library/psa_crypto_ecp.c
+@@ -125,7 +125,7 @@ psa_status_t esp_mbedtls_psa_ecp_load_representation(
+ 
+         /* Check that the point is on the curve. */
+         status = esp_mbedtls_to_psa_error(
+-            mbedtls_ecp_check_pubkey(&ecp->grp, &ecp->Q));
++            esp_mbedtls_ecp_check_pubkey(&ecp->grp, &ecp->Q));
+         if (status != PSA_SUCCESS) {
+             goto exit;
+         }
+diff --git a/tests/suites/test_suite_ecdh.function b/tests/suites/test_suite_ecdh.function
+index cc193daccab91932da9e21b231e86dae9d330d2f..d044b1a9a8cc2bfeaf8e7ae4bea9e3403d68d460 100644
+--- a/tests/suites/test_suite_ecdh.function
++++ b/tests/suites/test_suite_ecdh.function
+@@ -10,7 +10,7 @@ static int load_public_key(int grp_id, data_t *point,
+                                               &ecp->Q,
+                                               point->x,
+                                               point->len) == 0);
+-    TEST_ASSERT(mbedtls_ecp_check_pubkey(&ecp->grp,
++    TEST_ASSERT(esp_mbedtls_ecp_check_pubkey(&ecp->grp,
+                                          &ecp->Q) == 0);
+     ok = 1;
+ exit:
+diff --git a/tests/suites/test_suite_ecdsa.function b/tests/suites/test_suite_ecdsa.function
+index 539c39d430a530cba960aa5ac52ae311dbcea5df..e21025408b24e1679ab528d5168317191117e328 100644
+--- a/tests/suites/test_suite_ecdsa.function
++++ b/tests/suites/test_suite_ecdsa.function
+@@ -509,7 +509,7 @@ void ecdsa_verify(int grp_id, char *x, char *y, char *r, char *s, data_t *conten
+     TEST_EQUAL(mbedtls_test_read_mpi(&sig_s, s), 0);
+ 
+     /* Test whether public key has expected validity */
+-    TEST_EQUAL(mbedtls_ecp_check_pubkey(&ctx.grp, &ctx.Q),
++    TEST_EQUAL(esp_mbedtls_ecp_check_pubkey(&ctx.grp, &ctx.Q),
+                expected == MBEDTLS_ERR_ECP_INVALID_KEY ? MBEDTLS_ERR_ECP_INVALID_KEY : 0);
+ 
+     /* Verification */
+diff --git a/tests/suites/test_suite_ecp.function b/tests/suites/test_suite_ecp.function
+index ecb35464a854127abb66a8c55c07e09587305894..18fb8b810d7fd3fcc5ebc8073fa7e6ef523a6a0f 100644
+--- a/tests/suites/test_suite_ecp.function
++++ b/tests/suites/test_suite_ecp.function
+@@ -145,7 +145,7 @@ void ecp_check_pub(int grp_id, char *x_hex, char *y_hex, char *z_hex,
+     TEST_ASSERT(mbedtls_test_read_mpi(&P.Y, y_hex) == 0);
+     TEST_ASSERT(mbedtls_test_read_mpi(&P.Z, z_hex) == 0);
+ 
+-    TEST_ASSERT(mbedtls_ecp_check_pubkey(&grp, &P) == ret);
++    TEST_ASSERT(esp_mbedtls_ecp_check_pubkey(&grp, &P) == ret);
+ 
+ exit:
+     mbedtls_ecp_group_free(&grp);
+@@ -340,7 +340,7 @@ void ecp_test_vect(int id, char *dA_str, char *xA_str, char *yA_str,
+ 
+     TEST_ASSERT(mbedtls_ecp_group_load(&grp, id) == 0);
+ 
+-    TEST_ASSERT(mbedtls_ecp_check_pubkey(&grp, &grp.G) == 0);
++    TEST_ASSERT(esp_mbedtls_ecp_check_pubkey(&grp, &grp.G) == 0);
+ 
+     TEST_ASSERT(mbedtls_test_read_mpi(&dA, dA_str) == 0);
+     TEST_ASSERT(mbedtls_test_read_mpi(&xA, xA_str) == 0);
+@@ -355,23 +355,23 @@ void ecp_test_vect(int id, char *dA_str, char *xA_str, char *yA_str,
+                                 &mbedtls_test_rnd_pseudo_rand, &rnd_info) == 0);
+     TEST_ASSERT(mbedtls_mpi_cmp_mpi(&R.X, &xA) == 0);
+     TEST_ASSERT(mbedtls_mpi_cmp_mpi(&R.Y, &yA) == 0);
+-    TEST_ASSERT(mbedtls_ecp_check_pubkey(&grp, &R) == 0);
++    TEST_ASSERT(esp_mbedtls_ecp_check_pubkey(&grp, &R) == 0);
+     TEST_ASSERT(mbedtls_ecp_mul(&grp, &R, &dB, &R,
+                                 &mbedtls_test_rnd_pseudo_rand, &rnd_info) == 0);
+     TEST_ASSERT(mbedtls_mpi_cmp_mpi(&R.X, &xZ) == 0);
+     TEST_ASSERT(mbedtls_mpi_cmp_mpi(&R.Y, &yZ) == 0);
+-    TEST_ASSERT(mbedtls_ecp_check_pubkey(&grp, &R) == 0);
++    TEST_ASSERT(esp_mbedtls_ecp_check_pubkey(&grp, &R) == 0);
+ 
+     TEST_ASSERT(mbedtls_ecp_mul(&grp, &R, &dB, &grp.G,
+                                 &mbedtls_test_rnd_pseudo_rand, &rnd_info) == 0);
+     TEST_ASSERT(mbedtls_mpi_cmp_mpi(&R.X, &xB) == 0);
+     TEST_ASSERT(mbedtls_mpi_cmp_mpi(&R.Y, &yB) == 0);
+-    TEST_ASSERT(mbedtls_ecp_check_pubkey(&grp, &R) == 0);
++    TEST_ASSERT(esp_mbedtls_ecp_check_pubkey(&grp, &R) == 0);
+     TEST_ASSERT(mbedtls_ecp_mul(&grp, &R, &dA, &R,
+                                 &mbedtls_test_rnd_pseudo_rand, &rnd_info) == 0);
+     TEST_ASSERT(mbedtls_mpi_cmp_mpi(&R.X, &xZ) == 0);
+     TEST_ASSERT(mbedtls_mpi_cmp_mpi(&R.Y, &yZ) == 0);
+-    TEST_ASSERT(mbedtls_ecp_check_pubkey(&grp, &R) == 0);
++    TEST_ASSERT(esp_mbedtls_ecp_check_pubkey(&grp, &R) == 0);
+ 
+ exit:
+     mbedtls_ecp_group_free(&grp); mbedtls_ecp_point_free(&R);
+@@ -397,7 +397,7 @@ void ecp_test_vec_x(int id, char *dA_hex, char *xA_hex, char *dB_hex,
+ 
+     TEST_ASSERT(mbedtls_ecp_group_load(&grp, id) == 0);
+ 
+-    TEST_ASSERT(mbedtls_ecp_check_pubkey(&grp, &grp.G) == 0);
++    TEST_ASSERT(esp_mbedtls_ecp_check_pubkey(&grp, &grp.G) == 0);
+ 
+     TEST_ASSERT(mbedtls_test_read_mpi(&dA, dA_hex) == 0);
+     TEST_ASSERT(mbedtls_test_read_mpi(&dB, dB_hex) == 0);
+@@ -407,22 +407,22 @@ void ecp_test_vec_x(int id, char *dA_hex, char *xA_hex, char *dB_hex,
+ 
+     TEST_ASSERT(mbedtls_ecp_mul(&grp, &R, &dA, &grp.G,
+                                 &mbedtls_test_rnd_pseudo_rand, &rnd_info) == 0);
+-    TEST_ASSERT(mbedtls_ecp_check_pubkey(&grp, &R) == 0);
++    TEST_ASSERT(esp_mbedtls_ecp_check_pubkey(&grp, &R) == 0);
+     TEST_ASSERT(mbedtls_mpi_cmp_mpi(&R.X, &xA) == 0);
+ 
+     TEST_ASSERT(mbedtls_ecp_mul(&grp, &R, &dB, &R,
+                                 &mbedtls_test_rnd_pseudo_rand, &rnd_info) == 0);
+-    TEST_ASSERT(mbedtls_ecp_check_pubkey(&grp, &R) == 0);
++    TEST_ASSERT(esp_mbedtls_ecp_check_pubkey(&grp, &R) == 0);
+     TEST_ASSERT(mbedtls_mpi_cmp_mpi(&R.X, &xS) == 0);
+ 
+     TEST_ASSERT(mbedtls_ecp_mul(&grp, &R, &dB, &grp.G,
+                                 &mbedtls_test_rnd_pseudo_rand, &rnd_info) == 0);
+-    TEST_ASSERT(mbedtls_ecp_check_pubkey(&grp, &R) == 0);
++    TEST_ASSERT(esp_mbedtls_ecp_check_pubkey(&grp, &R) == 0);
+     TEST_ASSERT(mbedtls_mpi_cmp_mpi(&R.X, &xB) == 0);
+ 
+     TEST_ASSERT(mbedtls_ecp_mul(&grp, &R, &dA, &R,
+                                 &mbedtls_test_rnd_pseudo_rand, &rnd_info) == 0);
+-    TEST_ASSERT(mbedtls_ecp_check_pubkey(&grp, &R) == 0);
++    TEST_ASSERT(esp_mbedtls_ecp_check_pubkey(&grp, &R) == 0);
+     TEST_ASSERT(mbedtls_mpi_cmp_mpi(&R.X, &xS) == 0);
+ 
+ exit:
+@@ -451,7 +451,7 @@ void ecp_test_mul(int id, data_t *n_hex,
+ 
+     TEST_ASSERT(mbedtls_ecp_group_load(&grp, id) == 0);
+ 
+-    TEST_ASSERT(mbedtls_ecp_check_pubkey(&grp, &grp.G) == 0);
++    TEST_ASSERT(esp_mbedtls_ecp_check_pubkey(&grp, &grp.G) == 0);
+ 
+     TEST_ASSERT(mbedtls_mpi_read_binary(&n, n_hex->x, n_hex->len) == 0);
+ 
+@@ -494,7 +494,7 @@ void ecp_test_mul_rng(int id, data_t *d_hex)
+ 
+     TEST_ASSERT(mbedtls_ecp_group_load(&grp, id) == 0);
+ 
+-    TEST_ASSERT(mbedtls_ecp_check_pubkey(&grp, &grp.G) == 0);
++    TEST_ASSERT(esp_mbedtls_ecp_check_pubkey(&grp, &grp.G) == 0);
+ 
+     TEST_ASSERT(mbedtls_mpi_read_binary(&d, d_hex->x, d_hex->len) == 0);
+ 
+@@ -1011,7 +1011,7 @@ void mbedtls_ecp_gen_keypair(int id)
+                                         &mbedtls_test_rnd_pseudo_rand,
+                                         &rnd_info) == 0);
+ 
+-    TEST_ASSERT(mbedtls_ecp_check_pubkey(&grp, &Q) == 0);
++    TEST_ASSERT(esp_mbedtls_ecp_check_pubkey(&grp, &Q) == 0);
+     TEST_ASSERT(mbedtls_ecp_check_privkey(&grp, &d) == 0);
+ 
+ exit:
+@@ -1034,7 +1034,7 @@ void mbedtls_ecp_gen_key(int id)
+                                     &mbedtls_test_rnd_pseudo_rand,
+                                     &rnd_info) == 0);
+ 
+-    TEST_ASSERT(mbedtls_ecp_check_pubkey(&key.grp, &key.Q) == 0);
++    TEST_ASSERT(esp_mbedtls_ecp_check_pubkey(&key.grp, &key.Q) == 0);
+     TEST_ASSERT(mbedtls_ecp_check_privkey(&key.grp, &key.d) == 0);
+ 
+ exit:
+diff --git a/tests/suites/test_suite_pkparse.function b/tests/suites/test_suite_pkparse.function
+index 0856f3f38c854aac1fb01cbd01db914bf665b8b0..24444e1d5f6d0b0549bd2a30d228c7807299885a 100644
+--- a/tests/suites/test_suite_pkparse.function
++++ b/tests/suites/test_suite_pkparse.function
+@@ -85,7 +85,7 @@ void pk_parse_public_keyfile_ec(char *key_file, int result)
+         mbedtls_ecp_keypair *eckey;
+         TEST_ASSERT(mbedtls_pk_can_do(&ctx, MBEDTLS_PK_ECKEY));
+         eckey = mbedtls_pk_ec(ctx);
+-        TEST_ASSERT(mbedtls_ecp_check_pubkey(&eckey->grp, &eckey->Q) == 0);
++        TEST_ASSERT(esp_mbedtls_ecp_check_pubkey(&eckey->grp, &eckey->Q) == 0);
+     }
+ 
+ exit:
