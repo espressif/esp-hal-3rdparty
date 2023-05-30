@@ -11,6 +11,10 @@
 #if defined(MBEDTLS_MD5_ALT)
 #include "md/esp_md.h"
 
+#ifdef __NuttX__
+#   define mbedtls_platform_zeroize esp_mbedtls_platform_zeroize
+#endif
+
 int esp_md5_finish( mbedtls_md5_context *ctx, unsigned char output[16] )
 {
     esp_rom_md5_final(output, ctx);

@@ -10,7 +10,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "esp_err.h"
+#ifndef __NuttX__
 #include "esp_attr.h"
+#endif
 #include "esp_bit_defs.h"
 #include "esp_idf_version.h"
 

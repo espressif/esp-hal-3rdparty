@@ -16,9 +16,14 @@
 #define WPA_DEBUG_H
 
 #include "wpabuf.h"
+#ifndef __NuttX__
 #include "esp_log.h"
+#endif
 #include "supplicant_opt.h"
 
+#ifdef __NuttX__
+enum { MSG_MSGDUMP, MSG_DEBUG, MSG_INFO, MSG_WARNING, MSG_ERROR };
+#else
 #ifdef ESPRESSIF_USE
 
 #define TAG "wpa"
@@ -32,6 +37,7 @@
 
 #else
 enum { MSG_MSGDUMP, MSG_DEBUG, MSG_INFO, MSG_WARNING, MSG_ERROR };
+#endif
 #endif
 
 /** EAP authentication completed successfully */
@@ -61,7 +67,11 @@ void wpa_debug_print_timestamp(void);
  *
  * Note: New line '\n' is added to the end of the text when printing to stdout.
  */
+#ifdef __NuttX__
+void wpa_printf(int level, const char *fmt, ...) PRINTF_FORMAT(2, 3);
+#else
 #define wpa_printf(level,fmt, args...) ESP_LOG_LEVEL_LOCAL(level, TAG, fmt, ##args)
+#endif
 #define wpa_dbg(ctx, level, fmt, args...) wpa_printf(level, fmt, ##args)
 
 void wpa_dump_mem(char* desc, uint8_t *addr, uint16_t len);

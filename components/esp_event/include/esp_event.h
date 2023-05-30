@@ -9,15 +9,23 @@
 
 #include "esp_err.h"
 
+#ifndef __NuttX__
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
+#endif
 
 #include "esp_event_base.h"
 
 #ifdef __cplusplus
 extern "C" {
+#endif
+
+#ifdef __NuttX__
+typedef uint32_t        TickType_t;
+typedef uint32_t        UBaseType_t;
+typedef int32_t         BaseType_t;
 #endif
 
 /// Configuration for creating event loops
@@ -358,7 +366,7 @@ esp_err_t esp_event_handler_instance_unregister(esp_event_base_t event_base,
  */
 esp_err_t esp_event_post(esp_event_base_t event_base,
                          int32_t event_id,
-                         const void *event_data,
+                         void *event_data,
                          size_t event_data_size,
                          TickType_t ticks_to_wait);
 

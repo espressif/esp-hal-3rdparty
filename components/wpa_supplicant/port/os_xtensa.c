@@ -26,6 +26,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/time.h>
+#ifdef __NuttX__
+#include "esp_system.h"
+#include "esp_mbedtls.h"
+#endif
 #include "esp_random.h"
 #include "utils/common.h"
 #include "mbedtls/platform_util.h"

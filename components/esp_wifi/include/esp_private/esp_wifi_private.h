@@ -6,8 +6,10 @@
 #ifndef _ESP_WIFI_PRIVATE_H
 #define _ESP_WIFI_PRIVATE_H
 
+#ifndef __NuttX__
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
+#endif
 #include "sys/queue.h"
 #include "sdkconfig.h"
 #include "esp_wifi_crypto_types.h"

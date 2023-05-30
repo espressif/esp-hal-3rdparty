@@ -9,6 +9,9 @@
 
 #include "esp_err.h"
 #include "esp_wifi.h"
+#ifdef __NuttX__
+#include "utils/common.h"
+#endif
 
 #if CONFIG_NEWLIB_NANO_FORMAT
 #define TASK_STACK_SIZE_ADD 0
