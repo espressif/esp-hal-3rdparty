@@ -26,6 +26,10 @@
 #include "mbedtls/error.h"
 #include "mbedtls/oid.h"
 
+#ifdef __NuttX__
+#include "esp_mbedtls.h"
+#endif
+
 #define ECP_PRV_DER_MAX_BYTES   29 + 3 * MBEDTLS_ECP_MAX_BYTES
 
 #ifdef CONFIG_MBEDTLS_ECDH_LEGACY_CONTEXT

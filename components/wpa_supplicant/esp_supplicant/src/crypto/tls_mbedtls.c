@@ -36,6 +36,9 @@
 #endif
 #include "eap_peer/eap.h"
 
+#ifdef __NuttX__
+#include "esp_mbedtls.h"
+#endif
 
 #define TLS_RANDOM_LEN 32
 #define TLS_MASTER_SECRET_LEN 48

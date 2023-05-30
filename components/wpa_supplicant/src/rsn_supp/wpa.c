@@ -30,7 +30,9 @@
 #include "crypto/aes_wrap.h"
 #include "crypto/ccmp.h"
 #include "crypto/sha256.h"
+#ifndef __NuttX__
 #include "esp_rom_sys.h"
+#endif
 #include "common/bss.h"
 #include "esp_common_i.h"
 #include "esp_owe_i.h"
@@ -2588,7 +2590,11 @@ int wpa_michael_mic_failure(u16 isunicast)
          * Need to wait for completion of request frame. We do not get
          * any callback for the message completion, so just wait a
          * short while and hope for the best. */
-         esp_rom_delay_us(10000);
+#ifdef __NuttX__
+        up_udelay(10000);
+#else
+        esp_rom_delay_us(10000);
+#endif
 
         /*deauthenticate AP*/
 

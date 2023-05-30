@@ -397,6 +397,8 @@
  */
 #ifdef CONFIG_MBEDTLS_CMAC_C
 #define MBEDTLS_CMAC_C
+#else
+#undef MBEDTLS_CMAC_C
 #endif
 
 /**
@@ -1882,10 +1884,18 @@
  *
  * This module provides debugging functions.
  */
-#if CONFIG_MBEDTLS_DEBUG
-#define MBEDTLS_DEBUG_C
+#ifdef __NuttX__
+#   ifdef CONFIG_MBEDTLS_DEBUG
+#       define MBEDTLS_DEBUG_C
+#   else
+#       undef MBEDTLS_DEBUG_C
+#   endif
 #else
-#undef MBEDTLS_DEBUG_C
+#   if CONFIG_MBEDTLS_DEBUG
+#       define MBEDTLS_DEBUG_C
+#   else
+#       undef MBEDTLS_DEBUG_C
+#   endif
 #endif
 
 /**
