@@ -6,6 +6,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "sdkconfig.h"
 #include "soc/periph_defs.h"
 

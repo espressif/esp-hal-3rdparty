@@ -13,8 +13,7 @@
 #include <limits.h>
 #include <assert.h>
 #include "sdkconfig.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+#include "platform/os.h"
 #include "esp_err.h"
 #include "esp_log.h"
 #include "esp_memory_utils.h"
@@ -126,7 +125,7 @@ static uint32_t non_iram_int_mask[SOC_CPU_CORES_NUM];
 static uint32_t non_iram_int_disabled[SOC_CPU_CORES_NUM];
 static bool non_iram_int_disabled_flag[SOC_CPU_CORES_NUM];
 
-static portMUX_TYPE __attribute__((unused)) spinlock = portMUX_INITIALIZER_UNLOCKED;
+DEFINE_CRIT_SECTION_LOCK_STATIC(spinlock, __attribute__((unused)));
 
 //Inserts an item into vector_desc list so that the list is sorted
 //with an incrementing cpu.intno value.
@@ -166,7 +165,7 @@ static vector_desc_t *find_desc_for_int(int intno, int cpu)
 //Returns a vector_desc entry for an intno/cpu.
 //Either returns a preexisting one or allocates a new one and inserts
 //it into the list. Returns NULL on malloc fail.
-static vector_desc_t *get_desc_for_int(int intno, int cpu)
+vector_desc_t *get_desc_for_int(int intno, int cpu)
 {
     vector_desc_t *vd = find_desc_for_int(intno, cpu);
     if (vd == NULL) {
@@ -779,7 +778,7 @@ esp_err_t esp_intr_free(intr_handle_t handle)
     UBaseType_t core_affinity = vTaskCoreAffinityGet(NULL);
     task_can_be_run_on_any_core = (__builtin_popcount(core_affinity) > 1);
 #else
-    UBaseType_t core_affinity = xTaskGetCoreID(NULL);
+    UBaseType_t core_affinity = OS_TASK_GET_CORE_ID(NULL);
     task_can_be_run_on_any_core = (core_affinity == tskNO_AFFINITY);
 #endif
 
@@ -988,6 +987,17 @@ void ESP_INTR_IRAM_ATTR esp_intr_noniram_enable(void)
     esp_cpu_intr_enable(non_iram_ints);
     rtc_isr_noniram_enable(cpu);
     esp_os_exit_critical_safe(&spinlock);
+}
+
+bool ESP_INTR_IRAM_ATTR esp_intr_noniram_is_disabled(uint32_t cpu)
+{
+    if (cpu >= SOC_CPU_CORES_NUM) {
+        return false;
+    }
+    esp_os_enter_critical_safe(&spinlock);
+    bool disabled = non_iram_int_disabled_flag[cpu];
+    esp_os_exit_critical_safe(&spinlock);
+    return disabled;
 }
 
 //These functions are provided in ROM, but the ROM-based functions use non-multicore-capable

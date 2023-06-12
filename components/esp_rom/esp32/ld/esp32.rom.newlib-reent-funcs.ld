@@ -6,10 +6,12 @@
 _cleanup = 0x40001df8;
 _cleanup_r = 0x40001d48;
 creat = 0x40000e8c;
+#ifndef __NuttX__
 fclose = 0x400020ac;
 _fclose_r = 0x40001fec;
 fflush = 0x40059394;
 _fflush_r = 0x40059320;
+#endif
 _findenv_r = 0x40001f44;
 __fp_lock_all = 0x40001f1c;
 __fp_unlock_all = 0x40001f30;
@@ -25,9 +27,11 @@ __sread = 0x40001118;
 __sseek = 0x40001184;
 ungetc = 0x400590f4;
 _ungetc_r = 0x40058fa0;
+#ifndef  __NuttX__
 srand = 0x40001004;
 rand_r = 0x400010d4;
 rand = 0x40001058;
+#endif
 atoi = 0x400566c4;
 _atoi_r = 0x400566d4;
 atol = 0x400566ec;

@@ -1,0 +1,45 @@
+[submodule "components/bootloader/subproject/components/micro-ecc/micro-ecc"]
+	path = components/bootloader/subproject/components/micro-ecc/micro-ecc
+	url = ../../kmackay/micro-ecc.git
+	sbom-version = 1.0
+	sbom-cpe = cpe:2.3:a:micro-ecc_project:micro-ecc:{}:*:*:*:*:*:*:*
+	sbom-supplier = Person: Ken MacKay
+	sbom-url = https://github.com/kmackay/micro-ecc
+	sbom-description = A small and fast ECDH and ECDSA implementation for 8-bit, 32-bit, and 64-bit processors
+	sbom-hash = d037ec89546fad14b5c4d5456c2e23a71e554966
+[submodule "components/mbedtls/mbedtls"]
+	path = components/mbedtls/mbedtls
+	url = ../../espressif/mbedtls.git
+[submodule "components/esp_phy/lib"]
+	path = components/esp_phy/lib
+	url = ../../espressif/esp-phy-lib.git
+[submodule "components/esp_wifi/lib"]
+	path = components/esp_wifi/lib
+	url = ../../espressif/esp32-wifi-lib.git
+[submodule "components/bt/controller/lib_esp32"]
+	path = components/bt/controller/lib_esp32
+	url = ../../espressif/esp32-bt-lib.git
+[submodule "components/bt/host/nimble/nimble"]
+	path = components/bt/host/nimble/nimble
+	url = ../../espressif/esp-nimble.git
+[submodule "components/bt/controller/lib_esp32c3_family"]
+	path = components/bt/controller/lib_esp32c3_family
+	url = ../../espressif/esp32c3-bt-lib.git
+[submodule "components/bt/controller/lib_esp32h2/esp32h2-bt-lib"]
+	path = components/bt/controller/lib_esp32h2/esp32h2-bt-lib
+	url = ../../espressif/esp32h2-bt-lib.git
+[submodule "components/bt/controller/lib_esp32c2/esp32c2-bt-lib"]
+	path = components/bt/controller/lib_esp32c2/esp32c2-bt-lib
+	url = ../../espressif/esp32c2-bt-lib.git
+[submodule "components/bt/controller/lib_esp32c5/esp32c5-bt-lib"]
+	path = components/bt/controller/lib_esp32c5/esp32c5-bt-lib
+	url = ../../espressif/esp32c5-bt-lib.git
+[submodule "components/bt/controller/lib_esp32c6/esp32c6-bt-lib"]
+	path = components/bt/controller/lib_esp32c6/esp32c6-bt-lib
+	url = ../../espressif/esp32c6-bt-lib.git
+[submodule "components/esp_coex/lib"]
+	path = components/esp_coex/lib
+	url = ../../espressif/esp-coex-lib.git
+[submodule "components/bt/esp_ble_mesh/lib/lib"]
+	path = components/bt/esp_ble_mesh/lib/lib
+	url = ../../espressif/esp-ble-mesh-lib.git

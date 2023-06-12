@@ -127,7 +127,11 @@ __attribute__((always_inline)) static inline bool efuse_ll_get_pgm_cmd(void)
 
 __attribute__((always_inline)) static inline void efuse_ll_set_read_cmd(void)
 {
+#ifndef __NuttX__
     EFUSE.cmd.read_cmd = 1;
+#else
+    HAL_FORCE_MODIFY_U32_REG_FIELD(EFUSE.cmd, read_cmd, 1);
+#endif
 }
 
 __attribute__((always_inline)) static inline void efuse_ll_set_pgm_cmd(uint32_t block)
@@ -168,7 +172,11 @@ __attribute__((always_inline)) static inline void efuse_ll_set_pwr_off_num(uint1
 
 __attribute__((always_inline)) static inline void efuse_ll_rs_bypass_update(void)
 {
+#ifndef __NuttX__
     EFUSE.wr_tim_conf0_rs_bypass.update = 1;
+#else
+    HAL_FORCE_MODIFY_U32_REG_FIELD(EFUSE.wr_tim_conf0_rs_bypass, update, 1);
+#endif
 }
 
 /******************* eFuse control functions *************************/

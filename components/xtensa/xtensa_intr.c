@@ -36,17 +36,16 @@
 #include "esp_rom_sys.h"
 
 /*
- * When compiling for G0-only, we don't have FreeRTOS component.
- * In fact, FreeRTOS component is only used for the core configuration, so
- * the macro portNUM_PROCESSORS and the macro/function xPortGetCoreID need to
+ * When compiling for G0-only, we don't have the OS component.
+ * In fact, OS-specific component is only used for the core configuration, so
+ * the macro OS_PORT_NUM_PROCESSORS and the macro/function OS_PORT_GET_CORE_ID need to
  * be defined.
  */
-#if __has_include("freertos/FreeRTOS.h")
-    #include "freertos/FreeRTOS.h"
-    #include "freertos/portable.h"
+#if __has_include("platform/os.h")
+    #include "platform/os.h"
 #else
-    _Static_assert(portNUM_PROCESSORS == 1, "G0-only Xtensa builds can only be compiled in single-core mode");
-    #define xPortGetCoreID()    0
+    _Static_assert(OS_PORT_NUM_PROCESSORS == 1, "G0-only Xtensa builds can only be compiled in single-core mode");
+    #define OS_PORT_GET_CORE_ID()    0
 #endif
 
 #if XCHAL_HAVE_EXCEPTIONS
@@ -81,7 +80,7 @@ xt_exc_handler xt_set_exception_handler(int n, xt_exc_handler f)
         return 0;       /* invalid exception number */
 
     /* Convert exception number to _xt_exception_table name */
-    n = n * portNUM_PROCESSORS + xPortGetCoreID();
+    n = n * OS_PORT_NUM_PROCESSORS + OS_PORT_GET_CORE_ID();
     old = _xt_exception_table[n];
 
     if (f) {
@@ -105,7 +104,7 @@ typedef struct xt_handler_table_entry {
     void * arg;
 } xt_handler_table_entry;
 
-extern xt_handler_table_entry _xt_interrupt_table[XCHAL_NUM_INTERRUPTS*portNUM_PROCESSORS];
+extern xt_handler_table_entry _xt_interrupt_table[XCHAL_NUM_INTERRUPTS*OS_PORT_NUM_PROCESSORS];
 
 
 /*
@@ -113,13 +112,13 @@ extern xt_handler_table_entry _xt_interrupt_table[XCHAL_NUM_INTERRUPTS*portNUM_P
 */
 void IRAM_ATTR xt_unhandled_interrupt(void * arg)
 {
-    esp_rom_printf("Unhandled interrupt %d on cpu %d!\n", (int)arg, xPortGetCoreID());
+    esp_rom_printf("Unhandled interrupt %d on cpu %d!\n", (int)arg, OS_PORT_GET_CORE_ID());
 }
 
 //Returns true if handler for interrupt is not the default unhandled interrupt handler
 bool xt_int_has_handler(int intr, int cpu)
 {
-    return (_xt_interrupt_table[intr*portNUM_PROCESSORS+cpu].handler != xt_unhandled_interrupt);
+    return (_xt_interrupt_table[intr*OS_PORT_NUM_PROCESSORS+cpu].handler != xt_unhandled_interrupt);
 }
 
 /*
@@ -139,7 +138,7 @@ xt_handler xt_set_interrupt_handler(int n, xt_handler f, void * arg)
         return 0;       /* priority level too high to safely handle in C */
 
     /* Convert exception number to _xt_exception_table name */
-    n = n * portNUM_PROCESSORS + xPortGetCoreID();
+    n = n * OS_PORT_NUM_PROCESSORS + OS_PORT_GET_CORE_ID();
 
     entry = _xt_interrupt_table + n;
     old   = entry->handler;
@@ -156,7 +155,29 @@ xt_handler xt_set_interrupt_handler(int n, xt_handler f, void * arg)
     return ((old == &xt_unhandled_interrupt) ? 0 : old);
 }
 
-#if CONFIG_ESP_TRACE_ENABLE
+/*
+  This function returns the handler function for the specified interrupt.
+*/
+xt_handler xt_get_interrupt_handler(int n)
+{
+    xt_handler_table_entry * entry;
+
+    if( n < 0 || n >= XCHAL_NUM_INTERRUPTS )
+        return 0;       /* invalid interrupt number */
+
+    /* Convert exception number to _xt_exception_table name */
+    n = n * OS_PORT_NUM_PROCESSORS + OS_PORT_GET_CORE_ID();
+
+    entry = _xt_interrupt_table + n;
+    if (entry->handler == &xt_unhandled_interrupt) {
+        return 0;
+    }
+    return entry->handler;
+}
+
+/*
+  This function returns the handler argument for the specified interrupt.
+*/
 void * xt_get_interrupt_handler_arg(int n)
 {
     xt_handler_table_entry * entry;
@@ -165,11 +186,10 @@ void * xt_get_interrupt_handler_arg(int n)
         return 0;       /* invalid interrupt number */
 
     /* Convert exception number to _xt_exception_table name */
-    n = n * portNUM_PROCESSORS + xPortGetCoreID();
+    n = n * OS_PORT_NUM_PROCESSORS + OS_PORT_GET_CORE_ID();
 
     entry = _xt_interrupt_table + n;
     return entry->arg;
 }
-#endif
 
 #endif /* XCHAL_HAVE_INTERRUPTS */

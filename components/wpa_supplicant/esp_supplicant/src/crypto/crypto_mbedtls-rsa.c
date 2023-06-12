@@ -26,6 +26,10 @@
 #include "psa/crypto.h"
 #include <mbedtls/psa_util.h>
 
+#ifdef __NuttX__
+#include "esp_mbedtls.h"
+#endif
+
 /* Dummy structures; these are just typecast to struct crypto_rsa_key */
 struct crypto_public_key;
 struct crypto_private_key;

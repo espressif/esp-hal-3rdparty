@@ -22,9 +22,11 @@
 /* Functions */
 strdup = 0x400003dc;
 strndup = 0x40000400;
+#ifndef  __NuttX__
 rand_r = 0x40000438;
 rand = 0x4000043c;
 srand = 0x40000440;
+#endif
 atoi = 0x4000044c;
 atol = 0x40000450;
 strtol = 0x40000454;

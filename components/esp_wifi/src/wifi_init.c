@@ -10,13 +10,19 @@
 #include "esp_private/wifi.h"
 #include "esp_private/adc_share_hw_ctrl.h"
 #include "esp_private/sleep_modem.h"
+#ifndef __NuttX__
 #include "esp_pm.h"
+#endif
 #include "esp_sleep.h"
 #include "esp_check.h"
+#ifndef __NuttX__
 #include "esp_private/pm_impl.h"
+#endif
 #include "esp_private/esp_clk.h"
 #include "esp_wpa.h"
+#ifndef __NuttX__
 #include "esp_netif.h"
+#endif
 #ifdef CONFIG_ESP_COEX_ENABLED
 #include "private/esp_coexist_internal.h"
 #endif
@@ -116,10 +122,16 @@ static void __attribute__((constructor)) s_set_default_wifi_log_level(void)
        so set it at runtime startup. Done here not in esp_wifi_init() to allow
        the user to set the level again before esp_wifi_init() is called.
     */
+#ifndef __NuttX__
+    /* We skip this contructor in NuttX because 'esp_log_level_set'
+     * eventually requires heap usage for malloc and we do not have
+     * heap available yet (too early in startup, nx_start was not called).
+     */
     esp_log_level_set("wifi", CONFIG_LOG_DEFAULT_LEVEL);
     esp_log_level_set("mesh", CONFIG_LOG_DEFAULT_LEVEL);
     esp_log_level_set("smartconfig", CONFIG_LOG_DEFAULT_LEVEL);
     esp_log_level_set("ESPNOW", CONFIG_LOG_DEFAULT_LEVEL);
+#endif
 }
 
 static void esp_wifi_set_log_level(void)
@@ -498,7 +510,9 @@ esp_err_t esp_wifi_init(const wifi_init_config_t *config)
     esp_wifi_beacon_offset_configure(&offset_config);
 #endif
 
+#ifndef __NuttX__
     adc2_cal_include(); //This enables the ADC2 calibration constructor at start up.
+#endif
 
     esp_wifi_config_info();
 

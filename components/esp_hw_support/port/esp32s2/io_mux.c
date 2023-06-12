@@ -21,7 +21,7 @@ esp_err_t io_mux_set_clock_source(soc_module_clk_t clk_src)
     return ESP_OK;
 }
 
-extern portMUX_TYPE rtc_spinlock;
+DECLARE_EXTERNAL_CRIT_SECTION_LOCK(rtc_spinlock);
 DEFINE_CRIT_SECTION_LOCK_STATIC(s_io_mux_spinlock);
 
 static rtc_io_status_t s_rtc_io_status = {

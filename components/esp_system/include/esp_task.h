@@ -21,11 +21,9 @@
 #define _ESP_TASK_H_
 
 #include "sdkconfig.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/FreeRTOSConfig.h"
-
-#define ESP_TASK_PRIO_MAX (configMAX_PRIORITIES)
-#define ESP_TASK_PRIO_MIN (0)
+#include "platform/os.h"
+#define ESP_TASK_PRIO_MAX (OS_TASK_PRIO_MAX)
+#define ESP_TASK_PRIO_MIN (OS_TASK_PRIO_MIN)
 
 /* Bt controller Task */
 /* controller */

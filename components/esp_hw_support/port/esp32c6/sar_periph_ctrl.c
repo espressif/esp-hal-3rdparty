@@ -17,7 +17,7 @@
 #include <sys/lock.h>
 #include "sdkconfig.h"
 #include "esp_log.h"
-#include "freertos/FreeRTOS.h"
+#include "platform/os.h"
 #include "esp_private/sar_periph_ctrl.h"
 #include "esp_private/regi2c_ctrl.h"
 #include "esp_private/esp_modem_clock.h"
@@ -28,7 +28,7 @@
 #include "hal/temperature_sensor_ll.h"
 
 ESP_LOG_ATTR_TAG(TAG, "sar_periph_ctrl");
-extern portMUX_TYPE rtc_spinlock;
+DECLARE_EXTERNAL_CRIT_SECTION_LOCK(rtc_spinlock);
 static _lock_t adc_reset_lock;
 
 

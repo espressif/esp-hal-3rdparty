@@ -15,7 +15,11 @@
 #include "esp_err.h"
 #include "esp_cpu.h"
 #if __XTENSA__
+#ifndef __NuttX__
 #include "xtensa/config/core-isa.h"
+#else
+#include <arch/chip/core-isa.h>
+#endif
 #else // __riscv
 #include "riscv/semihosting.h"
 #if SOC_CPU_HAS_FLEXIBLE_INTC

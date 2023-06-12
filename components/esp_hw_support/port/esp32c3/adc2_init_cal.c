@@ -8,13 +8,13 @@
 The linker will link constructor (adc2_init_code_calibration) only when any sections inside the same file (adc2_cal_include) is used.
 Don't put any other code into this file. */
 
-#include "freertos/FreeRTOS.h"
+#include "platform/os.h"
 #include "hal/adc_types.h"
 #include "hal/adc_hal_common.h"
 #include "esp_private/adc_share_hw_ctrl.h"
 #include "esp_private/critical_section.h"
 
-extern portMUX_TYPE rtc_spinlock;
+DECLARE_EXTERNAL_CRIT_SECTION_LOCK(rtc_spinlock);
 
 /**
  * @brief Set initial code to ADC2 after calibration. ADC2 RTC and ADC2 PWDET controller share the initial code.

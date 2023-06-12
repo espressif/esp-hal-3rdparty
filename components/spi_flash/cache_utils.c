@@ -9,9 +9,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/semphr.h"
+#include "platform/os.h"
 #include "rom/cache.h"
 
 #if CONFIG_IDF_TARGET_ESP32
@@ -35,7 +33,6 @@
 #include "esp_private/esp_cache_private.h"
 #include "esp_private/cache_utils.h"
 #include "esp_private/spi_flash_os.h"
-#include "esp_private/freertos_idf_additions_priv.h"
 #include "esp_log.h"
 
 ESP_LOG_ATTR_TAG(TAG, "cache");
@@ -43,7 +40,7 @@ ESP_LOG_ATTR_TAG(TAG, "cache");
 // Used only on ROM impl. in idf, this param unused, cache status hold by hal
 static uint32_t s_flash_op_cache_state[2];
 #ifndef CONFIG_FREERTOS_UNICORE
-static SemaphoreHandle_t s_flash_op_mutex;
+static esp_os_recursive_mutex_t s_flash_op_mutex;
 static volatile bool s_flash_op_can_start = false;
 static volatile bool s_flash_op_complete = false;
 #ifndef NDEBUG
@@ -52,19 +49,19 @@ static volatile int s_flash_op_cpu = -1;
 
 void spi_flash_init_lock(void)
 {
-    s_flash_op_mutex = xSemaphoreCreateRecursiveMutex();
-    assert(s_flash_op_mutex != NULL);
+    esp_os_create_recursive_mutex(&s_flash_op_mutex);
 }
 
 void spi_flash_op_lock(void)
 {
-    xSemaphoreTakeRecursive(s_flash_op_mutex, portMAX_DELAY);
+    esp_os_lock_recursive_mutex(&s_flash_op_mutex);
 }
 
 void spi_flash_op_unlock(void)
 {
-    xSemaphoreGiveRecursive(s_flash_op_mutex);
+    esp_os_unlock_recursive_mutex(&s_flash_op_mutex);
 }
+
 /*
  If you're going to modify this, keep in mind that while the flash caches of the pro and app
  cpu are separate, the psram cache is *not*. If one of the CPUs returns from a flash routine
@@ -75,15 +72,7 @@ void spi_flash_op_unlock(void)
 void IRAM_ATTR spi_flash_op_block_func(void *arg)
 {
     // Disable scheduler on this CPU
-#if ( ( CONFIG_FREERTOS_SMP ) && ( !CONFIG_FREERTOS_UNICORE ) )
-    /*
-    Note: FreeRTOS SMP has changed the behavior of scheduler suspension. But the vTaskPreemptionDisable() function should
-    achieve the same affect as before (i.e., prevent the current task from being preempted).
-    */
-    vTaskPreemptionDisable(NULL);
-#else
-    vTaskSuspendAll();
-#endif // #if ( ( CONFIG_FREERTOS_SMP ) && ( !CONFIG_FREERTOS_UNICORE ) )
+    esp_os_scheduler_disable();
     // Restore interrupts that aren't located in IRAM
     esp_intr_noniram_disable();
     uint32_t cpuid = (uint32_t) arg;
@@ -99,13 +88,7 @@ void IRAM_ATTR spi_flash_op_block_func(void *arg)
     spi_flash_restore_cache(cpuid, s_flash_op_cache_state[cpuid]);
     // Restore interrupts that aren't located in IRAM
     esp_intr_noniram_enable();
-#if ( ( CONFIG_FREERTOS_SMP ) && ( !CONFIG_FREERTOS_UNICORE ) )
-    //Note: Scheduler suspension behavior changed in FreeRTOS SMP
-    vTaskPreemptionEnable(NULL);
-#else
-    // Re-enable scheduler
-    xTaskResumeAll();
-#endif // #if ( ( CONFIG_FREERTOS_SMP ) && ( !CONFIG_FREERTOS_UNICORE ) )
+    esp_os_scheduler_enable();
 }
 
 void IRAM_ATTR spi_flash_disable_interrupts_caches_and_other_cpu(void)
@@ -116,7 +99,7 @@ void IRAM_ATTR spi_flash_disable_interrupts_caches_and_other_cpu(void)
 
     spi_flash_op_lock();
 
-    int cpuid = xPortGetCoreID();
+    int cpuid = OS_PORT_GET_CORE_ID();
     uint32_t other_cpuid = (cpuid == 0) ? 1 : 0;
 #ifndef NDEBUG
     // For sanity check later: record the CPU which has started doing flash operation
@@ -124,7 +107,7 @@ void IRAM_ATTR spi_flash_disable_interrupts_caches_and_other_cpu(void)
     s_flash_op_cpu = cpuid;
 #endif
 
-    if (xTaskGetSchedulerState() == taskSCHEDULER_NOT_STARTED) {
+    if (!esp_os_scheduler_started()) {
         // Scheduler hasn't been started yet, it means that spi_flash API is being
         // called from the 2nd stage bootloader or from user_start_cpu0, i.e. from
         // PRO CPU. APP CPU is either in reset or spinning inside user_start_cpu1,
@@ -134,14 +117,8 @@ void IRAM_ATTR spi_flash_disable_interrupts_caches_and_other_cpu(void)
     } else {
         bool ipc_call_was_send_to_other_cpu;
         do {
-#if ( ( CONFIG_FREERTOS_SMP ) && ( !CONFIG_FREERTOS_UNICORE ) )
-            //Note: Scheduler suspension behavior changed in FreeRTOS SMP
-            vTaskPreemptionDisable(NULL);
-#else
-            // Disable scheduler on the current CPU
-            vTaskSuspendAll();
-#endif
-            cpuid = xPortGetCoreID();
+            esp_os_scheduler_disable();
+            cpuid = OS_PORT_GET_CORE_ID();
             other_cpuid = (cpuid == 0) ? 1 : 0;
 #ifndef NDEBUG
             s_flash_op_cpu = cpuid;
@@ -152,12 +129,8 @@ void IRAM_ATTR spi_flash_disable_interrupts_caches_and_other_cpu(void)
                 // IPC call was not send to other cpu because another nonblocking API is running now.
                 // Enable the Scheduler again will not help the IPC to speed it up
                 // but there is a benefit to schedule to a higher priority task before the nonblocking running IPC call is done.
-#if ( ( CONFIG_FREERTOS_SMP ) && ( !CONFIG_FREERTOS_UNICORE ) )
-                //Note: Scheduler suspension behavior changed in FreeRTOS SMP
-                vTaskPreemptionEnable(NULL);
-#else
-                xTaskResumeAll();
-#endif
+
+                esp_os_scheduler_enable();
             }
         } while (!ipc_call_was_send_to_other_cpu);
 
@@ -182,13 +155,13 @@ void IRAM_ATTR spi_flash_disable_interrupts_caches_and_other_cpu(void)
 
 void IRAM_ATTR spi_flash_enable_interrupts_caches_and_other_cpu(void)
 {
-    const int cpuid = xPortGetCoreID();
+    const int cpuid = OS_PORT_GET_CORE_ID();
 
 #ifndef NDEBUG
     // Sanity check: flash operation ends on the same CPU as it has started
     assert(cpuid == s_flash_op_cpu);
     // More sanity check: if scheduler isn't started, only CPU0 can call this.
-    assert(!(xTaskGetSchedulerState() == taskSCHEDULER_NOT_STARTED && cpuid != 0));
+    assert(!(!esp_os_scheduler_started() && cpuid != 0));
     s_flash_op_cpu = -1;
 #endif
 
@@ -200,7 +173,7 @@ void IRAM_ATTR spi_flash_enable_interrupts_caches_and_other_cpu(void)
     spi_flash_restore_cache(other_cpuid, s_flash_op_cache_state[other_cpuid]);
 #endif
 
-    if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED) {
+    if (esp_os_scheduler_started()) {
         // Signal to spi_flash_op_block_task that flash operation is complete
         s_flash_op_complete = true;
     }
@@ -214,13 +187,8 @@ void IRAM_ATTR spi_flash_enable_interrupts_caches_and_other_cpu(void)
     // current task can end up being moved to the other CPU.
     // But esp_intr_noniram_enable has to be called on the same CPU which
     // called esp_intr_noniram_disable
-    if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED) {
-#if ( ( CONFIG_FREERTOS_SMP ) && ( !CONFIG_FREERTOS_UNICORE ) )
-        //Note: Scheduler suspension behavior changed in FreeRTOS SMP
-        vTaskPreemptionEnable(NULL);
-#else
-        xTaskResumeAll();
-#endif // #if ( ( CONFIG_FREERTOS_SMP ) && ( !CONFIG_FREERTOS_UNICORE ) )
+    if (esp_os_scheduler_started()) {
+        esp_os_scheduler_enable();
     }
     // Release API lock
     spi_flash_op_unlock();
@@ -228,7 +196,7 @@ void IRAM_ATTR spi_flash_enable_interrupts_caches_and_other_cpu(void)
 
 void IRAM_ATTR spi_flash_disable_interrupts_caches_and_other_cpu_no_os(void)
 {
-    const uint32_t cpuid = xPortGetCoreID();
+    const uint32_t cpuid = OS_PORT_GET_CORE_ID();
     const uint32_t other_cpuid = (cpuid == 0) ? 1 : 0;
 
     // do not care about other CPU, it was halted upon entering panic handler
@@ -241,7 +209,7 @@ void IRAM_ATTR spi_flash_disable_interrupts_caches_and_other_cpu_no_os(void)
 
 void IRAM_ATTR spi_flash_enable_interrupts_caches_no_os(void)
 {
-    const uint32_t cpuid = xPortGetCoreID();
+    const uint32_t cpuid = OS_PORT_GET_CORE_ID();
 
     // Re-enable cache on this CPU
     spi_flash_restore_cache(cpuid, s_flash_op_cache_state[cpuid]);
@@ -257,26 +225,16 @@ void spi_flash_init_lock(void)
 
 void spi_flash_op_lock(void)
 {
-#if ( ( CONFIG_FREERTOS_SMP ) && ( !CONFIG_FREERTOS_UNICORE ) )
-    if (xTaskGetSchedulerState() == taskSCHEDULER_RUNNING) {
-        //Note: Scheduler suspension behavior changed in FreeRTOS SMP
-        vTaskPreemptionDisable(NULL);
+    if (esp_os_scheduler_started()) {
+        esp_os_scheduler_disable();
     }
-#else
-    vTaskSuspendAll();
-#endif // #if ( ( CONFIG_FREERTOS_SMP ) && ( !CONFIG_FREERTOS_UNICORE ) )
 }
 
 void spi_flash_op_unlock(void)
 {
-#if ( ( CONFIG_FREERTOS_SMP ) && ( !CONFIG_FREERTOS_UNICORE ) )
-    if (xTaskGetSchedulerState() == taskSCHEDULER_RUNNING) {
-        //Note: Scheduler suspension behavior changed in FreeRTOS SMP
-        vTaskPreemptionEnable(NULL);
+    if (esp_os_scheduler_started()) {
+        esp_os_scheduler_enable();
     }
-#else
-    xTaskResumeAll();
-#endif // #if ( ( CONFIG_FREERTOS_SMP ) && ( !CONFIG_FREERTOS_UNICORE ) )
 }
 
 
@@ -311,7 +269,6 @@ void IRAM_ATTR spi_flash_enable_interrupts_caches_no_os(void)
 }
 
 #endif // CONFIG_FREERTOS_UNICORE
-
 
 void IRAM_ATTR spi_flash_enable_cache(uint32_t cpuid)
 {

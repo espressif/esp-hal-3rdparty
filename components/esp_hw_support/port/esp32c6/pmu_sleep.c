@@ -19,9 +19,15 @@
 #include "pmu_param.h"
 #include "hal/efuse_ll.h"
 #include "hal/efuse_hal.h"
+#ifndef __NuttX__
 #include "esp_hw_log.h"
 
 ESP_HW_LOG_ATTR_TAG(TAG, "pmu_sleep");
+#else
+#include "esp_log.h"
+#define ESP_HW_LOGD(tag, fmt, ...) ESP_LOGD(tag, fmt, ##__VA_ARGS__)
+const char *TAG = "pmu_sleep";
+#endif
 
 #define HP(state)   (PMU_MODE_HP_ ## state)
 #define LP(state)   (PMU_MODE_LP_ ## state)

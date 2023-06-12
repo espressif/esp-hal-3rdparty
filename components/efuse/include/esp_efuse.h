@@ -27,6 +27,10 @@ extern "C" {
 #define ESP_ERR_NOT_ENOUGH_UNUSED_KEY_BLOCKS      (ESP_ERR_EFUSE + 0x05)      /*!< Error not enough unused key blocks available */
 #define ESP_ERR_DAMAGED_READING                   (ESP_ERR_EFUSE + 0x06)      /*!< Error. Burn or reset was done during a reading operation leads to damage read data. This error is internal to the efuse component and not returned by any public API. */
 
+#ifdef __NuttX__
+#define BOOTLOADER_BUILD 1
+#endif
+
 /**
  * @brief Type definition for an eFuse field
  */
@@ -860,6 +864,10 @@ typedef enum {
  *    - Other error codes: Failed to read/write eFuse
  */
 esp_err_t esp_efuse_enable_ecdsa_p192_curve_mode(void);
+#endif
+
+#ifdef __NuttX__
+#undef BOOTLOADER_BUILD
 #endif
 
 #ifdef __cplusplus

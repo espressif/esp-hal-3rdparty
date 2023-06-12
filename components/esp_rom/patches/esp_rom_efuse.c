@@ -4,6 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#ifdef __NuttX__
+#include "sdkconfig.h"
+#endif
 #include "soc/soc.h"
 #include "soc/efuse_reg.h"
 

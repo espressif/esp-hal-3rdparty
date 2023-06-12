@@ -7,15 +7,14 @@
 
 #include "esp_attr.h"
 #include <stdint.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
+#include "platform/os.h"
 #include "hal/regi2c_ctrl.h"
 #include "hal/regi2c_ctrl_ll.h"
 #include "esp_hw_log.h"
 #include "soc/soc_caps.h"
 #include "esp_private/critical_section.h"
 
-static portMUX_TYPE __attribute__((unused)) mux = portMUX_INITIALIZER_UNLOCKED;
+DEFINE_CRIT_SECTION_LOCK_STATIC(mux, __attribute__((unused)));
 
 ESP_HW_LOG_ATTR_TAG_DRAM(TAG, "REGI2C");
 

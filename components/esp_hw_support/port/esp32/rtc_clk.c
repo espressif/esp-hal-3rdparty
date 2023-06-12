@@ -27,6 +27,11 @@
 #include "hal/clk_tree_ll.h"
 #include "soc/rtc_cntl_reg.h"
 #include "soc/io_mux_reg.h"
+
+#ifdef __NuttX__
+#define BOOTLOADER_BUILD 1
+#endif
+
 #ifndef BOOTLOADER_BUILD
 #include "esp_private/systimer.h"
 #include "hal/lact_ll.h"

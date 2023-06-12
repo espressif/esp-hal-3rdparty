@@ -126,6 +126,15 @@ static inline void xt_set_intclear(unsigned int arg)
 
 /*
 -------------------------------------------------------------------------------
+  Call this function to get handler function for the specified interrupt.
+
+    n        - Interrupt number.
+-------------------------------------------------------------------------------
+*/
+extern xt_handler xt_get_interrupt_handler(int n);
+
+/*
+-------------------------------------------------------------------------------
   Call this function to get handler's argument for the specified interrupt.
 
     n        - Interrupt number.

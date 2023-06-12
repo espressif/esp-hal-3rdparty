@@ -20,8 +20,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/queue.h"
+#include "platform/os.h"
 #include "sys/queue.h"
 #include "esp_err.h"
 #include "esp_wifi_types.h"
@@ -35,8 +34,8 @@ extern "C" {
 #endif
 
 typedef struct {
-    QueueHandle_t handle; /**< FreeRTOS queue handler */
-    void *storage;        /**< storage for FreeRTOS queue */
+    esp_os_queue_handle_t handle; /**< OS queue handler */
+    void *storage;        /**< storage for OS queue */
 } wifi_static_queue_t;
 
 struct nan_sync_callbacks {

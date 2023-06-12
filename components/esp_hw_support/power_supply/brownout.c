@@ -100,15 +100,23 @@ void esp_brownout_init(void)
 #if CONFIG_IDF_TARGET_ESP32 || CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C2
     rtc_isr_register(rtc_brownout_isr_handler, NULL, RTC_CNTL_BROWN_OUT_INT_ENA_M, RTC_INTR_FLAG_IRAM);
 #else
+#ifdef __NuttX__
+    /* TODO: Implement brownout interrupt for NuttX */
+#else
     intr_handle_t bod_intr;
     esp_intr_alloc_intrstatus(power_supply_periph_signal.irq, ESP_INTR_FLAG_IRAM | ESP_INTR_FLAG_SHARED, (uint32_t)brownout_ll_intr_get_status_reg(), BROWNOUT_DETECTOR_LL_INTERRUPT_MASK, &rtc_brownout_isr_handler, NULL, &bod_intr);
+#endif
 #endif
 
     brownout_ll_intr_enable(true);
 
 #else // brownout without interrupt
 
+#ifdef __NuttX__
+    static brownout_hal_config_t cfg = {
+#else
     brownout_hal_config_t cfg = {
+#endif
         .threshold = BROWNOUT_DET_LVL,
         .enabled = true,
         .reset_enabled = true,

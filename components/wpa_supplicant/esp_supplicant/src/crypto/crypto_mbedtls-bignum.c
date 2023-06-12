@@ -18,6 +18,12 @@
 #include "mbedtls/pk.h"
 #include "mbedtls/psa_util.h"
 
+#ifdef __NuttX__
+#include "esp_mbedtls.h"
+
+#define ALLOW_EVEN_MOD 1
+#endif
+
 struct crypto_bignum *crypto_bignum_init(void)
 {
     mbedtls_mpi *bn = os_zalloc(sizeof(mbedtls_mpi));

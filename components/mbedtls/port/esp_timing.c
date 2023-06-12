@@ -22,6 +22,10 @@
 #include <sys/time.h>
 #include "mbedtls/timing.h"
 
+#ifdef __NuttX__
+#include "esp_mbedtls.h"
+#endif
+
 struct _hr_time
 {
     struct timeval start;

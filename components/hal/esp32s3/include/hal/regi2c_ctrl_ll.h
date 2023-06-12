@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include "soc/soc.h"

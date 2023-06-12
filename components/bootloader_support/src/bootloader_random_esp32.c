@@ -14,6 +14,10 @@
 #include "esp_log.h"
 #include "soc/io_mux_reg.h"
 
+#if defined(CONFIG_ESPRESSIF_SIMPLE_BOOT) || defined(CONFIG_ESPRESSIF_BOOTLOADER_MCUBOOT)
+#define BOOTLOADER_BUILD 1
+#endif
+
 #ifndef BOOTLOADER_BUILD
 #include "esp_private/periph_ctrl.h"
 #endif

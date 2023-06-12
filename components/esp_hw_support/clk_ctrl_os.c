@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <freertos/FreeRTOS.h>
+#include "platform/os.h"
 #include "clk_ctrl_os.h"
 #include "soc/rtc.h"
 #include "esp_ldo_regulator.h"
@@ -21,7 +21,7 @@
 ESP_LOG_ATTR_TAG(TAG, "clk_ctrl_os");
 #endif
 
-static portMUX_TYPE __attribute__((unused)) periph_spinlock = portMUX_INITIALIZER_UNLOCKED;
+DEFINE_CRIT_SECTION_LOCK_STATIC(periph_spinlock, __attribute__((unused)));
 
 static uint8_t s_periph_ref_counts = 0;
 static uint32_t s_rc_fast_freq_hz = 0; // Frequency of the RC_FAST clock in Hz

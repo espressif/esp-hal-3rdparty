@@ -11,6 +11,10 @@
 #include <entropy_poll.h>
 #include "psa/crypto.h"
 
+#ifdef __NuttX__
+#include "esp_mbedtls.h"
+#endif
+
 int mbedtls_hardware_poll( void *data,
                            unsigned char *output, size_t len, size_t *olen )
 {

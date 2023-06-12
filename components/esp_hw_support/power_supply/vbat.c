@@ -13,7 +13,7 @@
 #include "hal/vbat_ll.h"
 #include "hal/brownout_ll.h"
 #include "hal/vbat_hal.h"
-#include "freertos/FreeRTOS.h"
+#include "platform/os.h"
 #include "sdkconfig.h"
 #include "esp_private/esp_sleep_internal.h"
 #include "esp_private/startup_internal.h"

@@ -36,7 +36,9 @@
 #define XTENSA_XT_SPECREG_H
 
 /*  Include these special register bitfield definitions, for historical reasons:  */
+#ifndef __NuttX__
 #include <xtensa/corebits.h>
+#endif
 
 /*  Special registers:  */
 #define XT_REG_LBEG		0

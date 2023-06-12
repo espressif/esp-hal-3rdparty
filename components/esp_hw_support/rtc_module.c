@@ -12,9 +12,7 @@
 #include "soc/rtc_periph.h"
 #include "soc/rtc.h"
 #include "soc/periph_defs.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
-#include "freertos/timers.h"
+#include "platform/os.h"
 #include "esp_intr_alloc.h"
 #include "sys/lock.h"
 #include "esp_private/rtc_ctrl.h"
@@ -33,7 +31,7 @@ ESP_LOG_ATTR_TAG(TAG, "rtc_module");
 #endif
 
 // rtc_spinlock is used by other peripheral drivers
-portMUX_TYPE rtc_spinlock = portMUX_INITIALIZER_UNLOCKED;
+DEFINE_CRIT_SECTION_LOCK(rtc_spinlock);
 
 #if SOC_LP_PERIPH_SHARE_INTERRUPT // TODO: IDF-8008
 
@@ -61,7 +59,7 @@ typedef struct rtc_isr_handler_ {
 
 static DRAM_ATTR SLIST_HEAD(rtc_isr_handler_list_, rtc_isr_handler_) s_rtc_isr_handler_list =
         SLIST_HEAD_INITIALIZER(s_rtc_isr_handler_list);
-static DRAM_ATTR portMUX_TYPE __attribute__((unused)) s_rtc_isr_handler_list_lock = portMUX_INITIALIZER_UNLOCKED;
+DEFINE_CRIT_SECTION_LOCK_STATIC(s_rtc_isr_handler_list_lock, DRAM_ATTR __attribute__((unused)));
 static intr_handle_t s_rtc_isr_handle;
 
 IRAM_ATTR static void rtc_isr(void* arg)

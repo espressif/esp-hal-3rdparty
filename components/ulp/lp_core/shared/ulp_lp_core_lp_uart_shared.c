@@ -13,7 +13,11 @@ static uart_hal_context_t hal = {
 
 esp_err_t lp_core_uart_wakeup_setup(const uart_wakeup_cfg_t *cfg)
 {
+#ifndef __NuttX__
     return uart_wakeup_setup(LP_UART_NUM_0, cfg);
+#else
+    return ESP_OK;
+#endif
 }
 
 void lp_core_uart_clear_buf(void)

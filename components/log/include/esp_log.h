@@ -21,6 +21,10 @@
 #include "esp_log_args.h"
 #include "esp_log_attr.h"
 
+#if defined(CONFIG_ESPRESSIF_SIMPLE_BOOT) || defined(CONFIG_ESPRESSIF_BOOTLOADER_MCUBOOT)
+#define NON_OS_BUILD 1
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -280,4 +284,8 @@ void esp_log_va(esp_log_config_t config, const char *tag, const char *format, va
 
 #ifdef __cplusplus
 }
+#endif
+
+#if defined(CONFIG_ESPRESSIF_SIMPLE_BOOT) || defined(CONFIG_ESPRESSIF_BOOTLOADER_MCUBOOT)
+#  undef NON_OS_BUILD
 #endif

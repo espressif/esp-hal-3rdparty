@@ -21,7 +21,10 @@
 #include "esp_private/rtc_clk.h"
 #include "hal/wdt_hal.h"
 #include "hal/uart_ll.h"
+#ifndef __NuttX__
 #include "soc/soc_memory_layout.h"
+#endif
+#include "xtensa_api.h"
 #include "esp_private/cache_err_int.h"
 
 #include "esp32/rom/cache.h"

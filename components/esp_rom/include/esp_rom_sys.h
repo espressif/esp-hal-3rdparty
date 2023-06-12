@@ -13,6 +13,10 @@
 #include "soc/reset_reasons.h"
 #include "soc/soc_caps.h"
 
+#ifdef __NuttX__
+#include <sys/types.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

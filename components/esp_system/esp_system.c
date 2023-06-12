@@ -6,8 +6,7 @@
 
 #include "esp_system.h"
 #include "esp_private/system_internal.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+#include "platform/os.h"
 
 #define SHUTDOWN_HANDLERS_NO 5
 
@@ -45,13 +44,7 @@ void esp_restart(void)
         }
     }
 
-#if ( ( CONFIG_FREERTOS_SMP ) && ( !CONFIG_FREERTOS_UNICORE ) )
-    //Note: Scheduler suspension behavior changed in FreeRTOS SMP
-    vTaskPreemptionDisable(NULL);
-#else
-    // Disable scheduler on this core.
-    vTaskSuspendAll();
-#endif // #if ( ( CONFIG_FREERTOS_SMP ) && ( !CONFIG_FREERTOS_UNICORE ) )
+    OS_PORT_SUSPEND_SCHEDULER();
 
     esp_restart_noos();
 }

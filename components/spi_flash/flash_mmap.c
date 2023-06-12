@@ -8,7 +8,7 @@
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
-#include <freertos/FreeRTOS.h>
+#include "platform/os.h"
 #include "sdkconfig.h"
 #include "esp_attr.h"
 #include "esp_log.h"
@@ -21,6 +21,7 @@
 #include "soc/mmu.h"
 #endif
 
+#include "esp_heap_caps.h"
 #include "esp_private/esp_mmu_map_private.h"
 #include "esp_private/esp_cache_private.h"
 #include "esp_mmu_map.h"

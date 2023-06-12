@@ -31,6 +31,7 @@
 #include "esp_private/esp_mmu_map_private.h"
 #include "ext_mem_layout.h"
 #include "esp_mmu_map.h"
+#include "platform/os.h"
 
 //This is for size align
 #define ALIGN_UP_BY(num, align) (((num) + ((align) - 1)) & ~((align) - 1))
@@ -482,8 +483,8 @@ esp_err_t esp_mmu_map(esp_paddr_t paddr_start, size_t size, mmu_target_t target,
 
     if (TAILQ_EMPTY(&found_region->mem_block_head)) {
         dummy_head = (mem_block_t *)heap_caps_calloc(1, sizeof(mem_block_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
-        ESP_GOTO_ON_FALSE(dummy_head, ESP_ERR_NO_MEM, err, TAG, "no mem");
 
+        ESP_GOTO_ON_FALSE(dummy_head, ESP_ERR_NO_MEM, err, TAG, "no mem");
         dummy_head->laddr_start = found_region->free_head;
         dummy_head->laddr_end = found_region->free_head;
         //We don't care vaddr or paddr address for dummy head
@@ -603,10 +604,10 @@ esp_err_t esp_mmu_map(esp_paddr_t paddr_start, size_t size, mmu_target_t target,
 
 err:
     if (dummy_tail) {
-        free(dummy_tail);
+        heap_caps_free(dummy_tail);
     }
     if (dummy_head) {
-        free(dummy_head);
+        heap_caps_free(dummy_head);
     }
     _lock_release(&s_mmu_ctx.mutex);
 
@@ -691,7 +692,7 @@ esp_err_t esp_mmu_unmap(void *ptr)
 
     //do unmap
     s_do_unmapping(mem_block->vaddr_start, mem_block->size);
-    free(found_block);
+    heap_caps_free(found_block);
 
     _lock_release(&s_mmu_ctx.mutex);
 

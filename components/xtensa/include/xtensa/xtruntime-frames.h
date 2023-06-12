@@ -27,7 +27,11 @@
 #ifndef _XTRUNTIME_FRAMES_H_
 #define _XTRUNTIME_FRAMES_H_
 
+#ifndef __NuttX__
 #include <xtensa/config/core.h>
+#else
+#include <arch/xtensa/core.h>
+#endif
 
 /*  Macros that help define structures for both C and assembler:  */
 #if defined(_ASMLANGUAGE) || defined(__ASSEMBLER__)

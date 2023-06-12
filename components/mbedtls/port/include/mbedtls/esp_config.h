@@ -225,11 +225,6 @@
 #define ESP_MD5_DRIVER_ENABLED
 #define MBEDTLS_PSA_ACCEL_ALG_MD5
 #undef MBEDTLS_PSA_BUILTIN_ALG_MD5
-#else
-#if !defined(MBEDTLS_PSA_BUILTIN_ALG_HMAC)
-    /* If ROM MD5 is not enabled, use the builtin HMAC algorithm for HMAC(MD5) operations */
-    #define MBEDTLS_PSA_BUILTIN_ALG_HMAC
-#endif
 #endif /* MBEDTLS_PSA_BUILTIN_ALG_HMAC */
 
 /* The following MPI (bignum) functions have hardware support.
@@ -2052,10 +2047,18 @@
  *
  * This module provides debugging functions.
  */
-#if CONFIG_MBEDTLS_DEBUG
-#define MBEDTLS_DEBUG_C
+#ifdef __NuttX__
+#   ifdef CONFIG_MBEDTLS_DEBUG
+#       define MBEDTLS_DEBUG_C
+#   else
+#       undef MBEDTLS_DEBUG_C
+#   endif
 #else
-#undef MBEDTLS_DEBUG_C
+#   if CONFIG_MBEDTLS_DEBUG
+#       define MBEDTLS_DEBUG_C
+#   else
+#       undef MBEDTLS_DEBUG_C
+#   endif
 #endif
 
 /**
@@ -2712,10 +2715,6 @@
 #define PSA_WANT_ALG_SHA3_256 1
 #define PSA_WANT_ALG_SHA3_384 1
 #define PSA_WANT_ALG_SHA3_512 1
-#if !defined(MBEDTLS_PSA_BUILTIN_ALG_HMAC)
-    /* If SHA3 is enabled, use the builtin HMAC algorithm for HMAC(SHA3) operations */
-    #define MBEDTLS_PSA_BUILTIN_ALG_HMAC
-#endif /* MBEDTLS_PSA_BUILTIN_ALG_HMAC */
 #else
 #undef PSA_WANT_ALG_SHA3_224
 #undef PSA_WANT_ALG_SHA3_256

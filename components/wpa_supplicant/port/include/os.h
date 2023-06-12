@@ -15,7 +15,11 @@
 #ifndef OS_H
 #define OS_H
 #include <sys/types.h>
+#ifdef __NuttX__
+#include <nuttx/kmalloc.h>
+#else
 #include "esp_types.h"
+#endif
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,6 +27,7 @@
 #include "supplicant_opt.h"
 #include "esp_private/esp_wifi_private.h"
 #include "esp_wifi.h"
+#include "esp_private/wifi.h"
 
 /* Modifying datatype for platform and compiler independence */
 
@@ -39,6 +44,11 @@ struct os_time {
     os_time_t sec;
     suseconds_t usec;
 };
+
+#ifdef __NuttX__
+typedef void*           TaskHandle_t;
+typedef void*           SemaphoreHandle_t;
+#endif
 
 #define os_reltime os_time
 
@@ -212,6 +222,39 @@ static inline char *os_readfile(const char *name, size_t *len)
  * these functions need to be implemented in os_*.c file for the target system.
  */
 
+#ifdef __NuttX__
+
+#ifndef os_malloc
+#define os_malloc(s) kmm_malloc((s))
+#endif
+#ifndef os_realloc
+#define os_realloc(p, s) kmm_realloc((p), (s))
+#endif
+#ifndef os_zalloc
+#define os_zalloc(s) kmm_calloc(1, (s))
+#endif
+#ifndef os_calloc
+#define os_calloc(p, s) kmm_calloc((p), (s))
+#endif
+
+#ifndef os_free
+#define os_free(p) kmm_free((p))
+#endif
+
+#ifndef pdTRUE
+#define pdTRUE              (1)
+#endif
+
+#ifndef pdPASS
+#define pdPASS              (pdTRUE)
+#endif
+
+#ifndef portMAX_DELAY
+#define portMAX_DELAY       OSI_FUNCS_TIME_BLOCKING
+#endif
+
+#else
+
 #ifndef os_malloc
 #define os_malloc(s) malloc((s))
 #endif
@@ -228,6 +271,8 @@ static inline char *os_readfile(const char *name, size_t *len)
 #ifndef os_free
 #define os_free(p) free((p))
 #endif
+
+#endif // __NuttX__
 
 #ifndef os_bzero
 #define os_bzero(s, n) bzero(s, n)

@@ -18,10 +18,7 @@
 // Set the maximum log level for rmt driver
 #define LOG_LOCAL_LEVEL ESP_LOG_VERBOSE
 #endif
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-#include "freertos/idf_additions.h"
+#include "platform/os.h"
 #include "esp_log.h"
 #include "esp_check.h"
 #include "esp_err.h"
@@ -39,6 +36,7 @@
 #include "esp_clk_tree.h"
 #include "esp_pm.h"
 #include "esp_attr.h"
+#include "esp_private/critical_section.h"
 #include "esp_private/gdma.h"
 #include "esp_private/gdma_link.h"
 #include "esp_private/esp_gpio_reserve.h"
@@ -135,7 +133,7 @@ typedef struct rmt_sync_manager_t rmt_sync_manager_t;
 
 struct rmt_group_t {
     int group_id;               // group ID, index from 0
-    portMUX_TYPE spinlock;      // to protect per-group register level concurrent access
+    DECLARE_CRIT_SECTION_LOCK_IN_STRUCT(spinlock)      // to protect per-group register level concurrent access
     rmt_hal_context_t hal;      // hal layer for each group
     rmt_clock_source_t clk_src; // record the group clock source, group clock is shared by all channels
     uint32_t resolution_hz;     // resolution of group clock. clk_src_hz / prescale = resolution_hz
@@ -152,7 +150,7 @@ struct rmt_channel_t {
     uint32_t channel_mask;  // mask of the memory blocks that occupied by the channel
     size_t mem_block_num;   // number of occupied RMT memory blocks
     rmt_group_t *group;     // which group the channel belongs to
-    portMUX_TYPE spinlock;  // prevent channel resource accessing by user and interrupt concurrently
+    DECLARE_CRIT_SECTION_LOCK_IN_STRUCT(spinlock)  // prevent channel resource accessing by user and interrupt concurrently
     uint32_t resolution_hz; // channel clock resolution
     intr_handle_t intr;     // allocated interrupt handle for each channel
     _Atomic rmt_fsm_t fsm;  // channel life cycle specific FSM
@@ -195,7 +193,7 @@ struct rmt_tx_channel_t {
     size_t ping_pong_symbols;  // ping-pong size (half of the RMT channel memory)
     size_t queue_size;         // size of transaction queue
     size_t num_trans_inflight; // indicates the number of transactions that are undergoing but not recycled to ready_queue
-    QueueHandle_t trans_queues[RMT_TX_QUEUE_MAX]; // transaction queues
+    DECLARE_QUEUE_IN_STRUCT(trans_queues[RMT_TX_QUEUE_MAX]) // transaction queues
     rmt_tx_trans_desc_t *cur_trans; // points to current transaction
     void *user_data;                // user context
     rmt_tx_done_callback_t on_trans_done; // callback, invoked on trans done

@@ -44,8 +44,10 @@ strsep = 0x4fc00320;
 strspn = 0x4fc00324;
 strtok_r = 0x4fc00328;
 strupr = 0x4fc0032c;
+#ifndef __NuttX__
 longjmp = 0x4fc00330;
 setjmp = 0x4fc00334;
+#endif
 abs = 0x4fc00338;
 div = 0x4fc0033c;
 labs = 0x4fc00340;

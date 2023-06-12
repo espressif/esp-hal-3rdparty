@@ -441,6 +441,26 @@ FORCE_INLINE_ATTR void esp_cpu_intr_set_handler(int intr_num, esp_cpu_intr_handl
 }
 
 /**
+ * @brief Get the handler function of a particular interrupt
+ *
+ * Get the handler function of a previously assigned handler on the current CPU.
+ *
+ * @param intr_num Interrupt number (from 0 to 31)
+ * @return The handler function, or NULL if no handler is assigned
+ */
+FORCE_INLINE_ATTR esp_cpu_intr_handler_t esp_cpu_intr_get_handler(int intr_num)
+{
+    assert(intr_num >= 0 && intr_num < SOC_CPU_INTR_NUM);
+    esp_cpu_intr_handler_t handler;
+#ifdef __XTENSA__
+    handler = (esp_cpu_intr_handler_t)xt_get_interrupt_handler(intr_num);
+#else
+    handler = (esp_cpu_intr_handler_t)intr_handler_get(intr_num);
+#endif
+    return handler;
+}
+
+/**
  * @brief Get a handler function's argument of
  *
  * Get the argument of a previously assigned handler function on the current CPU.

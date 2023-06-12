@@ -23,15 +23,19 @@
 _isatty_r = 0x4fc00294;
 strdup = 0x4fc002f0;
 strndup = 0x4fc00314;
+#ifndef  __NuttX__
 rand_r = 0x4fc0034c;
 rand = 0x4fc00350;
 srand = 0x4fc00354;
+#endif
 atoi = 0x4fc00360;
 atol = 0x4fc00364;
 strtol = 0x4fc00368;
 strtoul = 0x4fc0036c;
+#ifndef __NuttX__
 fflush = 0x4fc00370;
 _fflush_r = 0x4fc00374;
+#endif
 _fwalk = 0x4fc00378;
 _fwalk_reent = 0x4fc0037c;
 __smakebuf_r = 0x4fc00380;

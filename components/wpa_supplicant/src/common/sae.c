@@ -1693,7 +1693,7 @@ int sae_write_commit(struct sae_data *sae, struct wpabuf *buf,
 		wpabuf_put_u8(buf, 1 + RSN_SELECTOR_LEN);
 		wpabuf_put_u8(buf, WLAN_EID_EXT_AKM_SUITE_SELECTOR);
 		RSN_SELECTOR_PUT(wpabuf_put(buf, RSN_SELECTOR_LEN), suite);
-		wpa_printf(MSG_DEBUG, "SAE: AKM Suite Selector: %08x", suite);
+		wpa_printf(MSG_DEBUG, "SAE: AKM Suite Selector: %08" PRIx32 "", suite);
 		sae->own_akm_suite_selector = suite;
 	}
 
@@ -2101,7 +2101,7 @@ static int sae_parse_akm_suite_selector(struct sae_data *sae,
 	if (len < RSN_SELECTOR_LEN)
 		return WLAN_STATUS_UNSPECIFIED_FAILURE;
 	sae->peer_akm_suite_selector = RSN_SELECTOR_GET(epos);
-	wpa_printf(MSG_DEBUG, "SAE: Received AKM Suite Selector: %08x",
+	wpa_printf(MSG_DEBUG, "SAE: Received AKM Suite Selector: %08" PRIx32 "",
 		   sae->peer_akm_suite_selector);
 	*pos = epos + len;
 	return WLAN_STATUS_SUCCESS;
@@ -2165,7 +2165,7 @@ u16 sae_parse_commit(struct sae_data *sae, const u8 *data, size_t len,
 	if (sae->own_akm_suite_selector &&
 	    sae->own_akm_suite_selector != sae->peer_akm_suite_selector) {
 		wpa_printf(MSG_DEBUG,
-			   "SAE: AKM suite selector mismatch: own=%08x peer=%08x",
+			   "SAE: AKM suite selector mismatch: own=%08" PRIx32 " peer=%08" PRIx32 "",
 			   sae->own_akm_suite_selector,
 			   sae->peer_akm_suite_selector);
 		return WLAN_STATUS_UNSPECIFIED_FAILURE;

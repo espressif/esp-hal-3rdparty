@@ -32,7 +32,9 @@ __itoa = 0x40056678;
 itoa = 0x400566b4;
 labs = 0x40056370;
 ldiv = 0x40056378;
+#ifndef  __NuttX__
 longjmp = 0x400562cc;
+#endif
 memccpy = 0x4000c220;
 memchr = 0x4000c244;
 memcmp = 0x4000c260;
@@ -42,7 +44,10 @@ memrchr = 0x4000c400;
 memset = 0x4000c44c;
 qsort = 0x40056424;
 __sccl = 0x4000c498;
+#ifndef  __NuttX__
 setjmp = 0x40056268;
+#endif
+strcasecmp = 0x400011cc;
 strcasestr = 0x40001210;
 strcat = 0x4000c518;
 strchr = 0x4000c53c;

@@ -9,9 +9,11 @@
 #include "esp_err.h"
 #include "esp_task.h"
 #include "esp_attr.h"
+#include "esp_private/critical_section.h"
 
 /* Spinlock used to protect access to the hardware registers. */
-portMUX_TYPE s_time_update_lock = portMUX_INITIALIZER_UNLOCKED;
+
+DEFINE_CRIT_SECTION_LOCK(s_time_update_lock);
 
 /* Alarm values to generate interrupt on match
  * [0] - for ESP_TIMER_TASK alarms,
@@ -21,12 +23,12 @@ uint64_t timestamp_id[2] = { UINT64_MAX, UINT64_MAX };
 
 void esp_timer_impl_lock(void)
 {
-    portENTER_CRITICAL(&s_time_update_lock);
+    esp_os_enter_critical(&s_time_update_lock);
 }
 
 void esp_timer_impl_unlock(void)
 {
-    portEXIT_CRITICAL(&s_time_update_lock);
+    esp_os_exit_critical(&s_time_update_lock);
 }
 
 void esp_timer_private_lock(void) __attribute__((alias("esp_timer_impl_lock")));
@@ -40,7 +42,7 @@ void ESP_TIMER_IRAM_ATTR esp_timer_impl_set_alarm(uint64_t timestamp)
 #ifdef CONFIG_ESP_TIMER_SUPPORTS_ISR_DISPATCH_METHOD
 void ESP_TIMER_IRAM_ATTR esp_timer_impl_try_to_set_next_alarm(void)
 {
-    portENTER_CRITICAL_ISR(&s_time_update_lock);
+    esp_os_enter_critical_from_isr(&s_time_update_lock);
     unsigned now_alarm_idx;  // ISR is called due to this current alarm
     unsigned next_alarm_idx; // The following alarm after now_alarm_idx
     if (timestamp_id[0] < timestamp_id[1]) {
@@ -60,7 +62,7 @@ void ESP_TIMER_IRAM_ATTR esp_timer_impl_try_to_set_next_alarm(void)
         // Remove the current alarm from consideration as well.
         timestamp_id[now_alarm_idx] = UINT64_MAX;
     }
-    portEXIT_CRITICAL_ISR(&s_time_update_lock);
+    esp_os_exit_critical_from_isr(&s_time_update_lock);
 }
 #endif
 

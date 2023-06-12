@@ -8,7 +8,11 @@
 
 #include "includes.h"
 
+#ifdef __NuttX__
+#include "utils/common.h"
+#else
 #include "common.h"
+#endif
 #include "eloop.h"
 #include "state_machine.h"
 #include "common/eapol_common.h"

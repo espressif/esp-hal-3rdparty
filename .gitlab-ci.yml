@@ -1,0 +1,15 @@
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_PIPELINE_SOURCE == "web"
+
+stages:
+  - Trigger
+
+test_nuttx:
+  stage: Trigger
+  trigger:
+    project: idf/apache/incubator-nuttx
+    strategy: depend
+  variables:
+    PARENT_ESP_HAL_3RDPARTY_VERSION: ${CI_COMMIT_SHA}

@@ -28,6 +28,10 @@
 #include "psa/crypto_sizes.h"
 #include "esp_heap_caps.h"
 
+#ifdef __NuttX__
+#include "esp_mbedtls.h"
+#endif
+
 #define ECP_PRV_DER_MAX_BYTES   ( 29 + 3 * MBEDTLS_ECP_MAX_BYTES )
 #define ECP_PUB_DER_MAX_BYTES   ( 30 + 2 * MBEDTLS_ECP_MAX_BYTES )
 
@@ -1023,7 +1027,7 @@ int crypto_ec_get_publickey_buf(struct crypto_ec_key *key, u8 *key_buf, int len)
 
         status = psa_get_key_attributes(wrapper->key_id, &key_attributes);
         if (status != PSA_SUCCESS) {
-            printf("psa_get_key_attributes failed with %d\n", status);
+            printf("psa_get_key_attributes failed with %" PRId32"\n", status);
             return -1;
         }
 
@@ -1042,7 +1046,7 @@ int crypto_ec_get_publickey_buf(struct crypto_ec_key *key, u8 *key_buf, int len)
     size_t key_len = 0;
     status = psa_export_public_key(wrapper->key_id, key_buf, len, &key_len);
     if (status != PSA_SUCCESS) {
-        printf("psa_export_public_key failed with %d\n", status);
+        printf("psa_export_public_key failed with %" PRId32"\n", status);
         return -1;
     }
 
@@ -1260,7 +1264,7 @@ int crypto_ecdh(struct crypto_ec_key *key_own, struct crypto_ec_key *key_peer,
         psa_key_type_t key_type = psa_get_key_type(&key_attributes);
         wpa_printf(MSG_DEBUG, "crypto_ecdh: key usage=0x%x, algorithm=0x%x, type=0x%x",
                    usage, alg, key_type);
-        printf("crypto_ecdh: key usage=0x%x, algorithm=0x%x, type=0x%x\n",
+        printf("crypto_ecdh: key usage=0x%" PRIx32", algorithm=0x%" PRIx32", type=0x%d\n",
                usage, alg, key_type);
         psa_reset_key_attributes(&key_attributes);
     }
@@ -1268,7 +1272,7 @@ int crypto_ecdh(struct crypto_ec_key *key_own, struct crypto_ec_key *key_peer,
     status = psa_raw_key_agreement(PSA_ALG_ECDH, own_wrapper->key_id, peer_key_buf, peer_key_len, secret, 66, &secret_length);
     if (status != PSA_SUCCESS) {
         wpa_printf(MSG_ERROR, "psa_raw_key_agreement failed with %d", status);
-        printf("psa_raw_key_agreement failed with %d\n", status);
+        printf("psa_raw_key_agreement failed with %" PRId32"\n", status);
         ret = -1;
         goto fail;
     }
@@ -1297,7 +1301,7 @@ int crypto_ecdsa_get_sign(unsigned char *hash,
 
     psa_status_t status = psa_sign_hash(wrapper->key_id, PSA_ALG_DETERMINISTIC_ECDSA(PSA_ALG_SHA_256), hash, hash_len, signature, sizeof(signature), &signature_length);
     if (status != PSA_SUCCESS) {
-        printf("psa_sign_hash failed with %d\n", status);
+        printf("psa_sign_hash failed with %" PRId32"\n", status);
         return -1;
     }
 
@@ -1338,7 +1342,7 @@ int crypto_ec_key_verify_signature_r_s(struct crypto_ec_key *csign,
 
     psa_status_t status = psa_verify_hash(wrapper->key_id, PSA_ALG_DETERMINISTIC_ECDSA(PSA_ALG_SHA_256), hash, hlen, sig, r_len + s_len);
     if (status != PSA_SUCCESS) {
-        printf("psa_verify_hash failed with %d\n", status);
+        printf("psa_verify_hash failed with %" PRId32"\n", status);
         os_free(sig);
         return -1;
     }

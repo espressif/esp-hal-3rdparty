@@ -10,7 +10,7 @@
 #include <sys/lock.h>
 
 #if !NON_OS_BUILD
-#include "freertos/FreeRTOS.h"
+#include "platform/os.h"
 #endif
 
 #include "esp_attr.h"
@@ -39,7 +39,7 @@ extern uint32_t g_ticks_per_us_pro;
 // Any code utilizing locks, which depend on FreeRTOS, should be omitted
 // when building for Non-OS environments
 #if !NON_OS_BUILD
-static portMUX_TYPE __attribute__((unused)) s_esp_rtc_time_lock = portMUX_INITIALIZER_UNLOCKED;
+DEFINE_CRIT_SECTION_LOCK_STATIC(s_esp_rtc_time_lock, __attribute__((unused)));
 #endif
 
 #if SOC_RTC_MEM_SUPPORTED

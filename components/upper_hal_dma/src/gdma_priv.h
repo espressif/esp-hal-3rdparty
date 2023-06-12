@@ -18,8 +18,7 @@
 #define LOG_LOCAL_LEVEL ESP_LOG_VERBOSE
 #endif
 #include "soc/soc_caps.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+#include "platform/os.h"
 #include "esp_err.h"
 #include "esp_log.h"
 #include "esp_check.h"
@@ -56,7 +55,7 @@ typedef struct gdma_group_t {
     int group_id; // Group ID, index from 0
     int bus_id;   // which system does the GDMA instance attached to
     gdma_hal_context_t hal; // HAL instance is at group level
-    portMUX_TYPE spinlock;  // group level spinlock, protect group level stuffs, e.g. hal object, pair handle slots and reference count of each pair
+    DECLARE_CRIT_SECTION_LOCK_IN_STRUCT(spinlock)  // group level spinlock, protect group level stuffs, e.g. hal object, pair handle slots and reference count of each pair
     uint32_t tx_periph_in_use_mask; // each bit indicates which peripheral (TX direction) has been occupied
     uint32_t rx_periph_in_use_mask; // each bit indicates which peripheral (RX direction) has been occupied
     gdma_pair_t *pairs[GDMA_LL_GET(PAIRS_PER_INST)];  // handles of GDMA pairs
@@ -68,13 +67,13 @@ struct gdma_pair_t {
     gdma_tx_channel_t *tx_chan; // pointer of tx channel in the pair
     gdma_rx_channel_t *rx_chan; // pointer of rx channel in the pair
     int occupy_code;            // each bit indicates which channel has been occupied (an occupied channel will be skipped during channel search)
-    portMUX_TYPE spinlock;      // pair level spinlock, protect pair level stuffs, e.g. channel handle slots, occupy code
+    DECLARE_CRIT_SECTION_LOCK_IN_STRUCT(spinlock)      // pair level spinlock, protect pair level stuffs, e.g. channel handle slots, occupy code
 };
 
 struct gdma_channel_t {
     gdma_pair_t *pair;  // which pair the channel belongs to
     intr_handle_t intr; // per-channel interrupt handle
-    portMUX_TYPE spinlock;  // channel level spinlock
+    DECLARE_CRIT_SECTION_LOCK_IN_STRUCT(spinlock)  // channel level spinlock
     gdma_channel_direction_t direction; // channel direction
     int periph_id; // Peripheral instance ID, indicates which peripheral is connected to this GDMA channel
     size_t int_mem_alignment; // alignment for memory in internal memory

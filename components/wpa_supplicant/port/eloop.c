@@ -15,8 +15,8 @@
 
 #include "common.h"
 #include "list.h"
-#include "eloop.h"
 #include "esp_wifi_driver.h"
+#include "eloop.h"
 #include "rom/ets_sys.h"
 #include <stdatomic.h>
 
@@ -507,7 +507,7 @@ void eloop_destroy(void)
     atomic_store(&eloop.eloop_started, false);
 
     while (atomic_load(&eloop.timeout_running)) {
-        vTaskDelay(100 / portTICK_PERIOD_MS);  // Yield CPU
+        os_sleep(0, 100000);
     }
     dl_list_for_each_safe(timeout, prev, &eloop.timeout,
                           struct eloop_timeout, list) {

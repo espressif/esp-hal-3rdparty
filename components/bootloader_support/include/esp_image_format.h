@@ -15,6 +15,10 @@
 extern "C" {
 #endif
 
+#if defined(CONFIG_ESPRESSIF_SIMPLE_BOOT)
+#define BOOTLOADER_BUILD 1
+#endif
+
 #define ESP_ERR_IMAGE_BASE       0x2000
 #define ESP_ERR_IMAGE_FLASH_FAIL (ESP_ERR_IMAGE_BASE + 1)
 #define ESP_ERR_IMAGE_INVALID    (ESP_ERR_IMAGE_BASE + 2)

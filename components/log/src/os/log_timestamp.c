@@ -17,7 +17,7 @@ uint32_t esp_log_timestamp(void)
         return esp_log_early_timestamp();
     }
     static uint32_t base = 0;
-    if (base == 0 && xPortGetCoreID() == 0) {
+    if (base == 0 && OS_PORT_GET_CORE_ID() == 0) {
         base = esp_log_early_timestamp();
     }
     TickType_t tick_count = xPortInIsrContext() ? xTaskGetTickCountFromISR() : xTaskGetTickCount();

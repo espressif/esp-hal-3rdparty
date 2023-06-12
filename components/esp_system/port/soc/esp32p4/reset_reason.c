@@ -10,6 +10,7 @@
 #include "soc/chip_revision.h"
 #include "hal/efuse_hal.h"
 #include "esp32p4/rom/rtc.h"
+#include "esp_attr.h"
 
 static void esp_reset_reason_clear_hint(void);
 

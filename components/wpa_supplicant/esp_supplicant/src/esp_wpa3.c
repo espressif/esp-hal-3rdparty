@@ -439,7 +439,7 @@ void esp_wifi_unregister_wpa3_cb(void)
 #ifdef CONFIG_SAE
 
 static TaskHandle_t g_wpa3_hostap_task_hdl = NULL;
-static QueueHandle_t g_wpa3_hostap_evt_queue = NULL;
+static esp_os_queue_handle_t g_wpa3_hostap_evt_queue = NULL;
 SemaphoreHandle_t g_wpa3_hostap_auth_api_lock = NULL;
 
 int wpa3_hostap_post_evt(uint32_t evt_id, uint32_t data)

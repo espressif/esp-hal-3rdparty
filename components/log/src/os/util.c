@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+#include "platform/os.h"
+#include <stddef.h>
 #include "esp_private/log_util.h"
 #include "esp_compiler.h"
 #include "sdkconfig.h"
@@ -17,6 +17,7 @@ void esp_log_util_set_cache_enabled_cb(esp_log_cache_enabled_t func)
     esp_log_cache_enabled = func;
 }
 
+#ifndef __NuttX__
 bool esp_log_util_is_constrained(void)
 {
     return (xPortInIsrContext()
@@ -25,3 +26,4 @@ bool esp_log_util_is_constrained(void)
 #endif
             || unlikely(xTaskGetSchedulerState() != taskSCHEDULER_RUNNING));
 }
+#endif

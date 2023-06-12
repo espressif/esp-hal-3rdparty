@@ -6,7 +6,9 @@
 #include <stdint.h>
 #include <time.h>
 #include <sys/time.h>
+#if !(defined(__NuttX__) && defined(CONFIG_IDF_TARGET_ESP32S2))
 #include <sys/lock.h>
+#endif
 
 #include "esp_attr.h"
 #include "esp_system.h"
@@ -22,6 +24,11 @@
 #include "sdkconfig.h"
 #include "rom/rtc.h"
 #include "esp_rtc_time.h"
+
+#if defined(__NuttX__) && defined(CONFIG_IDF_TARGET_ESP32S2)
+#define _lock_acquire(lock)
+#define _lock_release(lock)
+#endif
 
 // Offset between High resolution timer and the RTC.
 // Initialized after reset or light sleep.

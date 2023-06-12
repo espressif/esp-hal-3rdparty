@@ -315,7 +315,9 @@ bool esp_flash_is_quad_mode(const esp_flash_t *chip);
  *  - ESP_ERR_NO_MEM if out of memory
  *  - a flash error code if any underlying esp_flash operation failed.
  */
+#ifndef __NuttX__
 esp_err_t esp_flash_get_blockdev(esp_flash_t* chip, esp_blockdev_handle_t* out_handle);
+#endif
 
 #ifdef __cplusplus
 }

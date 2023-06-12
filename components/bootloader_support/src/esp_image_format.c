@@ -28,6 +28,10 @@
 
 #define ALIGN_UP(num, align) (((num) + ((align) - 1)) & ~((align) - 1))
 
+#if defined(CONFIG_ESPRESSIF_SIMPLE_BOOT)
+#define BOOTLOADER_BUILD 1
+#endif
+
 /* Checking signatures as part of verifying images is necessary:
    - Always if secure boot is enabled
    - Differently in bootloader and/or app, depending on kconfig

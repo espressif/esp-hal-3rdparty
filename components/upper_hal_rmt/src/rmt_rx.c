@@ -113,7 +113,7 @@ static esp_err_t rmt_rx_register_to_group(rmt_rx_channel_t *rx_channel, const rm
     for (int i = 0; i < RMT_LL_GET(INST_NUM); i++) {
         group = rmt_acquire_group_handle(i);
         ESP_RETURN_ON_FALSE(group, ESP_ERR_NO_MEM, TAG, "no mem for group (%d)", i);
-        portENTER_CRITICAL(&group->spinlock);
+        esp_os_enter_critical(&group->spinlock);
         for (int j = channel_scan_start; j < channel_scan_end; j++) {
             if (!(group->occupy_mask & (channel_mask << j))) {
                 group->occupy_mask |= (channel_mask << j);
@@ -123,7 +123,7 @@ static esp_err_t rmt_rx_register_to_group(rmt_rx_channel_t *rx_channel, const rm
                 break;
             }
         }
-        portEXIT_CRITICAL(&group->spinlock);
+        esp_os_exit_critical(&group->spinlock);
         if (channel_id < 0) {
             // didn't find a capable channel in the group, don't forget to release the group handle
             rmt_release_group_handle(group);
@@ -140,10 +140,10 @@ static esp_err_t rmt_rx_register_to_group(rmt_rx_channel_t *rx_channel, const rm
 
 static void rmt_rx_unregister_from_group(rmt_channel_t *channel, rmt_group_t *group)
 {
-    portENTER_CRITICAL(&group->spinlock);
+    esp_os_enter_critical(&group->spinlock);
     group->rx_channels[channel->channel_id] = NULL;
     group->occupy_mask &= ~(channel->channel_mask << (channel->channel_id + RMT_RX_CHANNEL_OFFSET_IN_GROUP));
-    portEXIT_CRITICAL(&group->spinlock);
+    esp_os_exit_critical(&group->spinlock);
     // channel has a reference on group, release it now
     rmt_release_group_handle(group);
 }
@@ -158,7 +158,7 @@ static esp_err_t rmt_rx_destroy(rmt_rx_channel_t *rx_channel)
                                        false);
     }
     if (rx_channel->base.intr) {
-        ESP_RETURN_ON_ERROR(esp_intr_free(rx_channel->base.intr), TAG, "delete interrupt service failed");
+        ESP_RETURN_ON_ERROR(esp_os_intr_free(rx_channel->base.intr), TAG, "delete interrupt service failed");
     }
 #if CONFIG_PM_ENABLE
     if (rx_channel->base.pm_lock) {
@@ -228,9 +228,9 @@ esp_err_t rmt_new_rx_channel(const rmt_rx_channel_config_t *config, rmt_channel_
 #endif // RMT_USE_RETENTION_LINK
 
     // reset channel, make sure the RX engine is not working, and events are cleared
-    portENTER_CRITICAL(&group->spinlock);
+    esp_os_enter_critical(&group->spinlock);
     rmt_hal_rx_channel_reset(&group->hal, channel_id);
-    portEXIT_CRITICAL(&group->spinlock);
+    esp_os_exit_critical(&group->spinlock);
 
     // When channel receives an end-maker, a DMA in_suc_eof interrupt will be generated
     // So we don't rely on RMT interrupt any more, GDMA event callback is sufficient
@@ -248,7 +248,7 @@ esp_err_t rmt_new_rx_channel(const rmt_rx_channel_config_t *config, rmt_channel_
         // 2-- Get interrupt allocation flag
         int isr_flags = rmt_isr_priority_to_flags(group) | RMT_RX_INTR_ALLOC_FLAG;
         // 3-- Allocate interrupt using isr_flag
-        ret = esp_intr_alloc_intrstatus(soc_rmt_signals[group_id].irq, isr_flags,
+        ret = esp_os_intr_alloc_intrstatus(soc_rmt_signals[group_id].irq, isr_flags,
                                         (uint32_t)rmt_ll_get_interrupt_status_reg(hal->regs),
                                         RMT_LL_EVENT_RX_MASK(channel_id), rmt_rx_default_isr, rx_channel, &rx_channel->base.intr);
         ESP_GOTO_ON_ERROR(ret, err, TAG, "install rx interrupt failed");
@@ -286,7 +286,7 @@ esp_err_t rmt_new_rx_channel(const rmt_rx_channel_config_t *config, rmt_channel_
     rx_channel->base.gpio_num = config->gpio_num;
 
     // initialize other members of rx channel
-    portMUX_INITIALIZE(&rx_channel->base.spinlock);
+    INIT_CRIT_SECTION_LOCK_RUNTIME(&rx_channel->base.spinlock);
     atomic_init(&rx_channel->base.fsm, RMT_FSM_INIT);
     rx_channel->base.hw_mem_base = &RMTMEM.channels[channel_id + RMT_RX_CHANNEL_OFFSET_IN_GROUP].symbols[0];
     // polymorphic methods
@@ -428,7 +428,7 @@ esp_err_t rmt_receive(rmt_channel_handle_t channel, void *buffer, size_t buffer_
 #endif
 
     rx_chan->mem_off = 0;
-    portENTER_CRITICAL_SAFE(&channel->spinlock);
+    esp_os_enter_critical_safe(&channel->spinlock);
     // reset memory writer offset
     rmt_ll_rx_reset_pointer(hal->regs, channel_id);
     rmt_ll_rx_set_mem_owner(hal->regs, channel_id, RMT_LL_MEM_OWNER_HW);
@@ -442,7 +442,7 @@ esp_err_t rmt_receive(rmt_channel_handle_t channel, void *buffer, size_t buffer_
     // saying we're in running state, this state will last until the receiving is done
     // i.e., we will switch back to the enable state in the receive done interrupt handler
     atomic_store(&channel->fsm, RMT_FSM_RUN);
-    portEXIT_CRITICAL_SAFE(&channel->spinlock);
+    esp_os_exit_critical_safe(&channel->spinlock);
 
     return ESP_OK;
 }
@@ -464,18 +464,18 @@ static esp_err_t rmt_rx_demodulate_carrier(rmt_channel_handle_t channel, const r
         uint32_t high_ticks = total_ticks * config->duty_cycle;
         uint32_t low_ticks = total_ticks - high_ticks;
 
-        portENTER_CRITICAL(&channel->spinlock);
+        esp_os_enter_critical(&channel->spinlock);
         rmt_ll_rx_set_carrier_level(hal->regs, channel_id, !config->flags.polarity_active_low);
         rmt_ll_rx_set_carrier_high_low_ticks(hal->regs, channel_id, high_ticks, low_ticks);
-        portEXIT_CRITICAL(&channel->spinlock);
+        esp_os_exit_critical(&channel->spinlock);
         // save real carrier frequency
         real_frequency = channel->resolution_hz / (high_ticks + low_ticks);
     }
 
     // enable/disable carrier demodulation
-    portENTER_CRITICAL(&channel->spinlock);
+    esp_os_enter_critical(&channel->spinlock);
     rmt_ll_rx_enable_carrier_demodulation(hal->regs, channel_id, real_frequency > 0);
-    portEXIT_CRITICAL(&channel->spinlock);
+    esp_os_exit_critical(&channel->spinlock);
 
     if (real_frequency > 0) {
         ESP_LOGD(TAG, "enable carrier demodulation for channel(%d,%d), freq=%"PRIu32"Hz", group_id, channel_id, real_frequency);
@@ -507,16 +507,16 @@ static esp_err_t rmt_rx_enable(rmt_channel_handle_t channel)
     if (channel->dma_chan) {
 #if SOC_RMT_SUPPORT_DMA
         // enable the DMA access mode
-        portENTER_CRITICAL(&channel->spinlock);
+        esp_os_enter_critical(&channel->spinlock);
         rmt_ll_rx_enable_dma(hal->regs, channel_id, true);
-        portEXIT_CRITICAL(&channel->spinlock);
+        esp_os_exit_critical(&channel->spinlock);
 
         gdma_connect(channel->dma_chan, GDMA_MAKE_TRIGGER(GDMA_TRIG_PERIPH_RMT, 0));
 #endif // SOC_RMT_SUPPORT_DMA
     } else {
-        portENTER_CRITICAL(&group->spinlock);
+        esp_os_enter_critical(&group->spinlock);
         rmt_ll_enable_interrupt(hal->regs, RMT_LL_EVENT_RX_MASK(channel_id), true);
-        portEXIT_CRITICAL(&group->spinlock);
+        esp_os_exit_critical(&group->spinlock);
     }
 
     atomic_store(&channel->fsm, RMT_FSM_ENABLE);
@@ -542,23 +542,23 @@ static esp_err_t rmt_rx_disable(rmt_channel_handle_t channel)
     rmt_hal_context_t *hal = &group->hal;
     int channel_id = channel->channel_id;
 
-    portENTER_CRITICAL(&channel->spinlock);
+    esp_os_enter_critical(&channel->spinlock);
     rmt_ll_rx_enable(hal->regs, channel_id, false);
-    portEXIT_CRITICAL(&channel->spinlock);
+    esp_os_exit_critical(&channel->spinlock);
 
     if (channel->dma_chan) {
 #if SOC_RMT_SUPPORT_DMA
         gdma_stop(channel->dma_chan);
         gdma_disconnect(channel->dma_chan);
-        portENTER_CRITICAL(&channel->spinlock);
+        esp_os_enter_critical(&channel->spinlock);
         rmt_ll_rx_enable_dma(hal->regs, channel_id, false);
-        portEXIT_CRITICAL(&channel->spinlock);
+        esp_os_exit_critical(&channel->spinlock);
 #endif
     } else {
-        portENTER_CRITICAL(&group->spinlock);
+        esp_os_enter_critical(&group->spinlock);
         rmt_ll_enable_interrupt(hal->regs, RMT_LL_EVENT_RX_MASK(channel_id), false);
         rmt_ll_clear_interrupt_status(hal->regs, RMT_LL_EVENT_RX_MASK(channel_id));
-        portEXIT_CRITICAL(&group->spinlock);
+        esp_os_exit_critical(&group->spinlock);
     }
 
 #if CONFIG_PM_ENABLE
@@ -584,10 +584,10 @@ bool rmt_isr_handle_rx_done(rmt_rx_channel_t *rx_chan)
     bool need_yield = false;
 
     rmt_ll_clear_interrupt_status(hal->regs, RMT_LL_EVENT_RX_DONE(channel_id));
-    portENTER_CRITICAL_ISR(&channel->spinlock);
+    esp_os_enter_critical_isr(&channel->spinlock);
     // disable the RX engine, it will be enabled again when next time user calls `rmt_receive()`
     rmt_ll_rx_enable(hal->regs, channel_id, false);
-    portEXIT_CRITICAL_ISR(&channel->spinlock);
+    esp_os_exit_critical_isr(&channel->spinlock);
 
 #if !RMT_LL_SUPPORT(ASYNC_STOP)
     // This is a workaround for ESP32.
@@ -646,20 +646,20 @@ bool rmt_isr_handle_rx_done(rmt_rx_channel_t *rx_chan)
         }
     }
 
-    portENTER_CRITICAL_ISR(&channel->spinlock);
+    esp_os_enter_critical_isr(&channel->spinlock);
     rmt_ll_rx_set_mem_owner(hal->regs, channel_id, RMT_LL_MEM_OWNER_SW);
     // copy the symbols to the user buffer
     memcpy((uint8_t *)trans_desc->buffer + trans_desc->copy_dest_off, channel->hw_mem_base + rx_chan->mem_off, copy_size);
     rmt_ll_rx_set_mem_owner(hal->regs, channel_id, RMT_LL_MEM_OWNER_HW);
-    portEXIT_CRITICAL_ISR(&channel->spinlock);
+    esp_os_exit_critical_isr(&channel->spinlock);
 
 #if !SOC_RMT_SUPPORT_RX_PINGPONG
     // for chips doesn't support ping-pong RX, we should check whether the receiver has encountered with a long frame,
     // whose length is longer than the channel capacity
     if (rmt_ll_rx_get_interrupt_status_raw(hal->regs, channel_id) & RMT_LL_EVENT_RX_ERROR(channel_id)) {
-        portENTER_CRITICAL_ISR(&channel->spinlock);
+        esp_os_enter_critical_isr(&channel->spinlock);
         rmt_ll_rx_reset_pointer(hal->regs, channel_id);
-        portEXIT_CRITICAL_ISR(&channel->spinlock);
+        esp_os_exit_critical_isr(&channel->spinlock);
         // this clear operation can only take effect after we copy out the received data and reset the pointer
         rmt_ll_clear_interrupt_status(hal->regs, RMT_LL_EVENT_RX_ERROR(channel_id));
         ESP_DRAM_LOGD(TAG, "hw buffer too small, received symbols truncated");
@@ -731,12 +731,12 @@ bool rmt_isr_handle_rx_threshold(rmt_rx_channel_t *rx_chan)
         }
     }
 
-    portENTER_CRITICAL_ISR(&channel->spinlock);
+    esp_os_enter_critical_isr(&channel->spinlock);
     rmt_ll_rx_set_mem_owner(hal->regs, channel_id, RMT_LL_MEM_OWNER_SW);
     // copy the symbols to the user buffer
     memcpy((uint8_t *)trans_desc->buffer + trans_desc->copy_dest_off, channel->hw_mem_base + rx_chan->mem_off, copy_size);
     rmt_ll_rx_set_mem_owner(hal->regs, channel_id, RMT_LL_MEM_OWNER_HW);
-    portEXIT_CRITICAL_ISR(&channel->spinlock);
+    esp_os_exit_critical_isr(&channel->spinlock);
 
     trans_desc->copy_dest_off += copy_size;
     trans_desc->received_symbol_num += copy_size / sizeof(rmt_symbol_word_t);
@@ -776,7 +776,7 @@ static void rmt_rx_default_isr(void *args)
     }
 
     if (need_yield) {
-        portYIELD_FROM_ISR();
+        OS_PORT_YIELD_FROM_ISR();
     }
 }
 
@@ -815,10 +815,10 @@ static bool rmt_dma_rx_one_block_cb(gdma_channel_handle_t dma_chan, gdma_event_d
 
     if (event_data->flags.normal_eof) {
         // if the DMA received an EOF, it means the RMT peripheral has received an "end marker"
-        portENTER_CRITICAL_ISR(&channel->spinlock);
+        esp_os_enter_critical_isr(&channel->spinlock);
         // disable the RX engine, it will be enabled again in the next `rmt_receive()`
         rmt_ll_rx_enable(hal->regs, channel_id, false);
-        portEXIT_CRITICAL_ISR(&channel->spinlock);
+        esp_os_exit_critical_isr(&channel->spinlock);
 
         // switch back to the enable state, then user can call `rmt_receive` to start a new receive
         atomic_store(&channel->fsm, RMT_FSM_ENABLE);

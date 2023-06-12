@@ -17,6 +17,8 @@
 #include "esp_private/esp_sleep_internal.h"
 #include "esp_log.h"
 
+#define uart_dev_t hal_uart_dev_t
+
 #if (SOC_UART_LP_NUM >= 1)
 #include "soc/rtc.h"
 #endif

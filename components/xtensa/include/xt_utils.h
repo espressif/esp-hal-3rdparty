@@ -8,8 +8,13 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "soc/soc_caps.h"
+#ifndef __NuttX__
 #include "xtensa/config/core-isa.h"
 #include "xtensa/config/core.h"
+#else
+#include <arch/chip/core-isa.h>
+#include <arch/xtensa/core.h>
+#endif
 #include "xtensa/config/extreg.h"
 #include "xtensa/config/xt_specreg.h"
 #include "xtensa/xtruntime.h"

@@ -16,7 +16,7 @@
 #include "esp_log.h"
 #include "esp_check.h"
 #include "esp_heap_caps.h"
-#include "freertos/FreeRTOS.h"
+#include "platform/os.h"
 #include "esp_private/gpio.h"
 #include "esp_adc/adc_oneshot.h"
 #include "esp_clk_tree.h"

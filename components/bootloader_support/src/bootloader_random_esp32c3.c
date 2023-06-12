@@ -15,6 +15,10 @@
 #define ADC_RNG_CLKM_DIV_B              0
 #define ADC_RNG_CLKM_DIV_A              0
 
+#if defined(CONFIG_ESPRESSIF_SIMPLE_BOOT) || defined(CONFIG_ESPRESSIF_BOOTLOADER_MCUBOOT)
+#define BOOTLOADER_BUILD 1
+#endif
+
 void bootloader_random_enable(void)
 {
     /* RNG module is always clock enabled */

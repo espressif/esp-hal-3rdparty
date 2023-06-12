@@ -17,6 +17,7 @@
 #include "esp_log.h"
 #include "esp_regdma.h"
 #include "esp_compiler.h"
+#include "platform/os.h"
 
 
 

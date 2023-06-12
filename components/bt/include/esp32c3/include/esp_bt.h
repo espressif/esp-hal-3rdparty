@@ -588,6 +588,8 @@ typedef enum {
     ESP_PWR_LVL_INVALID = 0xFF,       /*!< Indicates an invalid value */
 } esp_power_level_t;
 
+#ifndef __NuttX__
+
 /**
  * @brief       Initialize the Bluetooth Controller to allocate tasks and other resources
  *
@@ -659,6 +661,8 @@ esp_err_t esp_bt_controller_disable(void);
  *      - ESP_BT_CONTROLLER_STATUS_ENABLED: The Controller has been initialized and enabled.
  */
 esp_bt_controller_status_t esp_bt_controller_get_status(void);
+
+#endif /* __NuttX__ */
 
 /**
  * @brief Release the Controller memory as per the mode

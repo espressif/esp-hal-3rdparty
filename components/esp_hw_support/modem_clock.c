@@ -11,7 +11,7 @@
 #include "esp_attr.h"
 #include "soc/soc.h"
 #include "soc/soc_caps.h"
-#include "freertos/FreeRTOS.h"
+#include "platform/os.h"
 #include "esp_private/esp_modem_clock.h"
 #include "esp_private/esp_sleep_internal.h"
 #include "esp_private/esp_pmu.h"
@@ -61,7 +61,7 @@ typedef enum {
 
 typedef struct modem_clock_context {
     modem_clock_hal_context_t *hal;
-    portMUX_TYPE              lock;
+    DECLARE_CRIT_SECTION_LOCK_IN_STRUCT(lock);
     struct {
         int16_t     refs;               /* Reference count for this device, if with_refcnt is enabled */
         uint16_t    with_refcnt : 1;    /* Enable reference count management (true=use refs, false=ignore refs) */
@@ -278,7 +278,8 @@ modem_clock_context_t * __attribute__((weak)) IRAM_ATTR MODEM_CLOCK_instance(voi
     /* It should be explicitly defined in the internal RAM */
     static DRAM_ATTR modem_clock_hal_context_t modem_clock_hal = { .syscon_dev = NULL, .lpcon_dev = NULL };
     static DRAM_ATTR modem_clock_context_t modem_clock_context = {
-        .hal = &modem_clock_hal, .lock = portMUX_INITIALIZER_UNLOCKED,
+        .hal = &modem_clock_hal,
+        INIT_CRIT_SECTION_LOCK_IN_STRUCT(lock)
         .dev = {
             [MODEM_CLOCK_MODEM_ADC_COMMON_FE]   = { .refs = 0, .with_refcnt = true,     .configure = modem_clock_modem_adc_common_fe_configure },
             [MODEM_CLOCK_MODEM_PRIVATE_FE]      = { .refs = 0, .with_refcnt = true,     .configure = modem_clock_modem_private_fe_configure },

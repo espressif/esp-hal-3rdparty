@@ -21,25 +21,39 @@ extern "C" {
 //particular functions/variables to other memory regions.
 
 // Places code into IRAM instead of flash
+#ifndef IRAM_ATTR
 #define IRAM_ATTR _SECTION_ATTR_IMPL(".iram1", __COUNTER__)
+#endif
 
 // Forces code into IRAM instead of flash
+#ifndef FORCE_IRAM_ATTR
 #define FORCE_IRAM_ATTR _SECTION_FORCE_ATTR_IMPL(".iram1", __COUNTER__)
+#endif
 
 // Forces data into DRAM instead of flash
+#ifndef DRAM_ATTR
 #define DRAM_ATTR _SECTION_ATTR_IMPL(".dram1", __COUNTER__)
+#endif
 
 // Places code into TCM instead of flash
+#ifndef TCM_IRAM_ATTR
 #define TCM_IRAM_ATTR _SECTION_ATTR_IMPL(".tcm.text", __COUNTER__)
+#endif
 
 // Forces code into TCM instead of flash
+#ifndef FORCE_TCM_IRAM_ATTR
 #define FORCE_TCM_IRAM_ATTR _SECTION_FORCE_ATTR_IMPL(".tcm.text", __COUNTER__)
+#endif
 
 // Forces data into TCM instead of L2MEM
+#ifndef TCM_DRAM_ATTR
 #define TCM_DRAM_ATTR _SECTION_ATTR_IMPL(".tcm.data", __COUNTER__)
+#endif
 
 // Forces data to be removed from the final binary but keeps it in the ELF file
+#ifndef NOLOAD_ATTR
 #define NOLOAD_ATTR _SECTION_ATTR_IMPL(".noload_keep_in_elf", __COUNTER__)
+#endif
 
 // IRAM can only be accessed as an 8-bit memory on ESP32, when CONFIG_ESP32_IRAM_AS_8BIT_ACCESSIBLE_MEMORY is set
 #define IRAM_8BIT_ACCESSIBLE (CONFIG_IDF_TARGET_ESP32 && CONFIG_ESP32_IRAM_AS_8BIT_ACCESSIBLE_MEMORY)
@@ -48,13 +62,19 @@ extern "C" {
 // If that's not the case, coredump cannot dump data from IRAM.
 #if IRAM_8BIT_ACCESSIBLE
 // Forces data into IRAM instead of DRAM
+#ifndef IRAM_DATA_ATTR
 #define IRAM_DATA_ATTR __attribute__((section(".iram.data")))
+#endif
 
 // Forces data into IRAM instead of DRAM and map it to coredump
+#ifndef COREDUMP_IRAM_DATA_ATTR
 #define COREDUMP_IRAM_DATA_ATTR _SECTION_ATTR_IMPL(".iram2.coredump", __COUNTER__)
+#endif
 
 // Forces bss into IRAM instead of DRAM
+#ifndef IRAM_BSS_ATTR
 #define IRAM_BSS_ATTR __attribute__((section(".iram.bss")))
+#endif
 #else
 
 // IRAM is not accessible as an 8-bit memory, put IRAM coredump variables in DRAM
@@ -91,33 +111,51 @@ extern "C" {
 // Forces data into RTC memory. See "docs/deep-sleep-stub.rst"
 // Any variable marked with this attribute will keep its value
 // during a deep sleep / wake cycle.
+#ifndef RTC_DATA_ATTR
 #define RTC_DATA_ATTR _SECTION_ATTR_IMPL(".rtc.data", __COUNTER__)
+#endif
 
 // Forces data into RTC memory of .noinit section.
 // Any variable marked with this attribute will keep its value
 // after restart or during a deep sleep / wake cycle.
+#ifndef RTC_NOINIT_ATTR
 #define RTC_NOINIT_ATTR  _SECTION_ATTR_IMPL(".rtc_noinit", __COUNTER__)
+#endif
 
 // Forces read-only data into RTC memory. See "docs/deep-sleep-stub.rst"
+#ifndef RTC_RODATA_ATTR
 #define RTC_RODATA_ATTR _SECTION_ATTR_IMPL(".rtc.rodata", __COUNTER__)
+#endif
 
 // Forces data into RTC memory and map it to coredump
+#ifndef COREDUMP_RTC_DATA_ATTR
 #define COREDUMP_RTC_DATA_ATTR _SECTION_ATTR_IMPL(".rtc.coredump", __COUNTER__)
+#endif
 
 // Allows to place data into RTC_SLOW memory.
+#ifndef RTC_SLOW_ATTR
 #define RTC_SLOW_ATTR _SECTION_ATTR_IMPL(".rtc.force_slow", __COUNTER__)
+#endif
 
 // Forces code into RTC fast memory. See "docs/deep-sleep-stub.rst"
+#ifndef RTC_IRAM_ATTR
 #define RTC_IRAM_ATTR _SECTION_ATTR_IMPL(".rtc.text", __COUNTER__)
+#endif
 
 // Allows to place data into RTC_FAST memory.
+#ifndef RTC_FAST_ATTR
 #define RTC_FAST_ATTR _SECTION_ATTR_IMPL(".rtc.force_fast", __COUNTER__)
+#endif
 
 // Allows to place data into RTC_FAST memory and map it to coredump
+#ifndef COREDUMP_RTC_FAST_ATTR
 #define COREDUMP_RTC_FAST_ATTR _SECTION_ATTR_IMPL(".rtc.fast.coredump", __COUNTER__)
+#endif
 
 // Allows to place data into RTC_NOINIT memory and map it to coredump
+#ifndef COREDUMP_NOINIT_ATTR
 #define COREDUMP_NOINIT_ATTR _SECTION_ATTR_IMPL(".rtc_noinit.coredump", __COUNTER__)
+#endif
 #else
 
 // Allows to place data into NOINIT memory and map it to coredump
@@ -136,16 +174,22 @@ extern "C" {
 
 #if CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY
 // Forces bss variable into external memory. "
+#ifndef EXT_RAM_BSS_ATTR
 #define EXT_RAM_BSS_ATTR _SECTION_ATTR_IMPL(".ext_ram.bss", __COUNTER__)
+#endif
 // Forces data into external memory BSS and maps it to coredump
+#ifndef COREDUMP_EXTRAM_ATTR
 #define COREDUMP_EXTRAM_ATTR _SECTION_ATTR_IMPL(".ext_ram.coredump", __COUNTER__)
+#endif
 #else
 #define EXT_RAM_BSS_ATTR
 #define COREDUMP_EXTRAM_ATTR
 #endif
 
 // Forces data into noinit section to avoid initialization after restart.
+#ifndef __NOINIT_ATTR
 #define __NOINIT_ATTR _SECTION_ATTR_IMPL(".noinit", __COUNTER__)
+#endif
 
 #if CONFIG_SPIRAM_ALLOW_NOINIT_SEG_EXTERNAL_MEMORY
 // Forces data into external memory noinit section to avoid initialization after restart.

@@ -38,8 +38,10 @@ strrchr = 0x40001404;
 strsep = 0x40001410;
 strspn = 0x4000141c;
 strtok_r = 0x40001428;
+#ifndef  __NuttX__
 longjmp = 0x40001440;
 setjmp = 0x4000144c;
+#endif
 abs = 0x40001458;
 div = 0x40001464;
 labs = 0x40001470;

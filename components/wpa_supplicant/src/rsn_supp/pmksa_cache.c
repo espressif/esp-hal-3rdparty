@@ -7,7 +7,11 @@
  */
 
 #include "includes.h"
+#ifdef __NuttX__
+#include "utils/common.h"
+#else
 #include "common.h"
+#endif
 #include "eloop.h"
 #include "rsn_supp/wpa.h"
 #include "rsn_supp/wpa_i.h"

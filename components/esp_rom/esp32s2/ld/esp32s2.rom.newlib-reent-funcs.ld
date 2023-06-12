@@ -6,10 +6,12 @@
 _cleanup_r = 0x4001a480;
 creat = 0x4000788c;
 open = 0x400080c4;
+#ifndef __NuttX__
 fclose = 0x4001a804;
 _fclose_r = 0x4001a714;
 fflush = 0x40001bb8;
 _fflush_r = 0x40001b30;
+#endif
 __fp_unlock_all = 0x4001a64c;
 __fputwc = 0x40001770;
 fputwc = 0x40001864;
@@ -22,11 +24,15 @@ __swbuf_r = 0x400015bc;
 __swrite = 0x4001a698;
 __sread = 0x4001a660;
 __sseek = 0x4001a6cc;
+#ifndef __NuttX__
 srand = 0x40007a24;
+#endif
 __ascii_mbtowc = 0x40007a04;
 __ascii_wctomb = 0x400018d0;
 _mbtowc_r = 0x400079e0;
+#ifndef __NuttX__
 rand_r = 0x40007af4;
+#endif
 __sclose = 0x4001a700;
 __seofread = 0x4001a690;
 setlocale = 0x40001c44;
@@ -56,7 +62,9 @@ isalnum = 0x400078d8;
 isalpha = 0x400078e8;
 isdigit = 0x40007930;
 islower = 0x40007948;
+#ifndef __NuttX__
 isspace = 0x400079ac;
+#endif
 isupper = 0x400079c4;
 strcoll = 0x40007ce8;
 strlwr = 0x40007e68;

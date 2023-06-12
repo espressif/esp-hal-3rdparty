@@ -18,8 +18,13 @@
  ***************************************/
 
 /* Functions */
+#ifdef __NuttX__
+PROVIDE( spi_flash_disable_cache = 0x400001f0 );
+PROVIDE( spi_flash_restore_cache = 0x400001f4 );
+#else
 spi_flash_disable_cache = 0x400001f0;
 spi_flash_restore_cache = 0x400001f4;
+#endif
 spi_flash_cache_enabled = 0x400001f8;
 esp_enable_cache_flash_wrap = 0x40000200;
 

@@ -354,6 +354,15 @@ esp_err_t esp_intr_enable(intr_handle_t handle);
 esp_err_t esp_intr_set_in_iram(intr_handle_t handle, bool is_in_iram);
 
 /**
+ * @brief Check if non-IRAM interrupts are disabled
+ *
+ * @param cpu CPU core ID to check (0 or 1)
+ *
+ * @return true if non-IRAM interrupts are disabled for the specified CPU, false otherwise
+ */
+bool esp_intr_noniram_is_disabled(uint32_t cpu);
+
+/**
  * @brief Disable interrupts that aren't specifically marked as running from IRAM
  */
 void esp_intr_noniram_disable(void);

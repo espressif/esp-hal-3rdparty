@@ -567,7 +567,7 @@ int wpa_parse_wpa_ie_rsn(const u8 *rsn_ie, size_t rsn_ie_len,
 		data->mgmt_group_cipher = rsn_selector_to_bitfield(pos);
 		if (!wpa_cipher_valid_mgmt_group(data->mgmt_group_cipher)) {
 			wpa_printf(MSG_DEBUG,
-				   "%s: Unsupported management group cipher 0x%x (%08x)",
+				   "%s: Unsupported management group cipher 0x%x (%08" PRIx32 ")",
 				   __func__, data->mgmt_group_cipher,
 				   WPA_GET_BE32(pos));
 			return -10;
@@ -1540,7 +1540,7 @@ u32 wpa_cipher_to_suite(int proto, int cipher)
 			RSN_CIPHER_SUITE_NONE : WPA_CIPHER_SUITE_NONE);
 	if (cipher & WPA_CIPHER_AES_128_CMAC)
 		return RSN_CIPHER_SUITE_AES_128_CMAC;
-#if CONFIG_GMAC
+#ifdef CONFIG_GMAC
 	if (cipher & WPA_CIPHER_BIP_GMAC_128)
 		return RSN_CIPHER_SUITE_BIP_GMAC_128;
 	if (cipher & WPA_CIPHER_BIP_GMAC_256)

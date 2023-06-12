@@ -13,6 +13,10 @@
 #include "sdkconfig.h"
 #include <sys/param.h>
 
+#ifdef __NuttX__
+#define BOOTLOADER_BUILD 1
+#endif
+
 ESP_LOG_ATTR_TAG(TAG, "efuse");
 
 // This counter is used to implement independent read access for efuses.

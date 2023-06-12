@@ -123,7 +123,7 @@ static uint32_t rtc_clk_cal_internal(soc_clk_freq_calculation_src_t cal_clk_sel,
         REG_SET_FIELD(TIMG_RTCCALICFG2_REG(0), TIMG_RTC_CALI_TIMEOUT_THRES, RTC_SLOW_CLK_150K_CAL_TIMEOUT_THRES(slowclk_cycles));
         expected_freq = SOC_CLK_RC_SLOW_FREQ_APPROX;
     }
-    uint32_t us_time_estimate = (uint32_t) (((uint64_t) slowclk_cycles) * MHZ / expected_freq);
+    uint32_t us_time_estimate = (uint32_t) ((uint64_t) (slowclk_cycles * MHZ) / expected_freq);
     /* Start calibration */
     CLEAR_PERI_REG_MASK(TIMG_RTCCALICFG_REG(0), TIMG_RTC_CALI_START);
     SET_PERI_REG_MASK(TIMG_RTCCALICFG_REG(0), TIMG_RTC_CALI_START);

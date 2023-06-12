@@ -20,6 +20,8 @@
 #include "soc/rtc.h"
 #include "esp_private/rtc_clk.h"
 #include "soc/uart_reg.h"
+#include "hal/cache_hal.h"
+#include "hal/cache_types.h"
 #include "hal/wdt_hal.h"
 #include "hal/uart_ll.h"
 #include "hal/spimem_flash_ll.h"

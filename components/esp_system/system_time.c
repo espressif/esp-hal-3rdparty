@@ -9,7 +9,7 @@
 
 #include "soc/rtc.h"
 
-#include "freertos/FreeRTOS.h"
+#include "platform/os.h"
 
 #include "sdkconfig.h"
 

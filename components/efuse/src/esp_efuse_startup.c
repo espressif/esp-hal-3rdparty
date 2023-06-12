@@ -16,8 +16,10 @@
 #include "esp_system.h"
 #include "esp_log.h"
 #include "esp_private/startup_internal.h"
+#ifndef __NuttX__
 #ifdef CONFIG_EFUSE_VIRTUAL_KEEP_IN_FLASH
 #include "esp_partition.h"
+#endif
 #endif
 #if CONFIG_SECURE_FLASH_ENC_ENABLED
 #include "esp_flash_encrypt.h"
@@ -60,6 +62,7 @@ static void init_efuse_virtual(void)
 {
     ESP_LOGW(TAG, "eFuse virtual mode is enabled. If Secure boot or Flash encryption is enabled then it does not provide any security. FOR TESTING ONLY!");
 #ifdef CONFIG_EFUSE_VIRTUAL_KEEP_IN_FLASH
+#ifndef __NuttX__
     // For efuse virtual mode we need to seed virtual efuses from flash
     // esp_flash must be initialized in advance because here we read the efuse partition.
     const esp_partition_t *efuse_partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_EFUSE_EM, NULL);
@@ -79,6 +82,10 @@ static void init_efuse_virtual(void)
         volatile const esp_partition_t *dummy_partition = esp_partition_find_first(ESP_PARTITION_TYPE_ANY, ESP_PARTITION_SUBTYPE_ANY, NULL);
         (void) dummy_partition;
     }
+#else
+    esp_efuse_init_virtual_mode_in_flash(CONFIG_ESPRESSIF_EFUSE_VIRTUAL_KEEP_IN_FLASH_OFFSET,
+                                         CONFIG_ESPRESSIF_EFUSE_VIRTUAL_KEEP_IN_FLASH_SIZE);
+#endif
 #else // !CONFIG_EFUSE_VIRTUAL_KEEP_IN_FLASH
     // For efuse virtual mode we need to seed virtual efuses from efuse_regs.
     esp_efuse_utility_update_virt_blocks();

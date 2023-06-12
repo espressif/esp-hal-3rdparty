@@ -47,7 +47,11 @@
 
 /*  CONFIGURATION SPECIFIC DEFINITIONS:  */
 #ifdef __XTENSA__
+#ifndef __NuttX__
 #include <xtensa/config/core-isa.h>
+#else
+#include <arch/chip/core-isa.h>
+#endif
 #include <xtensa/config/core-matmap.h>
 #include <xtensa/config/tie.h>
 #else
@@ -732,8 +736,12 @@
 # define XCHAL_CACHE_LINESIZE_MAX	XCHAL_DCACHE_LINESIZE
 #endif
 
+#ifndef XCHAL_ICACHE_SETSIZE
 #define XCHAL_ICACHE_SETSIZE		(1<<XCHAL_ICACHE_SETWIDTH)
+#endif
+#ifndef XCHAL_DCACHE_SETSIZE
 #define XCHAL_DCACHE_SETSIZE		(1<<XCHAL_DCACHE_SETWIDTH)
+#endif
 /*  Max for both I and D caches (used for cache-coherency page alignment):  */
 #if XCHAL_ICACHE_SETWIDTH > XCHAL_DCACHE_SETWIDTH
 # define XCHAL_CACHE_SETWIDTH_MAX	XCHAL_ICACHE_SETWIDTH
@@ -841,8 +849,12 @@
  */
 
 /*  Number of entries per autorefill way:  */
+#ifndef XCHAL_ITLB_ARF_ENTRIES
 #define XCHAL_ITLB_ARF_ENTRIES		(1<<XCHAL_ITLB_ARF_ENTRIES_LOG2)
+#endif
+#ifndef XCHAL_DTLB_ARF_ENTRIES
 #define XCHAL_DTLB_ARF_ENTRIES		(1<<XCHAL_DTLB_ARF_ENTRIES_LOG2)
+#endif
 
 /*
  *  Determine whether we have a full MMU (with Page Table and Protection)

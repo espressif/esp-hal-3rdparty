@@ -17,15 +17,19 @@ PROVIDE ( __assert = 0x4001a430 );
 PROVIDE ( __assert_func = 0x4001a408 );
 bzero = 0x400078c8;
 div = 0x40000620;
+#ifndef __NuttX__
 isascii = 0x4001aaec;
 isblank = 0x400078f8;
 iscntrl = 0x40007918;
 isgraph = 0x40007968;
 isprint = 0x40007980;
 ispunct = 0x40007994;
+#endif
 labs = 0x40000648;
 ldiv = 0x40000650;
+#ifndef  __NuttX__
 longjmp = 0x400005a4;
+#endif
 memccpy = 0x4001ab00;
 memchr = 0x4001ab24;
 memcmp = 0x4001ab40;
@@ -34,7 +38,9 @@ memmove = 0x4001acb0;
 memrchr = 0x4001acec;
 memset = 0x4001ad3c;
 qsort = 0x400006f4;
+#ifndef  __NuttX__
 setjmp = 0x40000540;
+#endif
 strcat = 0x4001ad90;
 strchr = 0x4001adb0;
 strcmp = 0x40007be4;

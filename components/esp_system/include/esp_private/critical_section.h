@@ -14,7 +14,7 @@
 #pragma once
 
 #if !NON_OS_BUILD
-#include "freertos/FreeRTOS.h"
+#include "platform/os.h"
 #endif
 #include "spinlock.h"
 
@@ -22,23 +22,8 @@
 extern "C" {
 #endif
 
-/**
- * In theory, OS_SPINLOCK should only be defined in a multi-core environment, because critical-section-related
- * functions there take a lock as a parameter. In practice, since the Xtensa FreeRTOS port layer is the same
- * for the ESP32, S3, and S2, the latter also requires a parameter in its critical-section-related functions.
- */
-#if (!CONFIG_FREERTOS_UNICORE || CONFIG_IDF_TARGET_ARCH_XTENSA) && !NON_OS_BUILD
-/**
- * This macro also helps users switching between spinlock declarations/definitions for multi-/single core environments
- * if the macros below aren't sufficient.
- */
-#define OS_SPINLOCK 1
-#else
-#define OS_SPINLOCK 0
-#endif
-
 #if OS_SPINLOCK == 1
-typedef spinlock_t esp_os_spinlock_t;
+typedef OS_SPINLOCK_TYPE esp_os_spinlock_t;
 #endif
 
 /**
@@ -67,7 +52,7 @@ typedef spinlock_t esp_os_spinlock_t;
  * @endcode
  */
 #if OS_SPINLOCK == 1
-#define DEFINE_CRIT_SECTION_LOCK_STATIC(lock_name, optional_qualifiers...) static optional_qualifiers esp_os_spinlock_t lock_name = SPINLOCK_INITIALIZER
+#define DEFINE_CRIT_SECTION_LOCK_STATIC(lock_name, optional_qualifiers...) static optional_qualifiers esp_os_spinlock_t lock_name = OS_SPINLOCK_INITIALIZER
 #else
 #define DEFINE_CRIT_SECTION_LOCK_STATIC(lock_name, optional_qualifiers...)
 #endif
@@ -99,9 +84,44 @@ typedef spinlock_t esp_os_spinlock_t;
  * @endcode
  */
 #if OS_SPINLOCK == 1
-#define DEFINE_CRIT_SECTION_LOCK(lock_name, optional_qualifiers...) optional_qualifiers esp_os_spinlock_t lock_name = SPINLOCK_INITIALIZER
+#define DEFINE_CRIT_SECTION_LOCK(lock_name, optional_qualifiers...) optional_qualifiers esp_os_spinlock_t lock_name = OS_SPINLOCK_INITIALIZER
 #else
 #define DEFINE_CRIT_SECTION_LOCK(lock_name, optional_qualifiers...)
+#endif
+
+/**
+ * Define and initialize a static (internal linking) array of locks for entering critical sections.
+ *
+ * Use this when you need multiple locks indexed by core ID or other array-based access patterns.
+ * The lock array will only be defined if built for a multi-core system, otherwise it is unnecessary.
+ *
+ * @note When using this macro, the critical section macros esp_os_enter_critical* and esp_os_exit_critical*
+ * MUST be used, otherwise normal functions would be passed an undefined variable when build for single-core systems.
+ *
+ * @param lock_name Variable name of the lock array. This will later be used to reference the declared locks.
+ * @param array_size The size of the lock array (e.g., CONFIG_FREERTOS_NUMBER_OF_CORES).
+ * @param optional_qualifiers Qualifiers such as DRAM_ATTR and other attributes. Can be omitted if no qualifiers are
+ *        required.
+ *
+ * Example usage:
+ * @code{c}
+ * ...
+ * #include "os/critical_section.h"
+ * ...
+ * DEFINE_CRIT_SECTION_LOCK_ARRAY_STATIC(my_locks, CONFIG_FREERTOS_NUMBER_OF_CORES);
+ * ...
+ * esp_os_enter_critical(&my_locks[core_id]);
+ * ...
+ * esp_os_exit_critical(&my_locks[core_id]);
+ * @endcode
+ */
+#if OS_SPINLOCK == 1
+#define DEFINE_CRIT_SECTION_LOCK_ARRAY_STATIC(lock_name, array_size, optional_qualifiers...) \
+    static optional_qualifiers esp_os_spinlock_t lock_name[array_size] = { \
+        [0 ... (array_size - 1)] = OS_SPINLOCK_INITIALIZER \
+    }
+#else
+#define DEFINE_CRIT_SECTION_LOCK_ARRAY_STATIC(lock_name, array_size, optional_qualifiers...)
 #endif
 
 /**
@@ -134,7 +154,7 @@ typedef spinlock_t esp_os_spinlock_t;
  * @endcode
  */
 #if OS_SPINLOCK == 1
-#define INIT_CRIT_SECTION_LOCK_RUNTIME(lock_name) spinlock_initialize(lock_name)
+#define INIT_CRIT_SECTION_LOCK_RUNTIME(lock_name) OS_SPINLOCK_INIT(lock_name)
 #else
 #define INIT_CRIT_SECTION_LOCK_RUNTIME(lock_name)
 #endif
@@ -167,6 +187,32 @@ typedef spinlock_t esp_os_spinlock_t;
 #define DECLARE_CRIT_SECTION_LOCK_IN_STRUCT(lock_name) esp_os_spinlock_t lock_name;
 #else
 #define DECLARE_CRIT_SECTION_LOCK_IN_STRUCT(lock_name)
+#endif
+
+/**
+ * @brief Declares an external critical section lock.
+ *
+ * This macro is used to declare an external (non-static) critical section lock symbol,
+ * which is defined in another translation unit (source file).
+ * This is useful when a spinlock needs to be shared across multiple files,
+ * such as in the case of locking resources like io_mux.
+ * The lock will only be declared if built for a multi-core system (when OS_SPINLOCK == 1).
+ * Otherwise, no declaration is made since the lock is unnecessary for single-core systems.
+ *
+ * @param lock_name The variable name of the external lock to be declared.
+ *
+ * Example usage:
+ * @code{c}
+ *
+ * DECLARE_EXTERNAL_CRIT_SECTION_LOCK(io_mux_lock);
+ * // Would translate to:
+ * extern esp_os_spinlock_t io_mux_lock;
+ * @endcode
+ */
+#if OS_SPINLOCK == 1
+#define DECLARE_EXTERNAL_CRIT_SECTION_LOCK(lock_name) extern esp_os_spinlock_t lock_name;
+#else
+#define DECLARE_EXTERNAL_CRIT_SECTION_LOCK(lock_name)
 #endif
 
 /**
@@ -205,7 +251,7 @@ typedef spinlock_t esp_os_spinlock_t;
  * @endcode
  */
 #if OS_SPINLOCK == 1
-#define INIT_CRIT_SECTION_LOCK_IN_STRUCT(lock_name) .lock_name = portMUX_INITIALIZER_UNLOCKED,
+#define INIT_CRIT_SECTION_LOCK_IN_STRUCT(lock_name) .lock_name = OS_SPINLOCK_INITIALIZER,
 #else
 #define INIT_CRIT_SECTION_LOCK_IN_STRUCT(lock_name)
 #endif
@@ -234,9 +280,9 @@ typedef spinlock_t esp_os_spinlock_t;
  * @endcode
  */
 #if OS_SPINLOCK == 1
-#define esp_os_enter_critical(lock)         portENTER_CRITICAL(lock)
+#define esp_os_enter_critical(lock)         OS_ENTER_CRITICAL_WITH_LOCK(lock)
 #else
-#define esp_os_enter_critical(lock)         vPortEnterCritical()
+#define esp_os_enter_critical(lock)         OS_ENTER_CRITICAL_NO_LOCK()
 #endif
 
 /**
@@ -263,9 +309,9 @@ typedef spinlock_t esp_os_spinlock_t;
  * @endcode
  */
 #if OS_SPINLOCK == 1
-#define esp_os_exit_critical(lock)          portEXIT_CRITICAL(lock)
+#define esp_os_exit_critical(lock)          OS_EXIT_CRITICAL_WITH_LOCK(lock)
 #else
-#define esp_os_exit_critical(lock)          vPortExitCritical()
+#define esp_os_exit_critical(lock)          OS_EXIT_CRITICAL_NO_LOCK()
 #endif
 
 /**
@@ -292,9 +338,9 @@ typedef spinlock_t esp_os_spinlock_t;
  * @endcode
  */
 #if OS_SPINLOCK == 1
-#define esp_os_enter_critical_isr(lock)     portENTER_CRITICAL_ISR(lock)
+#define esp_os_enter_critical_isr(lock)     OS_ENTER_CRITICAL_WITH_LOCK_ISR(lock)
 #else
-#define esp_os_enter_critical_isr(lock)     vPortEnterCritical()
+#define esp_os_enter_critical_isr(lock)     OS_ENTER_CRITICAL_NO_LOCK_ISR()
 #endif
 
 /**
@@ -321,9 +367,9 @@ typedef spinlock_t esp_os_spinlock_t;
  * @endcode
  */
 #if OS_SPINLOCK == 1
-#define esp_os_exit_critical_isr(lock)      portEXIT_CRITICAL_ISR(lock)
+#define esp_os_exit_critical_isr(lock)      OS_EXIT_CRITICAL_WITH_LOCK_ISR(lock)
 #else
-#define esp_os_exit_critical_isr(lock)      vPortExitCritical()
+#define esp_os_exit_critical_isr(lock)      OS_EXIT_CRITICAL_NO_LOCK_ISR()
 #endif
 
 /**
@@ -351,9 +397,9 @@ typedef spinlock_t esp_os_spinlock_t;
  * @endcode
  */
 #if OS_SPINLOCK == 1
-#define esp_os_enter_critical_safe(lock)    portENTER_CRITICAL_SAFE(lock)
+#define esp_os_enter_critical_safe(lock)    OS_ENTER_CRITICAL_WITH_LOCK_SAFE(lock)
 #else
-#define esp_os_enter_critical_safe(lock)    vPortEnterCritical()
+#define esp_os_enter_critical_safe(lock)    OS_ENTER_CRITICAL_NO_LOCK_SAFE()
 #endif
 
 /**
@@ -380,9 +426,9 @@ typedef spinlock_t esp_os_spinlock_t;
  * @endcode
  */
 #if OS_SPINLOCK == 1
-#define esp_os_exit_critical_safe(lock)     portEXIT_CRITICAL_SAFE(lock)
+#define esp_os_exit_critical_safe(lock)     OS_EXIT_CRITICAL_WITH_LOCK_SAFE(lock)
 #else
-#define esp_os_exit_critical_safe(lock)     vPortExitCritical()
+#define esp_os_exit_critical_safe(lock)     OS_EXIT_CRITICAL_NO_LOCK_SAFE()
 #endif
 
 #ifdef __cplusplus

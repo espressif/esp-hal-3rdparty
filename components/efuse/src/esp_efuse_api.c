@@ -17,8 +17,7 @@ ESP_LOG_ATTR_TAG(TAG, "efuse");
 #define EFUSE_LOCK_ACQUIRE_RECURSIVE()
 #define EFUSE_LOCK_RELEASE_RECURSIVE()
 #else
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+#include "platform/os.h"
 #include <sys/lock.h>
 static _lock_t s_efuse_lock;
 #define EFUSE_LOCK_ACQUIRE_RECURSIVE() _lock_acquire_recursive(&s_efuse_lock)
@@ -41,7 +40,7 @@ esp_err_t esp_efuse_read_field_blob(const esp_efuse_desc_t* field[], void* dst, 
             err = esp_efuse_utility_process(field, dst, dst_size_bits, esp_efuse_utility_fill_buff);
 #ifndef NON_OS_BUILD
             if (err == ESP_ERR_DAMAGED_READING) {
-                vTaskDelay(1);
+                OS_TASK_DELAY(1);
             }
 #endif // NON_OS_BUILD
         } while (err == ESP_ERR_DAMAGED_READING);
@@ -69,7 +68,7 @@ esp_err_t esp_efuse_read_field_cnt(const esp_efuse_desc_t* field[], size_t* out_
             err = esp_efuse_utility_process(field, out_cnt, 0, esp_efuse_utility_count_once);
 #ifndef NON_OS_BUILD
             if (err == ESP_ERR_DAMAGED_READING) {
-                vTaskDelay(1);
+                OS_TASK_DELAY(1);
             }
 #endif // NON_OS_BUILD
         } while (err == ESP_ERR_DAMAGED_READING);

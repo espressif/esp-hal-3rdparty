@@ -1,0 +1,206 @@
+diff --git a/library/x509_oid.c b/library/x509_oid.c
+index 5f1e0187de47bfda98ea0b516ec4bc7e7953166b..7c0745c92ce0e535d1ea3551e6e5bc93bdbd83cb 100644
+--- a/library/x509_oid.c
++++ b/library/x509_oid.c
+@@ -43,7 +43,7 @@
+  * the other functions)
+  */
+ #define FN_OID_TYPED_FROM_ASN1(TYPE_T, NAME, LIST)                    \
+-    static const TYPE_T *oid_ ## NAME ## _from_asn1(                   \
++    static const TYPE_T *esp_oid_ ## NAME ## _from_asn1(                   \
+         const mbedtls_asn1_buf *oid)     \
+     {                                                                   \
+         const TYPE_T *p = (LIST);                                       \
+@@ -69,7 +69,7 @@
+ #define FN_OID_GET_DESCRIPTOR_ATTR1(FN_NAME, TYPE_T, TYPE_NAME, ATTR1_TYPE, ATTR1) \
+     int FN_NAME(const mbedtls_asn1_buf *oid, ATTR1_TYPE * ATTR1)                  \
+     {                                                                       \
+-        const TYPE_T *data = oid_ ## TYPE_NAME ## _from_asn1(oid);        \
++        const TYPE_T *data = esp_oid_ ## TYPE_NAME ## _from_asn1(oid);        \
+         if (data == NULL) return MBEDTLS_ERR_X509_UNKNOWN_OID;            \
+         *ATTR1 = data->descriptor.ATTR1;                                    \
+         return 0;                                                        \
+@@ -83,7 +83,7 @@
+ #define FN_OID_GET_ATTR1(FN_NAME, TYPE_T, TYPE_NAME, ATTR1_TYPE, ATTR1) \
+     int FN_NAME(const mbedtls_asn1_buf *oid, ATTR1_TYPE * ATTR1)                  \
+     {                                                                       \
+-        const TYPE_T *data = oid_ ## TYPE_NAME ## _from_asn1(oid);        \
++        const TYPE_T *data = esp_oid_ ## TYPE_NAME ## _from_asn1(oid);        \
+         if (data == NULL) return MBEDTLS_ERR_X509_UNKNOWN_OID;            \
+         *ATTR1 = data->ATTR1;                                               \
+         return 0;                                                        \
+@@ -98,7 +98,7 @@
+     int FN_NAME(const mbedtls_asn1_buf *oid, ATTR1_TYPE * ATTR1,               \
+                 ATTR2_TYPE * ATTR2)              \
+     {                                                                           \
+-        const TYPE_T *data = oid_ ## TYPE_NAME ## _from_asn1(oid);            \
++        const TYPE_T *data = esp_oid_ ## TYPE_NAME ## _from_asn1(oid);            \
+         if (data == NULL) return MBEDTLS_ERR_X509_UNKNOWN_OID;                 \
+         *(ATTR1) = data->ATTR1;                                                 \
+         *(ATTR2) = data->ATTR2;                                                 \
+diff --git a/tf-psa-crypto/drivers/builtin/src/ecdsa.c b/tf-psa-crypto/drivers/builtin/src/ecdsa.c
+index b197f4e06d7b1bac639e0a78df8608a20cff0e3a..083be6e902a9e2b2a07b11656b27c4250e27f465 100644
+--- a/tf-psa-crypto/drivers/builtin/src/ecdsa.c
++++ b/tf-psa-crypto/drivers/builtin/src/ecdsa.c
+@@ -164,7 +164,7 @@ static void esp_ecdsa_restart_det_free(mbedtls_ecdsa_restart_det_ctx *ctx)
+             if (rs_ctx->SUB == NULL)                                    \
+             return MBEDTLS_ERR_ECP_ALLOC_FAILED;                  \
+                                                                    \
+-            ecdsa_restart_## SUB ##_init(rs_ctx->SUB);                 \
++            esp_ecdsa_restart_## SUB ##_init(rs_ctx->SUB);                 \
+         }                                                                \
+ } while (0)
+ 
+@@ -174,7 +174,7 @@ static void esp_ecdsa_restart_det_free(mbedtls_ecdsa_restart_det_ctx *ctx)
+         if (rs_ctx != NULL && rs_ctx->SUB != NULL &&                     \
+             ret != MBEDTLS_ERR_ECP_IN_PROGRESS)                         \
+         {                                                                \
+-            ecdsa_restart_## SUB ##_free(rs_ctx->SUB);                 \
++            esp_ecdsa_restart_## SUB ##_free(rs_ctx->SUB);                 \
+             esp_mbedtls_free(rs_ctx->SUB);                                 \
+             rs_ctx->SUB = NULL;                                          \
+         }                                                                \
+diff --git a/tf-psa-crypto/drivers/builtin/src/ecp_curves.c b/tf-psa-crypto/drivers/builtin/src/ecp_curves.c
+index fae1bc8a12c6d4cb99e49321eb3f372ec7e5eaaf..6adc3f0c4841359513dded48afe0e2ed17754317 100644
+--- a/tf-psa-crypto/drivers/builtin/src/ecp_curves.c
++++ b/tf-psa-crypto/drivers/builtin/src/ecp_curves.c
+@@ -4059,7 +4059,7 @@ static int esp_ecp_mod_p384(mbedtls_mpi *);
+ static int esp_ecp_mod_p521(mbedtls_mpi *);
+ #endif
+ 
+-#define NIST_MODP(P)      grp->modp = ecp_mod_ ## P;
++#define NIST_MODP(P)      grp->modp = esp_ecp_mod_ ## P;
+ #else
+ #define NIST_MODP(P)
+ #endif /* MBEDTLS_ECP_NIST_OPTIM */
+@@ -4080,23 +4080,23 @@ static int esp_ecp_mod_p256k1(mbedtls_mpi *);
+ 
+ #if defined(ECP_LOAD_GROUP)
+ #define LOAD_GROUP_A(G)   esp_ecp_group_load(grp,            \
+-                                         G ## _p,  sizeof(G ## _p),   \
+-                                         G ## _a,  sizeof(G ## _a),   \
+-                                         G ## _b,  sizeof(G ## _b),   \
+-                                         G ## _gx, sizeof(G ## _gx),   \
+-                                         G ## _gy, sizeof(G ## _gy),   \
+-                                         G ## _n,  sizeof(G ## _n),   \
+-                                         G ## _T                         \
++                                         esp_ ## G ## _p,  sizeof(esp_ ## G ## _p),   \
++                                         esp_ ## G ## _a,  sizeof(esp_ ## G ## _a),   \
++                                         esp_ ## G ## _b,  sizeof(esp_ ## G ## _b),   \
++                                         esp_ ## G ## _gx, sizeof(esp_ ## G ## _gx),   \
++                                         esp_ ## G ## _gy, sizeof(esp_ ## G ## _gy),   \
++                                         esp_ ## G ## _n,  sizeof(esp_ ## G ## _n),   \
++                                         esp_ ## G ## _T                         \
+                                          )
+ 
+ #define LOAD_GROUP(G)     esp_ecp_group_load(grp,            \
+-                                         G ## _p,  sizeof(G ## _p),   \
++                                         esp_ ## G ## _p,  sizeof(esp_ ## G ## _p),   \
+                                          NULL,     0,                    \
+-                                         G ## _b,  sizeof(G ## _b),   \
+-                                         G ## _gx, sizeof(G ## _gx),   \
+-                                         G ## _gy, sizeof(G ## _gy),   \
+-                                         G ## _n,  sizeof(G ## _n),   \
+-                                         G ## _T                         \
++                                         esp_ ## G ## _b,  sizeof(esp_ ## G ## _b),   \
++                                         esp_ ## G ## _gx, sizeof(esp_ ## G ## _gx),   \
++                                         esp_ ## G ## _gy, sizeof(esp_ ## G ## _gy),   \
++                                         esp_ ## G ## _n,  sizeof(esp_ ## G ## _n),   \
++                                         esp_ ## G ## _T                         \
+                                          )
+ #endif /* ECP_LOAD_GROUP */
+ 
+diff --git a/tf-psa-crypto/drivers/builtin/src/ecp_curves_new.c b/tf-psa-crypto/drivers/builtin/src/ecp_curves_new.c
+index 6605fb09cd8df7eb08d010b915a15f15f04a99e5..b1c2feea32d723d7cb648734715db672a2ed4cfa 100644
+--- a/tf-psa-crypto/drivers/builtin/src/ecp_curves_new.c
++++ b/tf-psa-crypto/drivers/builtin/src/ecp_curves_new.c
+@@ -4077,7 +4077,7 @@ MBEDTLS_STATIC_TESTABLE
+ int esp_mbedtls_ecp_mod_p521_raw(mbedtls_mpi_uint *N_p, size_t N_n);
+ #endif
+ 
+-#define NIST_MODP(P)      grp->modp = ecp_mod_ ## P;
++#define NIST_MODP(P)      grp->modp = esp_ecp_mod_ ## P;
+ #else
+ #define NIST_MODP(P)
+ #endif /* MBEDTLS_ECP_NIST_OPTIM */
+@@ -4106,23 +4106,23 @@ int esp_mbedtls_ecp_mod_p256k1_raw(mbedtls_mpi_uint *X, size_t X_limbs);
+ 
+ #if defined(ECP_LOAD_GROUP)
+ #define LOAD_GROUP_A(G)   esp_ecp_group_load(grp,            \
+-                                         G ## _p,  sizeof(G ## _p),   \
+-                                         G ## _a,  sizeof(G ## _a),   \
+-                                         G ## _b,  sizeof(G ## _b),   \
+-                                         G ## _gx, sizeof(G ## _gx),   \
+-                                         G ## _gy, sizeof(G ## _gy),   \
+-                                         G ## _n,  sizeof(G ## _n),   \
+-                                         G ## _T                         \
++                                         esp_ ## G ## _p,  sizeof(esp_ ## G ## _p),   \
++                                         esp_ ## G ## _a,  sizeof(esp_ ## G ## _a),   \
++                                         esp_ ## G ## _b,  sizeof(esp_ ## G ## _b),   \
++                                         esp_ ## G ## _gx, sizeof(esp_ ## G ## _gx),   \
++                                         esp_ ## G ## _gy, sizeof(esp_ ## G ## _gy),   \
++                                         esp_ ## G ## _n,  sizeof(esp_ ## G ## _n),   \
++                                         esp_ ## G ## _T                         \
+                                          )
+ 
+ #define LOAD_GROUP(G)     esp_ecp_group_load(grp,            \
+-                                         G ## _p,  sizeof(G ## _p),   \
++                                         esp_ ## G ## _p,  sizeof(esp_ ## G ## _p),   \
+                                          NULL,     0,                    \
+-                                         G ## _b,  sizeof(G ## _b),   \
+-                                         G ## _gx, sizeof(G ## _gx),   \
+-                                         G ## _gy, sizeof(G ## _gy),   \
+-                                         G ## _n,  sizeof(G ## _n),   \
+-                                         G ## _T                         \
++                                         esp_ ## G ## _b,  sizeof(esp_ ## G ## _b),   \
++                                         esp_ ## G ## _gx, sizeof(esp_ ## G ## _gx),   \
++                                         esp_ ## G ## _gy, sizeof(esp_ ## G ## _gy),   \
++                                         esp_ ## G ## _n,  sizeof(esp_ ## G ## _n),   \
++                                         esp_ ## G ## _T                         \
+                                          )
+ #endif /* ECP_LOAD_GROUP */
+ 
+diff --git a/tf-psa-crypto/drivers/builtin/src/md.c b/tf-psa-crypto/drivers/builtin/src/md.c
+index 3aa40669fa77e95ee725f22f522571c5bf82bf09..e544a0c97b853f3d2813e0e00821025c233615f9 100644
+--- a/tf-psa-crypto/drivers/builtin/src/md.c
++++ b/tf-psa-crypto/drivers/builtin/src/md.c
+@@ -437,7 +437,7 @@ int esp_mbedtls_md_clone(mbedtls_md_context_t *dst,
+         ctx->md_ctx = esp_mbedtls_calloc(1, sizeof(mbedtls_##type##_context)); \
+         if (ctx->md_ctx == NULL)                                       \
+         return MBEDTLS_ERR_MD_ALLOC_FAILED;                      \
+-        mbedtls_##type##_init(ctx->md_ctx);                           \
++        esp_mbedtls_##type##_init(ctx->md_ctx);                           \
+     }                                                                   \
+     while (0)
+ 
+diff --git a/tf-psa-crypto/drivers/builtin/src/oid.c b/tf-psa-crypto/drivers/builtin/src/oid.c
+index 2371130d746686ea07b4d8fa3034feaba1e9444a..533d097c75cf9871697666abe03eedd56c979906 100644
+--- a/tf-psa-crypto/drivers/builtin/src/oid.c
++++ b/tf-psa-crypto/drivers/builtin/src/oid.c
+@@ -39,7 +39,7 @@
+  * the other functions)
+  */
+ #define FN_OID_TYPED_FROM_ASN1(TYPE_T, NAME, LIST)                    \
+-    static const TYPE_T *oid_ ## NAME ## _from_asn1(                   \
++    static const TYPE_T *esp_oid_ ## NAME ## _from_asn1(                   \
+         const mbedtls_asn1_buf *oid)     \
+     {                                                                   \
+         const TYPE_T *p = (LIST);                                       \
+@@ -64,7 +64,7 @@
+ #define FN_OID_GET_ATTR1(FN_NAME, TYPE_T, TYPE_NAME, ATTR1_TYPE, ATTR1) \
+     int FN_NAME(const mbedtls_asn1_buf *oid, ATTR1_TYPE * ATTR1)                  \
+     {                                                                       \
+-        const TYPE_T *data = oid_ ## TYPE_NAME ## _from_asn1(oid);        \
++        const TYPE_T *data = esp_oid_ ## TYPE_NAME ## _from_asn1(oid);        \
+         if (data == NULL) return MBEDTLS_ERR_OID_NOT_FOUND;            \
+         *ATTR1 = data->ATTR1;                                               \
+         return 0;                                                        \
+@@ -79,7 +79,7 @@
+     int FN_NAME(const mbedtls_asn1_buf *oid, ATTR1_TYPE * ATTR1,               \
+                 ATTR2_TYPE * ATTR2)              \
+     {                                                                           \
+-        const TYPE_T *data = oid_ ## TYPE_NAME ## _from_asn1(oid);            \
++        const TYPE_T *data = esp_oid_ ## TYPE_NAME ## _from_asn1(oid);            \
+         if (data == NULL) return MBEDTLS_ERR_OID_NOT_FOUND;                 \
+         *(ATTR1) = data->ATTR1;                                                 \
+         *(ATTR2) = data->ATTR2;                                                 \

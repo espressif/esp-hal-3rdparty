@@ -12,6 +12,7 @@
 #include "esp_efuse_chip.h"
 #include "hal/hmac_types.h"
 #include "esp_hmac.h"
+#include "esp_mbedtls.h"
 
 static bool validate_hmac_opaque_key_attributes(const esp_hmac_opaque_key_t *opaque_key)
 {

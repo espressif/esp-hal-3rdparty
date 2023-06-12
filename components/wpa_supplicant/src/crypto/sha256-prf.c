@@ -8,7 +8,11 @@
 
 #include "includes.h"
 
+#ifdef __NuttX__
+#include "utils/common.h"
+#else
 #include "common.h"
+#endif
 #include "sha256.h"
 #include "crypto.h"
 

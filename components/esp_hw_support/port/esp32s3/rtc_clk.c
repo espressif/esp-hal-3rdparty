@@ -216,7 +216,7 @@ static void rtc_clk_cpu_freq_to_pll_mhz(int cpu_freq_mhz)
      * In order to reduce LDO voltage drop, LDO voltage should rise first then fall.
      */
     int pd_slave = cpu_freq_mhz / 80;
-    rtc_cpu_freq_config_t cur_config;
+    rtc_cpu_freq_config_t cur_config = {0};
     rtc_clk_cpu_freq_get_config(&cur_config);
     /* cpu_frequency < 240M: dbias = pvt-dig + 2;
      * cpu_frequency = 240M: dbias = pvt-dig + 3;
@@ -402,7 +402,7 @@ void rtc_clk_cpu_freq_set_xtal_for_sleep(void)
  */
 FORCE_IRAM_ATTR void rtc_clk_cpu_freq_to_xtal(int cpu_freq, int div)
 {
-    rtc_cpu_freq_config_t cur_config;
+    rtc_cpu_freq_config_t cur_config = {0};
     rtc_clk_cpu_freq_get_config(&cur_config);
 
     esp_rom_set_cpu_ticks_per_us(cpu_freq);

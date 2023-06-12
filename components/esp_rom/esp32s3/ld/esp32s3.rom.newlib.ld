@@ -17,8 +17,10 @@
 
 strdup = 0x40001380;
 strndup = 0x400013ec;
+#ifndef __NuttX__
 rand = 0x400014a0;
 srand = 0x400014ac;
+#endif
 atoi = 0x400014d0;
 atol = 0x400014dc;
 strtol = 0x400014e8;

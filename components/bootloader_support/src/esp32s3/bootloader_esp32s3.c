@@ -39,7 +39,6 @@
 #include "hal/cache_hal.h"
 #include "hal/rwdt_ll.h"
 #include "hal/brownout_ll.h"
-#include "xtensa/config/core.h"
 #include "xt_instr_macros.h"
 
 

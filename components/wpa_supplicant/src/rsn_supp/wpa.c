@@ -30,7 +30,11 @@
 #include "crypto/aes_wrap.h"
 #include "crypto/ccmp.h"
 #include "crypto/sha256.h"
+#ifndef __NuttX__
 #include "esp_rom_sys.h"
+#else
+#include <nuttx/arch.h>
+#endif
 #include "common/bss.h"
 #include "esp_common_i.h"
 #include "esp_owe_i.h"
@@ -2045,7 +2049,7 @@ static void wpa_eapol_key_dump(struct wpa_sm *sm,
     u16 key_info = WPA_GET_BE16(key->key_info);
 
     wpa_printf(MSG_DEBUG, "  EAPOL-Key type=%d", key->type);
-    wpa_printf(MSG_DEBUG, "  key_info 0x%x (ver=%d keyidx=%d rsvd=%d %s"
+    wpa_printf(MSG_DEBUG, "  key_info 0x%x (ver=%" PRIu32 " keyidx=%" PRIu32 " rsvd=%" PRIu32 " %s"
            "%s%s%s%s%s%s%s)",
            key_info, (u32)(key_info & WPA_KEY_INFO_TYPE_MASK),
            (u32)((key_info & WPA_KEY_INFO_KEY_INDEX_MASK) >>

@@ -20,7 +20,7 @@ void fastpbkdf2_hmac_sha1(const uint8_t *pw, size_t npw,
                           uint32_t iterations,
                           uint8_t *out, size_t nout);
 
-int64_t esp_timer_get_time(void);
+uint64_t esp_timer_get_time(void);
 
 #if defined(CONFIG_MBEDTLS_SHA1_C) || defined(CONFIG_MBEDTLS_HARDWARE_SHA)
 TEST_CASE("Test pbkdf2", "[crypto-pbkdf2]")

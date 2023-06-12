@@ -35,6 +35,7 @@
 #if __has_include("esp_memprot_err.h")
 #include "esp_memprot_err.h"
 #endif
+#ifndef __NuttX__
 #if __has_include("esp_mesh.h")
 #include "esp_mesh.h"
 #endif
@@ -50,6 +51,7 @@
 #if __has_include("esp_tls_errors.h")
 #include "esp_tls_errors.h"
 #endif
+#endif /* __NuttX__ */
 #if __has_include("esp_transport.h")
 #include "esp_transport.h"
 #endif

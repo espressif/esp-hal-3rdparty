@@ -85,7 +85,7 @@ static void wpa_auth_add_sm(struct wpa_state_machine *sm)
             s_sm_table[i] = sm;
             s_sm_valid_bitmap |= BIT(i);
             sm->index = i;
-            wpa_printf( MSG_DEBUG, "add sm, index=%d bitmap=%x", i, s_sm_valid_bitmap);
+            wpa_printf( MSG_DEBUG, "add sm, index=%d bitmap=%" PRIx32 "", i, s_sm_valid_bitmap);
             return;
         }
     }
@@ -95,11 +95,19 @@ static void wpa_auth_del_sm(struct wpa_state_machine *sm)
 {
     if (sm && (sm->index < WPA_SM_MAX_INDEX)) {
         if (sm != s_sm_table[sm->index]) {
+#ifdef __NuttX__    
+            wpa_printf( MSG_INFO, "del sm error %" PRIu32 "", sm->index);
+#else
             wpa_printf( MSG_INFO, "del sm error %d", sm->index);
+#endif
         }
         s_sm_table[sm->index] = NULL;
         s_sm_valid_bitmap &= ~BIT(sm->index);
+#ifdef __NuttX__
+        wpa_printf( MSG_DEBUG, "del sm, index=%" PRIu32 " bitmap=%" PRIx32 "", sm->index, s_sm_valid_bitmap);
+#else
         wpa_printf( MSG_DEBUG, "del sm, index=%d bitmap=%x", sm->index, s_sm_valid_bitmap);
+#endif
     }
 }
 

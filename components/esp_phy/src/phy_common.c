@@ -17,6 +17,7 @@
 #include "esp_private/phy.h"
 #include "esp_phy.h"
 #include "esp_attr.h"
+#include "platform/os.h"
 
 #if SOC_PM_SUPPORT_PMU_MODEM_STATE && CONFIG_ESP_WIFI_ENHANCED_LIGHT_SLEEP
 #include "hal/temperature_sensor_ll.h"

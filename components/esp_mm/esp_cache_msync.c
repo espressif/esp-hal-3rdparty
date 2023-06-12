@@ -11,7 +11,7 @@
 #include "sdkconfig.h"
 #include "esp_check.h"
 #include "esp_log.h"
-#include "freertos/FreeRTOS.h"
+#include "platform/os.h"
 #include "esp_heap_caps.h"
 #include "esp_rom_caps.h"
 #include "soc/soc_caps.h"

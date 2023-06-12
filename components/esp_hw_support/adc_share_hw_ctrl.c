@@ -22,7 +22,7 @@
 #include "sys/lock.h"
 #include "esp_log.h"
 #include "esp_check.h"
-#include "freertos/FreeRTOS.h"
+#include "platform/os.h"
 #include "hal/adc_types.h"
 #include "hal/adc_hal_common.h"
 #include "hal/adc_ll.h"
@@ -40,7 +40,7 @@
 
 
 ESP_LOG_ATTR_TAG(TAG, "adc_share_hw_ctrl");
-extern portMUX_TYPE rtc_spinlock;
+DECLARE_EXTERNAL_CRIT_SECTION_LOCK(rtc_spinlock);
 
 
 #if SOC_ADC_CALIBRATION_V1_SUPPORTED
@@ -194,7 +194,7 @@ esp_err_t adc2_wifi_release(void)
     return ESP_OK;
 }
 
-static portMUX_TYPE __attribute__((unused)) s_spinlock = portMUX_INITIALIZER_UNLOCKED;
+DEFINE_CRIT_SECTION_LOCK_STATIC(s_spinlock, __attribute__((unused)));
 
 /*------------------------------------------------------------------------------
 * For those who use APB_SARADC periph

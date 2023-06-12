@@ -163,7 +163,7 @@ static esp_err_t ESP_TIMER_IRAM_ATTR timer_restart(esp_timer_handle_t timer, uin
     esp_timer_dispatch_t dispatch_method = timer->flags & FL_ISR_DISPATCH_METHOD;
     timer_list_lock(dispatch_method);
 
-    const int64_t now = esp_timer_impl_get_time();
+    const uint64_t now = esp_timer_impl_get_time();
     const uint64_t period = timer->period;
 
     /* We need to remove the timer to the list of timers and reinsert it at
@@ -485,7 +485,7 @@ static bool timer_process_alarm(esp_timer_dispatch_t dispatch_method)
     esp_timer_handle_t it;
     while (1) {
         it = LIST_FIRST(&s_timers[dispatch_method]);
-        int64_t now = esp_timer_impl_get_time();
+        uint64_t now = esp_timer_impl_get_time();
         ESP_COMPILER_DIAGNOSTIC_PUSH_IGNORE("-Wanalyzer-use-after-free") // False-positive detection. TODO GCC-366
         if (it == NULL || it->alarm > now) {
             break;

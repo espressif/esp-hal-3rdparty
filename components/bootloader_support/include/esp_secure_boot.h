@@ -231,7 +231,7 @@ typedef struct {
  *
  * @return Size of the secure boot signature block in bytes
  */
-static inline uint32_t esp_secure_boot_sig_block_size()
+static inline uint32_t esp_secure_boot_sig_block_size(void)
 {
 #if CONFIG_SECURE_SIGNED_APPS_RSA_SCHEME || CONFIG_SECURE_SIGNED_APPS_ECDSA_V2_SCHEME
     return sizeof(ets_secure_boot_signature_t);

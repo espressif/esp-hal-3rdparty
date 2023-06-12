@@ -7,6 +7,7 @@
 #ifndef _ESP_WIFI_DEFAULT_H
 #define _ESP_WIFI_DEFAULT_H
 
+#ifndef __NuttX__
 #include "esp_netif.h"
 #include "esp_wifi_types.h"
 
@@ -147,6 +148,8 @@ esp_err_t esp_netif_create_default_wifi_mesh_netifs(esp_netif_t **p_netif_sta, e
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif
 
 #endif //_ESP_WIFI_DEFAULT_H

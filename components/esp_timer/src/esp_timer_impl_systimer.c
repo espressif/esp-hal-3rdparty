@@ -18,7 +18,8 @@
 #include "esp_private/esp_clk.h"
 #include "esp_private/systimer.h"
 #include "esp_private/periph_ctrl.h"
-#include "freertos/FreeRTOS.h"
+#include "esp_private/critical_section.h"
+#include "platform/os.h"
 #include "hal/systimer_ll.h"
 #include "hal/systimer_types.h"
 #include "hal/systimer_hal.h"
@@ -55,7 +56,7 @@ static intr_handler_t s_alarm_handler = NULL;
 static systimer_hal_context_t systimer_hal;
 
 /* Spinlock used to protect access to the hardware registers. */
-extern portMUX_TYPE s_time_update_lock;
+DECLARE_EXTERNAL_CRIT_SECTION_LOCK(s_time_update_lock);
 
 /* Alarm values to generate interrupt on match */
 extern uint64_t timestamp_id[2];
@@ -65,23 +66,23 @@ uint64_t ESP_TIMER_IRAM_ATTR esp_timer_impl_get_counter_reg(void)
     return systimer_hal_get_counter_value(&systimer_hal, SYSTIMER_COUNTER_ESPTIMER);
 }
 
-int64_t ESP_TIMER_IRAM_ATTR esp_timer_impl_get_time(void)
+uint64_t ESP_TIMER_IRAM_ATTR esp_timer_impl_get_time(void)
 {
     // we hope the execution time of this function won't > 1us
     // thus, to save one function call, we didn't use the existing `systimer_hal_get_time`
     return systimer_hal.ticks_to_us(systimer_hal_get_counter_value(&systimer_hal, SYSTIMER_COUNTER_ESPTIMER));
 }
 
-int64_t esp_timer_get_time(void) __attribute__((alias("esp_timer_impl_get_time")));
+uint64_t esp_timer_get_time(void) __attribute__((alias("esp_timer_impl_get_time")));
 
 void ESP_TIMER_IRAM_ATTR esp_timer_impl_set_alarm_id(uint64_t timestamp, unsigned alarm_id)
 {
     assert(alarm_id < sizeof(timestamp_id) / sizeof(timestamp_id[0]));
-    portENTER_CRITICAL_SAFE(&s_time_update_lock);
+    esp_os_enter_critical_safe(&s_time_update_lock);
     timestamp_id[alarm_id] = timestamp;
     timestamp = MIN(timestamp_id[0], timestamp_id[1]);
     systimer_hal_set_alarm_target(&systimer_hal, SYSTIMER_ALARM_ESPTIMER, timestamp);
-    portEXIT_CRITICAL_SAFE(&s_time_update_lock);
+    esp_os_exit_critical_safe(&s_time_update_lock);
 }
 
 static void ESP_TIMER_IRAM_ATTR timer_alarm_isr(void *arg)
@@ -131,20 +132,20 @@ static void ESP_TIMER_IRAM_ATTR timer_alarm_isr(void *arg)
 
 void esp_timer_impl_set(uint64_t new_us)
 {
-    portENTER_CRITICAL_SAFE(&s_time_update_lock);
+    esp_os_enter_critical_safe(&s_time_update_lock);
     systimer_counter_value_t new_count = {
         .val = systimer_hal.us_to_ticks(new_us),
     };
     systimer_ll_set_counter_value(systimer_hal.dev, SYSTIMER_COUNTER_ESPTIMER, new_count.val);
     systimer_ll_apply_counter_value(systimer_hal.dev, SYSTIMER_COUNTER_ESPTIMER);
-    portEXIT_CRITICAL_SAFE(&s_time_update_lock);
+    esp_os_exit_critical_safe(&s_time_update_lock);
 }
 
 void esp_timer_impl_advance(int64_t time_diff_us)
 {
-    portENTER_CRITICAL_SAFE(&s_time_update_lock);
+    esp_os_enter_critical_safe(&s_time_update_lock);
     systimer_hal_counter_value_advance(&systimer_hal, SYSTIMER_COUNTER_ESPTIMER, time_diff_us);
-    portEXIT_CRITICAL_SAFE(&s_time_update_lock);
+    esp_os_exit_critical_safe(&s_time_update_lock);
 }
 
 esp_err_t esp_timer_impl_early_init(void)
@@ -240,9 +241,9 @@ void esp_timer_impl_deinit(void)
 
 uint64_t esp_timer_impl_get_alarm_reg(void)
 {
-    portENTER_CRITICAL_SAFE(&s_time_update_lock);
+    esp_os_enter_critical_safe(&s_time_update_lock);
     uint64_t val = systimer_hal_get_alarm_value(&systimer_hal, SYSTIMER_ALARM_ESPTIMER);
-    portEXIT_CRITICAL_SAFE(&s_time_update_lock);
+    esp_os_exit_critical_safe(&s_time_update_lock);
     return val;
 }
 

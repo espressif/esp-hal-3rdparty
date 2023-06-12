@@ -45,6 +45,9 @@
                                                            psa_to_ssl_errors,             \
                                                            psa_generic_status_to_mbedtls)
 #endif /* CONFIG_TLSV13 */
+#ifdef __NuttX__
+#include "esp_mbedtls.h"
+#endif
 
 #define TLS_RANDOM_LEN 32
 #define TLS_HASH_MAX_SIZE 64

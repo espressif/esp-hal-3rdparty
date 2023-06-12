@@ -9,6 +9,7 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "sdkconfig.h"
+#include "esp_mbedtls.h"
 
 void mbedtls_psa_crypto_init_include_impl(void);
 

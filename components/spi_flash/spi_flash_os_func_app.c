@@ -9,8 +9,7 @@
 #include <sys/param.h>  //For max/min
 #include "esp_attr.h"
 #include "esp_private/system_internal.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+#include "platform/os.h"
 #include "hal/spi_types.h"
 #include "sdkconfig.h"
 #include "esp_log.h"
@@ -84,7 +83,7 @@ static IRAM_ATTR esp_err_t acquire_spi_bus_lock(void *arg)
     spi_bus_lock_dev_handle_t dev_lock = ((app_func_arg_t *)arg)->dev_lock;
 
     // wait for other devices (or cache) to finish their operation
-    esp_err_t ret = spi_bus_lock_acquire_start(dev_lock, portMAX_DELAY);
+    esp_err_t ret = spi_bus_lock_acquire_start(dev_lock, OS_PORT_MAX_DELAY);
     if (ret != ESP_OK) {
         return ret;
     }
@@ -216,13 +215,14 @@ static esp_err_t spi_flash_os_check_yield(void *arg, uint32_t chip_status, uint3
 
 static esp_err_t spi_flash_os_yield(void *arg, uint32_t* out_status)
 {
-    if (likely(xTaskGetSchedulerState() == taskSCHEDULER_RUNNING)) {
+    if (likely(OS_SCHEDULER_RUNNING())) {
 #ifdef CONFIG_SPI_FLASH_ERASE_YIELD_TICKS
-        vTaskDelay(CONFIG_SPI_FLASH_ERASE_YIELD_TICKS);
+        OS_TASK_DELAY(CONFIG_SPI_FLASH_ERASE_YIELD_TICKS);
 #else
-        vTaskDelay(1);
+        OS_TASK_DELAY(1);
 #endif
     }
+
     on_spi_yielded((app_func_arg_t*)arg);
     return ESP_OK;
 }
@@ -257,11 +257,14 @@ static void* get_buffer_malloc(void* arg, size_t reqest_size, size_t* out_size)
 
 static void release_buffer_malloc(void* arg, void *temp_buf)
 {
-    free(temp_buf);
+    heap_caps_free(temp_buf);
 }
 
 static esp_err_t main_flash_region_protected(void* arg, size_t start_addr, size_t size)
 {
+#ifdef __NuttX__
+    return ESP_OK;
+#endif
     if (!esp_partition_is_flash_region_writable(start_addr, size)) {
         return ESP_ERR_NOT_ALLOWED;
     }
@@ -398,7 +401,11 @@ esp_err_t esp_flash_init_main_bus_lock(void)
 esp_err_t esp_flash_app_enable_os_functions(esp_flash_t* chip)
 {
     main_flash_arg = (app_func_arg_t) {
+#ifndef __NuttX__
         .dev_lock = g_spi_lock_main_flash_dev,
+#else
+        .dev_lock = NULL,
+#endif
         .no_protect = false, // Required for the main flash chip
     };
     chip->os_func = &esp_flash_spi1_default_os_functions;
@@ -434,7 +441,7 @@ static inline IRAM_ATTR bool on_spi_check_yield(app_func_arg_t* ctx)
     uint32_t time = esp_system_get_time();
     // We handle the reset here instead of in `on_spi_acquired()`, when acquire() and release() is
     // larger than CONFIG_SPI_FLASH_ERASE_YIELD_TICKS, to save one `esp_system_get_time()` call
-    if ((time - ctx->released_since_us) >= CONFIG_SPI_FLASH_ERASE_YIELD_TICKS * portTICK_PERIOD_MS * 1000) {
+    if ((time - ctx->released_since_us) >= CONFIG_SPI_FLASH_ERASE_YIELD_TICKS * OS_TICK_PERIOD_MS * 1000) {
         // Reset the acquired time as if the yield has just happened.
         ctx->acquired_since_us = time;
     } else if ((time - ctx->acquired_since_us) >= CONFIG_SPI_FLASH_ERASE_YIELD_DURATION_MS * 1000) {

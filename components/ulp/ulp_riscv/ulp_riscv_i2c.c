@@ -14,8 +14,8 @@
 #include "hal/i2c_ll.h"
 #include "hal/misc.h"
 #include "driver/rtc_io.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+#include "platform/os.h"
+#include "esp_private/critical_section.h"
 #include "sdkconfig.h"
 
 static const char *RTCI2C_TAG = "ulp_riscv_i2c";
@@ -48,7 +48,7 @@ rtc_io_dev_t *rtc_io_dev = &RTCIO;
 #define ULP_RISCV_I2C_RW_TIMEOUT            CONFIG_ULP_RISCV_I2C_RW_TIMEOUT
 
 /* RTC I2C lock */
-static portMUX_TYPE rtc_i2c_lock = portMUX_INITIALIZER_UNLOCKED;
+DEFINE_CRIT_SECTION_LOCK_STATIC(rtc_i2c_lock);
 
 static esp_err_t i2c_gpio_is_cfg_valid(gpio_num_t sda_io_num, gpio_num_t scl_io_num)
 {
@@ -275,7 +275,7 @@ static inline esp_err_t ulp_riscv_i2c_wait_for_interrupt(int32_t ticks_to_wait)
             /* If the ticks_to_wait value is not -1, keep track of ticks and
              * break from the loop once the timeout is reached.
              */
-            vTaskDelay(1);
+            OS_TASK_DELAY(1);
             to++;
             if (to >= ticks_to_wait) {
                 ret = ESP_ERR_TIMEOUT;
@@ -358,7 +358,7 @@ esp_err_t ulp_riscv_i2c_master_read_from_device(uint8_t *data_rd, size_t size)
     SET_PERI_REG_MASK(SENS_SAR_I2C_CTRL_REG, SENS_SAR_I2C_START_FORCE);
     SET_PERI_REG_MASK(SENS_SAR_I2C_CTRL_REG, SENS_SAR_I2C_START);
 
-    portENTER_CRITICAL(&rtc_i2c_lock);
+    esp_os_enter_critical(&rtc_i2c_lock);
 
     for (i = 0; i < size; i++) {
         /* Poll for RTC I2C Rx Data interrupt bit to be set */
@@ -387,7 +387,7 @@ esp_err_t ulp_riscv_i2c_master_read_from_device(uint8_t *data_rd, size_t size)
         }
     }
 
-    portEXIT_CRITICAL(&rtc_i2c_lock);
+    esp_os_exit_critical(&rtc_i2c_lock);
 
     if (ret != ESP_OK) {
         ESP_LOGE(RTCI2C_TAG, "ulp_riscv_i2c: Read Failed!");
@@ -443,7 +443,7 @@ esp_err_t ulp_riscv_i2c_master_write_to_device(const uint8_t *data_wr, size_t si
     /* Configure the RTC I2C controller in write mode */
     SET_PERI_REG_BITS(SENS_SAR_I2C_CTRL_REG, 0x1, 1, 27);
 
-    portENTER_CRITICAL(&rtc_i2c_lock);
+    esp_os_enter_critical(&rtc_i2c_lock);
 
     for (i = 0; i < size; i++) {
         /* Write the data to be transmitted */
@@ -470,7 +470,7 @@ esp_err_t ulp_riscv_i2c_master_write_to_device(const uint8_t *data_wr, size_t si
         }
     }
 
-    portEXIT_CRITICAL(&rtc_i2c_lock);
+    esp_os_exit_critical(&rtc_i2c_lock);
 
     /* In case of error, print the status after critical section */
     if (ret != ESP_OK) {

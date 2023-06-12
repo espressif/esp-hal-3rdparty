@@ -89,7 +89,7 @@
 --------------------------------------------------------------------------------
 */
 
-#if portNUM_PROCESSORS > 1
+#if OS_PORT_NUM_PROCESSORS > 1
 
     .macro  spinlock_take       reg_A reg_B lock_var
 
@@ -104,7 +104,7 @@
 
     .endm
 
-#endif /* portNUM_PROCESSORS > 1 */
+#endif /* OS_PORT_NUM_PROCESSORS > 1 */
 
 /*
 --------------------------------------------------------------------------------
@@ -122,7 +122,7 @@
 --------------------------------------------------------------------------------
 */
 
-#if portNUM_PROCESSORS > 1
+#if OS_PORT_NUM_PROCESSORS > 1
 
     .macro spinlock_release     reg_A reg_B lock_var
 
@@ -132,6 +132,6 @@
 
     .endm
 
-#endif /* portNUM_PROCESSORS > 1 */
+#endif /* OS_PORT_NUM_PROCESSORS > 1 */
 
 #endif /* __XT_ASM_UTILS_H */
