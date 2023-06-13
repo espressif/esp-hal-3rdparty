@@ -269,7 +269,7 @@ static void IRAM_ATTR modem_clock_device_disable(modem_clock_context_t *ctx, uin
 void IRAM_ATTR modem_clock_module_mac_reset(periph_module_t module)
 {
     modem_clock_context_t *ctx = MODEM_CLOCK_instance();
-    portENTER_CRITICAL_SAFE(&ctx->lock);
+    ENTER_CRITICAL_SECTION(&ctx->lock);
     switch (module)
     {
 #if SOC_WIFI_SUPPORTED
@@ -293,7 +293,7 @@ void IRAM_ATTR modem_clock_module_mac_reset(periph_module_t module)
 #endif
             assert(0);
     }
-    portEXIT_CRITICAL_SAFE(&ctx->lock);
+    LEAVE_CRITICAL_SECTION(&ctx->lock);
 }
 
 #define WIFI_CLOCK_DEPS       (BIT(MODEM_CLOCK_WIFI_MAC) | BIT(MODEM_CLOCK_FE) | BIT(MODEM_CLOCK_WIFI_BB) | BIT(MODEM_CLOCK_COEXIST))
