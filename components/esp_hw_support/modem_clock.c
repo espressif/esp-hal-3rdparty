@@ -237,10 +237,10 @@ void IRAM_ATTR modem_clock_wifi_mac_reset(void)
 {
 #if SOC_WIFI_SUPPORTED
     modem_clock_context_t *ctx = MODEM_CLOCK_instance();
-    portENTER_CRITICAL_SAFE(&ctx->lock);
+    ENTER_CRITICAL_SECTION(&ctx->lock);
     //TODO: IDF-5713
     modem_syscon_ll_reset_wifimac(ctx->hal->syscon_dev);
-    portEXIT_CRITICAL_SAFE(&ctx->lock);
+    LEAVE_CRITICAL_SECTION(&ctx->lock);
 #endif
 }
 
