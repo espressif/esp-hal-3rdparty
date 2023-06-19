@@ -7,6 +7,11 @@
 
 #include "sdkconfig.h"
 
+#ifdef __NuttX__
+#include <nuttx/config.h>
+#include <assert.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -31,6 +36,13 @@ extern void abort(void);
 #endif
 #endif
 
+#ifdef __NuttX__
+#ifdef CONFIG_ESPRESSIF_HAL_ASSERTIONS
+#define HAL_ASSERT(__e) DEBUGASSERT(__e)
+#else
+#define HAL_ASSERT(__e) ((void)(__e))
+#endif
+#else
 #if IS_ULP_COCPU
 #define HAL_ASSERT(__e) ((void)(__e))
 #elif CONFIG_HAL_DEFAULT_ASSERTION_LEVEL == 1 // silent
@@ -39,6 +51,7 @@ extern void abort(void);
 #define HAL_ASSERT(__e) (__builtin_expect(!!(__e), 1) ? (void)0 : __assert_func(__FILE__, __LINE__, __ASSERT_FUNC, #__e))
 #else // no assert
 #define HAL_ASSERT(__e) ((void)(__e))
+#endif
 #endif
 
 #ifdef __cplusplus
