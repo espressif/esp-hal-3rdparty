@@ -6,6 +6,5 @@ test_nuttx:
   trigger:
     project: idf/apache/incubator-nuttx
     strategy: depend
-  allow_failure: true
   variables:
     PARENT_ESP_HAL_3RDPARTY_BRANCH: ${CI_COMMIT_BRANCH}
