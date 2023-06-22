@@ -135,7 +135,7 @@ ARG=$(cat << EOF
 EOF
 )
 
-extract_components "release/v5.1" "sync-2-release_v5.1-develop" ${ARG} --message-callback "${MSG_CALLBACK}"
+extract_components "release/v5.1" "sync-2-release_v5.1" ${ARG} --message-callback "${MSG_CALLBACK}"
 
 # Add new one here if you have new requirement
 
