@@ -178,11 +178,15 @@
  * interrupt handler.  The second to the decoded GPIO interrupt handler.
  */
 
-#define ESP_NIRQ_GPIO           22
-#define ESP_FIRST_GPIOIRQ       (RISCV_NIRQ_INTERRUPTS + ESP_NIRQ_PERIPH)
-#define ESP_LAST_GPIOIRQ        (ESP_FIRST_GPIOIRQ + ESP_NIRQ_GPIO - 1)
-#define ESP_PIN2IRQ(p)          ((p) + ESP_FIRST_GPIOIRQ)
-#define ESP_IRQ2PIN(i)          ((i) - ESP_FIRST_GPIOIRQ)
+#ifdef CONFIG_ESPRESSIF_GPIO_IRQ
+#  define ESP_NIRQ_GPIO           22
+#  define ESP_FIRST_GPIOIRQ       (RISCV_NIRQ_INTERRUPTS + ESP_NIRQ_PERIPH)
+#  define ESP_LAST_GPIOIRQ        (ESP_FIRST_GPIOIRQ + ESP_NIRQ_GPIO - 1)
+#  define ESP_PIN2IRQ(p)          ((p) + ESP_FIRST_GPIOIRQ)
+#  define ESP_IRQ2PIN(i)          ((i) - ESP_FIRST_GPIOIRQ)
+#else
+#  define ESP_NIRQ_GPIO           0
+#endif
 
 /* Total number of IRQs: ecall + Number of peripheral IRQs + GPIOs IRQs. */
 
