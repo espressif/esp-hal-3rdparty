@@ -2,9 +2,9 @@
 
 This branch is a release version intended to be used by NuttX as a HAL *(Hardware Abstraction Layer*), including Wi-Fi features.
 
-## Release v5.1-n0
+## Release v5.1.c
 
-This release was based at [`sync-1-release_v5.1`](../../tree/sync-1-release_v5.1)., forked on 2023-06-12 ([`efdc2e5e9879574b2a8ed97aa1b63a883b4c2811`](../../tree/efdc2e5e9879574b2a8ed97aa1b63a883b4c2811)), creating the branch [`release/v5.1`](../../tree/release/v5.1).
+This release was based on the top of [`sync/release_v5.1.c`](../../../tree/sync/release_v5.1.c)., forked on 2023-08-14 ([`22d299b3d6436b4442ffd06bb575467e3fd5f56d`](../../../tree/22d299b3d6436b4442ffd06bb575467e3fd5f56d)), creating the branch [`release/v5.1.c`](../../../tree/release/v5.1.c).
 
 ## How to Use this Release
 
@@ -14,7 +14,7 @@ This branch is intended to be downloaded/cloned by NuttX's build system, using t
 This branch is organized into the following directories:
 
 #### `components`
-The [`components`](./components/) folder contains the components sourced from [`sync-1-release_v5.1`](../../tree/sync-1-release_v5.1) and the additions made to enable building the sources on NuttX. Please note that these components may contain git submodules.
+The [`components`](./components/) folder contains the components sourced from [`sync/release_v5.1.c`](../../../tree/sync/release_v5.1.c) and the additions made to enable building the sources on NuttX. Please note that these components may contain git submodules.
 
 > **Note**
 > Not all sources under `components` are required to build NuttX: it's feature-dependent. Please check which sources are built on NuttX when build, for instance, ESP32-S3's Wi-Fi: [nuttx/arch/xtensa/src/esp32s3/Wireless.mk](https://github.com/apache/nuttx/blob/master/arch/xtensa/src/esp32s3/Wireless.mk).
