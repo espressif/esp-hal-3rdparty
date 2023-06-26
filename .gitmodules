@@ -7,3 +7,21 @@
 [submodule "components/esp_wifi/lib"]
 	path = components/esp_wifi/lib
 	url = ../../espressif/esp32-wifi-lib.git
+[submodule "components/bt/controller/lib_esp32"]
+	path = components/bt/controller/lib_esp32
+	url = ../../espressif/esp32-bt-lib.git
+[submodule "components/bt/host/nimble/nimble"]
+	path = components/bt/host/nimble/nimble
+	url = ../../espressif/esp-nimble.git
+[submodule "components/bt/controller/lib_esp32c3_family"]
+	path = components/bt/controller/lib_esp32c3_family
+	url = ../../espressif/esp32c3-bt-lib.git
+[submodule "components/bt/controller/lib_esp32h2/esp32h2-bt-lib"]
+	path = components/bt/controller/lib_esp32h2/esp32h2-bt-lib
+	url = ../../espressif/esp32h2-bt-lib.git
+[submodule "components/bt/controller/lib_esp32c2/esp32c2-bt-lib"]
+	path = components/bt/controller/lib_esp32c2/esp32c2-bt-lib
+	url = ../../espressif/esp32c2-bt-lib.git
+[submodule "components/bt/controller/lib_esp32c6/esp32c6-bt-lib"]
+	path = components/bt/controller/lib_esp32c6/esp32c6-bt-lib
+	url = ../../espressif/esp32c6-bt-lib.git
