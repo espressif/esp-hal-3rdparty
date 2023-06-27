@@ -51,9 +51,68 @@ extract_components() {
     check_links
 
     git checkout -B ${SYNC_BRANCH_NAME}
-    git push ${ESP_HAL_3RDPARTY_URL} ${SYNC_BRANCH_NAME}
+    git push ${ESP_HAL_3RDPARTY_URL} ${SYNC_BRANCH_NAME} || {
+        push_to_temporary_branch ${ESP_HAL_3RDPARTY_URL} ${SYNC_BRANCH_NAME}
+        force_push_job "${SYNC_BRANCH_NAME}" >> ../force_push.yml
+    }
     git clean -xdff
     popd
+}
+
+# Create a temporary branch to store the branch to be pushed
+# by the child pipeline.
+push_to_temporary_branch() {
+    TEMP_BRANCH_SUFFIX="-$(mktemp -u XXXXXX)"
+
+    git branch -D ${2}${TEMP_BRANCH_SUFFIX} || true
+    git checkout -b ${2}${TEMP_BRANCH_SUFFIX}
+    git push ${1} ${2}${TEMP_BRANCH_SUFFIX}
+}
+
+# Create yaml to force push the sync branch
+force_push_job() {
+    SET_RUN_FORCE_PUSH="true"
+
+    echo "force_push_${1}:"
+    echo "  stage: Force Push"
+    echo "  allow_failure: true"
+    echo "  when: manual"
+    echo "  variables:"
+    echo "    GIT_DEPTH: 0"
+    echo "    CHILD_ESP_HAL_3RDPARTY_URL: https://gitlab-ci-token:\${CI_ESP_HAL_3RDPARTY_TOKEN}@\${CI_SERVER_HOST}:\${CI_SERVER_PORT}/\${CI_PROJECT_PATH}.git"
+    echo "  script:"
+    echo "    - |"
+    echo "      git fetch \${CHILD_ESP_HAL_3RDPARTY_URL} ${1}${TEMP_BRANCH_SUFFIX}"
+    echo "      git checkout ${1}${TEMP_BRANCH_SUFFIX}"
+    echo "      git branch -D ${1} || true"
+    echo "      git checkout -b ${1}"
+    echo "      git push --force \${CHILD_ESP_HAL_3RDPARTY_URL} ${1}"
+    echo "      git push \${CHILD_ESP_HAL_3RDPARTY_URL} --delete ${1}${TEMP_BRANCH_SUFFIX}"
+    echo ""
+}
+
+# This creates the initial configuration for the pipeline.
+mkpipeline() {
+    echo "variables:"
+    echo "  GIT_STRATEGY: clone"
+    echo ""
+    echo "default:"
+    echo "  image: \$CI_DOCKER_REGISTRY/nuttx/target-test-env-v5.1"
+    echo "  tags:"
+    echo "    - build"
+    echo ""
+    echo "stages:"
+    echo "  - Force Push"
+    echo ""
+}
+
+# This creates a null job in the case of forcing-push isn't being required
+nulljob() {
+    echo "no_force_push_required:"
+    echo "  stage: Force Push"
+    echo "  script:"
+    echo "    - echo \"No force push required!\""
+    echo ""
 }
 
 # Usage get_arg_by_components [COMPONENTS...]
@@ -66,6 +125,15 @@ get_arg_by_components() {
     done
     echo ${RET}
 }
+
+############## Conditional Pipeline ###################
+
+# During the development of the sync branches, it may be necessary to force push-some of them to the
+# upstream. This action, however, isn't recommended to be performed automatically. Therefore, we can
+# make use of the dynamically-created child pipelines to create a manually-triggered job to
+# force-push the sync branch.
+
+mkpipeline > force_push.yml
 
 LIC_ARG="--path LICENSE"
 
@@ -143,5 +211,13 @@ extract_components "release/v5.1" "sync-2-release_v5.1" ${ARG} --message-callbac
 # Try with non-protected branch first.
 # ARG="${LIC_ARG} $(get_arg_by_components esp_event esp_phy esp_wifi mbedtls wpa_supplicant)"
 # extract_components "release/v5.0" "test-sync-1-release_v5.0" ${ARG} --message-callback "${MSG_CALLBACK}"
+
+# If `SET_RUN_FORCE_PUSH` isn't set, add a nulljob to the child pipeline
+# to indicate that no force-pushing is required
+if [ -z "${SET_RUN_FORCE_PUSH}" ]; then
+    nulljob >> force_push.yml
+else
+    true
+fi
 
 ############## Deprecated Syncs ###################
