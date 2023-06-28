@@ -35,6 +35,7 @@
 #  define mbedtls_cipher_cmac_starts                esp_mbedtls_cipher_cmac_starts
 #  define mbedtls_cipher_cmac_update                esp_mbedtls_cipher_cmac_update
 #  define mbedtls_cipher_finish                     esp_mbedtls_cipher_finish
+#  define mbedtls_cipher_free                       esp_mbedtls_cipher_free
 #  define mbedtls_cipher_info_from_type             esp_mbedtls_cipher_info_from_type
 #  define mbedtls_cipher_init                       esp_mbedtls_cipher_init
 #  define mbedtls_cipher_reset                      esp_mbedtls_cipher_reset
