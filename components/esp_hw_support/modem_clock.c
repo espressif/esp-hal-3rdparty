@@ -210,10 +210,10 @@ esp_err_t modem_clock_domain_clk_gate_enable(modem_clock_domain_t domain, pmu_hp
         return ESP_ERR_INVALID_ARG;
     }
 
-    portENTER_CRITICAL_SAFE(&MODEM_CLOCK_instance()->lock);
+    ENTER_CRITICAL_SECTION(&MODEM_CLOCK_instance()->lock);
     uint32_t code = modem_clock_hal_get_clock_domain_icg_bitmap(MODEM_CLOCK_instance()->hal, domain);
     modem_clock_hal_set_clock_domain_icg_bitmap(MODEM_CLOCK_instance()->hal, domain, (code & ~BIT(mode)));
-    portEXIT_CRITICAL_SAFE(&MODEM_CLOCK_instance()->lock);
+    LEAVE_CRITICAL_SECTION(&MODEM_CLOCK_instance()->lock);
     return ESP_OK;
 }
 
@@ -226,10 +226,10 @@ esp_err_t modem_clock_domain_clk_gate_disable(modem_clock_domain_t domain, pmu_h
         return ESP_ERR_INVALID_ARG;
     }
 
-    portENTER_CRITICAL_SAFE(&MODEM_CLOCK_instance()->lock);
+    ENTER_CRITICAL_SECTION(&MODEM_CLOCK_instance()->lock);
     uint32_t code = modem_clock_hal_get_clock_domain_icg_bitmap(MODEM_CLOCK_instance()->hal, domain);
     modem_clock_hal_set_clock_domain_icg_bitmap(MODEM_CLOCK_instance()->hal, domain, (code | BIT(mode)));
-    portEXIT_CRITICAL_SAFE(&MODEM_CLOCK_instance()->lock);
+    LEAVE_CRITICAL_SECTION(&MODEM_CLOCK_instance()->lock);
     return ESP_OK;
 }
 #endif // #if SOC_PM_SUPPORT_PMU_MODEM_STATE
