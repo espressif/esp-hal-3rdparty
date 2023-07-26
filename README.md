@@ -2,7 +2,7 @@
 
 This branch is a release version intended to be used by NuttX as a HAL *(Hardware Abstraction Layer*), including Wi-Fi features.
 
-## Release v5.1-n1
+## Release v5.1.a
 
 This release was based at [`sync-2-release_v5.1`](../../../tree/sync-2-release_v5.1)., forked on 2023-06-22 ([`ea6233a9aba32dc131b96995d6269a36d0faa9ed`](../../../tree/ea6233a9aba32dc131b96995d6269a36d0faa9ed)), creating the branch [`release/v5.1`](../../../tree/release/v5.1).
 
