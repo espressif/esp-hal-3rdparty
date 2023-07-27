@@ -60,5 +60,8 @@ Where:
 - `branch` means the branch used by the sync branch this release is derived from.
 
 - [`release/v5.1`](../../tree/release/v5.1):
-    - Based on [`sync-1-release_v5.1`](../../tree/sync-1-release_v5.1) branch.
-    - Currently used by NuttX.
+    - Based on [`sync-2-release_v5.1`](../../tree/sync-2-release_v5.1) branch.
+    - Deprecated: cloned by the branch name on NuttX.
+- [`release/v5.1.a`](../../tree/release/v5.1.a):
+    - Based on [`sync-2-release_v5.1`](../../tree/sync-2-release_v5.1) branch.
+    - Currently used by NuttX, cloned by commit SHA.
