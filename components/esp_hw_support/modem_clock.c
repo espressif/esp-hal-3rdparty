@@ -14,10 +14,12 @@
 #include "esp_private/esp_modem_clock.h"
 #include "esp_private/esp_pmu.h"
 #include "esp_sleep.h"
+#include "hal/efuse_hal.h"
 
 #ifdef __NuttX__
 #include <nuttx/spinlock.h>
 #else
+#include "soc/soc_caps.h"
 #include "freertos/FreeRTOS.h"
 #endif
 
@@ -199,6 +201,38 @@ void modem_clock_domain_pmu_state_icg_map_init(void)
 {
     modem_clock_domain_power_state_icg_map_init(MODEM_CLOCK_instance());
 }
+
+esp_err_t modem_clock_domain_clk_gate_enable(modem_clock_domain_t domain, pmu_hp_icg_modem_mode_t mode)
+{
+    if (domain >= MODEM_CLOCK_DOMAIN_MAX || domain < MODEM_CLOCK_DOMAIN_MODEM_APB) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (mode > PMU_HP_ICG_MODEM_CODE_ACTIVE || mode < PMU_HP_ICG_MODEM_CODE_SLEEP) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    portENTER_CRITICAL_SAFE(&MODEM_CLOCK_instance()->lock);
+    uint32_t code = modem_clock_hal_get_clock_domain_icg_bitmap(MODEM_CLOCK_instance()->hal, domain);
+    modem_clock_hal_set_clock_domain_icg_bitmap(MODEM_CLOCK_instance()->hal, domain, (code & ~BIT(mode)));
+    portEXIT_CRITICAL_SAFE(&MODEM_CLOCK_instance()->lock);
+    return ESP_OK;
+}
+
+esp_err_t modem_clock_domain_clk_gate_disable(modem_clock_domain_t domain, pmu_hp_icg_modem_mode_t mode)
+{
+    if (domain >= MODEM_CLOCK_DOMAIN_MAX || domain < MODEM_CLOCK_DOMAIN_MODEM_APB) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (mode > PMU_HP_ICG_MODEM_CODE_ACTIVE || mode < PMU_HP_ICG_MODEM_CODE_SLEEP) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    portENTER_CRITICAL_SAFE(&MODEM_CLOCK_instance()->lock);
+    uint32_t code = modem_clock_hal_get_clock_domain_icg_bitmap(MODEM_CLOCK_instance()->hal, domain);
+    modem_clock_hal_set_clock_domain_icg_bitmap(MODEM_CLOCK_instance()->hal, domain, (code | BIT(mode)));
+    portEXIT_CRITICAL_SAFE(&MODEM_CLOCK_instance()->lock);
+    return ESP_OK;
+}
 #endif // #if SOC_PM_SUPPORT_PMU_MODEM_STATE
 
 static void IRAM_ATTR modem_clock_device_enable(modem_clock_context_t *ctx, uint32_t dev_map)
@@ -233,15 +267,34 @@ static void IRAM_ATTR modem_clock_device_disable(modem_clock_context_t *ctx, uin
     assert(refs >= 0);
 }
 
-void IRAM_ATTR modem_clock_wifi_mac_reset(void)
+void IRAM_ATTR modem_clock_module_mac_reset(periph_module_t module)
 {
-#if SOC_WIFI_SUPPORTED
     modem_clock_context_t *ctx = MODEM_CLOCK_instance();
     ENTER_CRITICAL_SECTION(&ctx->lock);
-    //TODO: IDF-5713
-    modem_syscon_ll_reset_wifimac(ctx->hal->syscon_dev);
-    LEAVE_CRITICAL_SECTION(&ctx->lock);
+    switch (module)
+    {
+#if SOC_WIFI_SUPPORTED
+        case PERIPH_WIFI_MODULE:
+            modem_syscon_ll_reset_wifimac(ctx->hal->syscon_dev);
+            break;
 #endif
+#if SOC_BT_SUPPORTED
+        case PERIPH_BT_MODULE:
+            modem_syscon_ll_reset_btmac(ctx->hal->syscon_dev);
+            modem_syscon_ll_reset_btmac_apb(ctx->hal->syscon_dev);
+            modem_syscon_ll_reset_ble_timer(ctx->hal->syscon_dev);
+            modem_syscon_ll_reset_modem_sec(ctx->hal->syscon_dev);
+            break;
+#endif
+#if SOC_IEEE802154_SUPPORTED
+        case PERIPH_IEEE802154_MODULE:
+            modem_syscon_ll_reset_zbmac(ctx->hal->syscon_dev);
+            break;
+        default:
+#endif
+            assert(0);
+    }
+    LEAVE_CRITICAL_SECTION(&ctx->lock);
 }
 
 #define WIFI_CLOCK_DEPS       (BIT(MODEM_CLOCK_WIFI_MAC) | BIT(MODEM_CLOCK_FE) | BIT(MODEM_CLOCK_WIFI_BB) | BIT(MODEM_CLOCK_COEXIST))
@@ -292,7 +345,7 @@ void modem_clock_select_lp_clock_source(periph_module_t module, modem_clock_lpcl
         modem_clock_hal_deselect_all_wifi_lpclk_source(MODEM_CLOCK_instance()->hal);
         modem_clock_hal_select_wifi_lpclk_source(MODEM_CLOCK_instance()->hal, src);
         modem_lpcon_ll_set_wifi_lpclk_divisor_value(MODEM_CLOCK_instance()->hal->lpcon_dev, divider);
-        modem_lpcon_ll_enable_wifipwr_clock(MODEM_CLOCK_instance()->hal->lpcon_dev, true);
+        modem_clock_hal_enable_wifipwr_clock(MODEM_CLOCK_instance()->hal, true);
         break;
 #endif // SOC_WIFI_SUPPORTED
 
@@ -302,6 +355,15 @@ void modem_clock_select_lp_clock_source(periph_module_t module, modem_clock_lpcl
         modem_clock_hal_select_ble_rtc_timer_lpclk_source(MODEM_CLOCK_instance()->hal, src);
         modem_clock_hal_set_ble_rtc_timer_divisor_value(MODEM_CLOCK_instance()->hal, divider);
         modem_clock_hal_enable_ble_rtc_timer_clock(MODEM_CLOCK_instance()->hal, true);
+#if SOC_BLE_USE_WIFI_PWR_CLK_WORKAROUND
+        if (efuse_hal_chip_revision() != 0) {
+            if (src == MODEM_CLOCK_LPCLK_SRC_MAIN_XTAL) {
+                pmu_sleep_enable_hp_sleep_sysclk(true);
+            }
+            modem_clock_hal_enable_wifipwr_clock(MODEM_CLOCK_instance()->hal, true);
+            modem_clock_domain_clk_gate_disable(MODEM_CLOCK_DOMAIN_WIFIPWR, PMU_HP_ICG_MODEM_CODE_SLEEP);
+        }
+#endif
         break;
 #endif // SOC_BT_SUPPORTED
 
@@ -318,7 +380,6 @@ void modem_clock_select_lp_clock_source(periph_module_t module, modem_clock_lpcl
     MODEM_CLOCK_instance()->lpclk_src[module - PERIPH_MODEM_MODULE_MIN] = src;
     LEAVE_CRITICAL_SECTION(&(MODEM_CLOCK_instance()->lock));
 
-#if !CONFIG_IDF_TARGET_ESP32H2 // TODO: IDF-6267
     /* The power domain of the low-power clock source required by the modem
      * module remains powered on during sleep */
 #if 0
@@ -337,21 +398,20 @@ void modem_clock_select_lp_clock_source(periph_module_t module, modem_clock_lpcl
     esp_sleep_pd_config(pd_domain, ESP_PD_OPTION_OFF);
     esp_sleep_pd_config(pu_domain, ESP_PD_OPTION_ON);
 #endif
-#else
-    (void)last_src; // Only for bypass compile warning, delete if IDF-6267 resloved
-#endif //!CONFIG_IDF_TARGET_ESP32H2
 }
 
 void modem_clock_deselect_lp_clock_source(periph_module_t module)
 {
     assert(IS_MODEM_MODULE(module));
     ENTER_CRITICAL_SECTION(&(MODEM_CLOCK_instance()->lock));
+    modem_clock_lpclk_src_t last_src = MODEM_CLOCK_instance()->lpclk_src[module - PERIPH_MODEM_MODULE_MIN];
+    MODEM_CLOCK_instance()->lpclk_src[module - PERIPH_MODEM_MODULE_MIN] = MODEM_CLOCK_LPCLK_SRC_INVALID;
     switch (module)
     {
 #if SOC_WIFI_SUPPORTED
     case PERIPH_WIFI_MODULE:
         modem_clock_hal_deselect_all_wifi_lpclk_source(MODEM_CLOCK_instance()->hal);
-        modem_lpcon_ll_enable_wifipwr_clock(MODEM_CLOCK_instance()->hal->lpcon_dev, false);
+        modem_clock_hal_enable_wifipwr_clock(MODEM_CLOCK_instance()->hal, false);
         break;
 #endif // SOC_WIFI_SUPPORTED
 
@@ -359,6 +419,15 @@ void modem_clock_deselect_lp_clock_source(periph_module_t module)
     case PERIPH_BT_MODULE:
         modem_clock_hal_deselect_all_ble_rtc_timer_lpclk_source(MODEM_CLOCK_instance()->hal);
         modem_clock_hal_enable_ble_rtc_timer_clock(MODEM_CLOCK_instance()->hal, false);
+#if SOC_BLE_USE_WIFI_PWR_CLK_WORKAROUND
+        if (efuse_hal_chip_revision() != 0) {
+            if (last_src == MODEM_CLOCK_LPCLK_SRC_MAIN_XTAL) {
+                pmu_sleep_enable_hp_sleep_sysclk(false);
+            }
+            modem_clock_hal_enable_wifipwr_clock(MODEM_CLOCK_instance()->hal, false);
+            modem_clock_domain_clk_gate_enable(MODEM_CLOCK_DOMAIN_WIFI, PMU_HP_ICG_MODEM_CODE_SLEEP);
+        }
+#endif
         break;
 #endif // SOC_BT_SUPPORTED
     case PERIPH_COEX_MODULE:
@@ -368,11 +437,8 @@ void modem_clock_deselect_lp_clock_source(periph_module_t module)
     default:
         break;
     }
-    modem_clock_lpclk_src_t last_src = MODEM_CLOCK_instance()->lpclk_src[module - PERIPH_MODEM_MODULE_MIN];
-    MODEM_CLOCK_instance()->lpclk_src[module - PERIPH_MODEM_MODULE_MIN] = MODEM_CLOCK_LPCLK_SRC_INVALID;
     LEAVE_CRITICAL_SECTION(&(MODEM_CLOCK_instance()->lock));
 
-#if !CONFIG_IDF_TARGET_ESP32H2 // TODO: IDF-6267
     esp_sleep_pd_domain_t pd_domain = (esp_sleep_pd_domain_t) ( \
               (last_src == MODEM_CLOCK_LPCLK_SRC_RC_FAST)  ? ESP_PD_DOMAIN_RC_FAST  \
             : (last_src == MODEM_CLOCK_LPCLK_SRC_MAIN_XTAL) ? ESP_PD_DOMAIN_XTAL    \
@@ -380,7 +446,4 @@ void modem_clock_deselect_lp_clock_source(periph_module_t module)
             : (last_src == MODEM_CLOCK_LPCLK_SRC_XTAL32K)   ? ESP_PD_DOMAIN_XTAL32K \
             : ESP_PD_DOMAIN_MAX);
     esp_sleep_pd_config(pd_domain, ESP_PD_OPTION_OFF);
-#else
-    (void)last_src; // Only for bypass compile warning, delete if IDF-6267 resloved
-#endif //!CONFIG_IDF_TARGET_ESP32H2
 }

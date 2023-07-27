@@ -256,18 +256,21 @@ static __attribute__((unused)) void sleep_modem_wifi_modem_state_deinit(void)
 void IRAM_ATTR sleep_modem_wifi_do_phy_retention(bool restore)
 {
     if (restore) {
-        if (s_sleep_modem.wifi.modem_state_phy_done == 1) {
-            pau_regdma_trigger_modem_link_restore();
-        }
+        pau_regdma_trigger_modem_link_restore();
     } else {
         pau_regdma_trigger_modem_link_backup();
         s_sleep_modem.wifi.modem_state_phy_done = 1;
     }
 }
 
-bool sleep_modem_wifi_modem_state_enabled(void)
+inline __attribute__((always_inline)) bool sleep_modem_wifi_modem_state_enabled(void)
 {
-    return (s_sleep_modem.wifi.phy_link != NULL) ? true : false;
+    return (s_sleep_modem.wifi.phy_link != NULL);
+}
+
+inline __attribute__((always_inline)) bool sleep_modem_wifi_modem_link_done(void)
+{
+    return (s_sleep_modem.wifi.modem_state_phy_done == 1);
 }
 
 #endif /* SOC_PM_SUPPORT_PMU_MODEM_STATE */
@@ -276,8 +279,15 @@ bool IRAM_ATTR modem_domain_pd_allowed(void)
 {
 #if SOC_PM_MODEM_RETENTION_BY_REGDMA
     const uint32_t modules = sleep_retention_get_modules();
-    const uint32_t mask = (const uint32_t) (SLEEP_RETENTION_MODULE_WIFI_MAC | SLEEP_RETENTION_MODULE_WIFI_BB);
-    return ((modules & mask) == mask);
+    const uint32_t mask_wifi = (const uint32_t) (SLEEP_RETENTION_MODULE_WIFI_MAC |
+                                                 SLEEP_RETENTION_MODULE_WIFI_BB);
+    const uint32_t mask_ble = (const uint32_t) (SLEEP_RETENTION_MODULE_BLE_MAC |
+                                                SLEEP_RETENTION_MODULE_BT_BB);
+    const uint32_t mask_154 = (const uint32_t) (SLEEP_RETENTION_MODULE_802154_MAC |
+                                                SLEEP_RETENTION_MODULE_BT_BB);
+    return (((modules & mask_wifi) == mask_wifi) ||
+            ((modules & mask_ble)  == mask_ble) ||
+            ((modules & mask_154)  == mask_154));
 #else
     return false; /* MODEM power domain is controlled by each module (WiFi, Bluetooth or 15.4) of modem */
 #endif
@@ -296,7 +306,10 @@ static __attribute__((unused)) bool IRAM_ATTR sleep_modem_wifi_modem_state_skip_
 {
     bool skip = false;
 #if SOC_PM_SUPPORT_PMU_MODEM_STATE
-    skip = (s_sleep_modem.wifi.phy_link != NULL) && (s_sleep_modem.wifi.modem_state_phy_done == 0);
+    /* To block the system from entering sleep before modem link done. In light
+     * sleep mode, the system may switch to modem state, which will cause
+     * hardware to fail to enable RF */
+    skip = sleep_modem_wifi_modem_state_enabled() && !sleep_modem_wifi_modem_link_done();
 #endif
     return skip;
 }

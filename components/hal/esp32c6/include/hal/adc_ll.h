@@ -39,7 +39,6 @@ extern "C" {
                     Oneshot
 ---------------------------------------------------------------*/
 #define ADC_LL_DATA_INVERT_DEFAULT(PERIPH_NUM)         (0)
-#define ADC_LL_SAR_CLK_DIV_DEFAULT(PERIPH_NUM)         (2)
 
 /*---------------------------------------------------------------
                     DMA
@@ -540,7 +539,7 @@ static inline void adc_ll_set_controller(adc_unit_t adc_n, adc_ll_controller_t c
 __attribute__((always_inline))
 static inline void adc_ll_calibration_init(adc_unit_t adc_n)
 {
-    HAL_ASSERT(adc_n == ADC_UNIT_1);
+    (void)adc_n;
     REGI2C_WRITE_MASK(I2C_SAR_ADC, ADC_SAR1_DREF_ADDR, 1);
 }
 

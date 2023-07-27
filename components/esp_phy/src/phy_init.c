@@ -251,7 +251,7 @@ void esp_phy_enable(void)
 #if SOC_PM_SUPPORT_PMU_MODEM_STATE && CONFIG_ESP_WIFI_ENHANCED_LIGHT_SLEEP
             extern bool pm_mac_modem_rf_already_enabled(void);
             if (!pm_mac_modem_rf_already_enabled()) {
-                if (sleep_modem_wifi_modem_state_enabled()) {
+                if (sleep_modem_wifi_modem_state_enabled() && sleep_modem_wifi_modem_link_done()) {
                     sleep_modem_wifi_do_phy_retention(true);
                 } else {
                     phy_wakeup_init();
@@ -263,6 +263,10 @@ void esp_phy_enable(void)
 
 #if SOC_PM_MODEM_RETENTION_BY_BACKUPDMA
             phy_digital_regs_load();
+#endif
+
+#if CONFIG_ESP_PHY_IMPROVE_RX_11B
+            phy_improve_rx_special(true);
 #endif
         }
 
@@ -806,6 +810,11 @@ void esp_phy_load_cal_and_init(void)
     }
 #else
     register_chipv7_phy(init_data, cal_data, PHY_RF_CAL_FULL);
+#endif
+
+#if CONFIG_ESP_PHY_IMPROVE_RX_11B
+    ESP_LOGW(TAG, "PHY enable improve rx 11b");
+    phy_improve_rx_special(true);
 #endif
 
 #if CONFIG_ESP_PHY_REDUCE_TX_POWER

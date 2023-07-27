@@ -193,9 +193,21 @@ static inline void modem_lpcon_ll_enable_ble_rtc_timer_force_clock(modem_lpcon_d
 }
 
 __attribute__((always_inline))
+static inline uint32_t modem_lpcon_ll_get_wifipwr_icg_bitmap(modem_lpcon_dev_t *hw)
+{
+    return hw->clk_conf_power_st.clk_wifipwr_st_map;
+}
+
+__attribute__((always_inline))
 static inline void modem_lpcon_ll_set_wifipwr_icg_bitmap(modem_lpcon_dev_t *hw, uint32_t bitmap)
 {
     hw->clk_conf_power_st.clk_wifipwr_st_map = bitmap;
+}
+
+__attribute__((always_inline))
+static inline uint32_t modem_lpcon_ll_get_coex_icg_bitmap(modem_lpcon_dev_t *hw)
+{
+    return hw->clk_conf_power_st.clk_coex_st_map;
 }
 
 __attribute__((always_inline))
@@ -205,15 +217,55 @@ static inline void modem_lpcon_ll_set_coex_icg_bitmap(modem_lpcon_dev_t *hw, uin
 }
 
 __attribute__((always_inline))
+static inline uint32_t modem_lpcon_ll_get_i2c_master_icg_bitmap(modem_lpcon_dev_t *hw)
+{
+    return hw->clk_conf_power_st.clk_i2c_mst_st_map;
+}
+
+__attribute__((always_inline))
 static inline void modem_lpcon_ll_set_i2c_master_icg_bitmap(modem_lpcon_dev_t *hw, uint32_t bitmap)
 {
     hw->clk_conf_power_st.clk_i2c_mst_st_map = bitmap;
 }
 
 __attribute__((always_inline))
+static inline uint32_t modem_lpcon_ll_get_lp_apb_icg_bitmap(modem_lpcon_dev_t *hw)
+{
+    return hw->clk_conf_power_st.clk_lp_apb_st_map;
+}
+
+__attribute__((always_inline))
 static inline void modem_lpcon_ll_set_lp_apb_icg_bitmap(modem_lpcon_dev_t *hw, uint32_t bitmap)
 {
     hw->clk_conf_power_st.clk_lp_apb_st_map = bitmap;
+}
+
+__attribute__((always_inline))
+static inline void modem_lpcon_ll_reset_wifipwr(modem_lpcon_dev_t *hw)
+{
+    hw->rst_conf.rst_wifipwr = 1;
+    hw->rst_conf.rst_wifipwr = 0;
+}
+
+__attribute__((always_inline))
+static inline void modem_lpcon_ll_reset_coex(modem_lpcon_dev_t *hw)
+{
+    hw->rst_conf.rst_coex = 1;
+    hw->rst_conf.rst_coex = 0;
+}
+
+__attribute__((always_inline))
+static inline void modem_lpcon_ll_reset_i2c_master(modem_lpcon_dev_t *hw)
+{
+    hw->rst_conf.rst_i2c_mst = 1;
+    hw->rst_conf.rst_i2c_mst = 0;
+}
+
+__attribute__((always_inline))
+static inline void modem_lpcon_ll_reset_ble_rtc_timer(modem_lpcon_dev_t *hw)
+{
+    hw->rst_conf.rst_lp_timer = 1;
+    hw->rst_conf.rst_lp_timer = 0;
 }
 
 __attribute__((always_inline))
