@@ -14,7 +14,9 @@
 
 #ifndef OS_H
 #define OS_H
-#ifndef __NuttX__
+#ifdef __NuttX__
+#include "xtensa_mm.h"
+#else
 #include "esp_types.h"
 #endif
 #include <string.h>
@@ -210,6 +212,27 @@ static inline char *os_readfile(const char *name, size_t *len)
  * these functions need to be implemented in os_*.c file for the target system.
  */
 
+#ifdef __NuttX__
+
+#ifndef os_malloc
+#define os_malloc(s) kmm_malloc((s))
+#endif
+#ifndef os_realloc
+#define os_realloc(p, s) kmm_realloc((p), (s))
+#endif
+#ifndef os_zalloc
+#define os_zalloc(s) kmm_calloc(1, (s))
+#endif
+#ifndef os_calloc
+#define os_calloc(p, s) kmm_calloc((p), (s))
+#endif
+
+#ifndef os_free
+#define os_free(p) kmm_free((p))
+#endif
+
+#else
+
 #ifndef os_malloc
 #define os_malloc(s) malloc((s))
 #endif
@@ -226,6 +249,8 @@ static inline char *os_readfile(const char *name, size_t *len)
 #ifndef os_free
 #define os_free(p) free((p))
 #endif
+
+#endif // __NuttX__
 
 #ifndef os_bzero
 #define os_bzero(s, n) bzero(s, n)
