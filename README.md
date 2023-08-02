@@ -24,15 +24,26 @@ Where:
 
 #### Existing branches
 
-- [`sync-1-release_v5.1`](../../tree/sync-1-release_v5.1):
-    - Based on ESP-IDF `release/v5.1` branch.
-    - Includes components: `bootloader_support`, `efuse`, `esp_app_format`, `esp_common`,
-    `esp_event`, `esp_hw_support`, `esp_phy`, `esp_rom`, `esp_system`, `esp_timer`, `esp_wifi`,
-    `hal`, `log`, `mbedtls`, `newlib`, `riscv`, `soc`, `spi_flash`, `wpa_supplicant`, `xtensa`.
-
 - [`sync-2-release_v5.1`](../../tree/sync-2-release_v5.1):
     - Based on ESP-IDF `release/v5.1` branch.
     - Includes components: `bootloader_support`, `bt`, `efuse`, `esp_app_format`, `esp_common`,
+    `esp_event`, `esp_hw_support`, `esp_phy`, `esp_rom`, `esp_system`, `esp_timer`, `esp_wifi`,
+    `hal`, `log`, `mbedtls`, `newlib`, `riscv`, `soc`, `spi_flash`, `wpa_supplicant`, `xtensa`.
+
+- [`sync-3-release_v5.1`](../../tree/sync-3-release_v5.1):
+    - Based on ESP-IDF `release/v5.1` branch.
+    - Includes components: `bootloader`, `bootloader_support`, `bt`, `efuse`, `esp_adc`,
+    `esp_app_format`, `esp_coex`, `esp_common`, `esp_event`, `esp_hw_support`, `esp_phy`,
+    `esp_rom`, `esp_system`, `esp_timer`, `esp_wifi`, `hal`, `log`, `mbedtls`, `newlib`, `riscv`,
+    `soc`, `spi_flash`, `wpa_supplicant`, `xtensa`.
+
+## Depreacated branches
+
+The following branches are deprecated (not updated anymore):
+
+- [`sync-1-release_v5.1`](../../tree/sync-1-release_v5.1):
+    - Based on ESP-IDF `release/v5.1` branch.
+    - Includes components: `bootloader_support`, `efuse`, `esp_app_format`, `esp_common`,
     `esp_event`, `esp_hw_support`, `esp_phy`, `esp_rom`, `esp_system`, `esp_timer`, `esp_wifi`,
     `hal`, `log`, `mbedtls`, `newlib`, `riscv`, `soc`, `spi_flash`, `wpa_supplicant`, `xtensa`.
 
