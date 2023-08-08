@@ -25,3 +25,6 @@
 [submodule "components/bt/controller/lib_esp32c6/esp32c6-bt-lib"]
 	path = components/bt/controller/lib_esp32c6/esp32c6-bt-lib
 	url = ../../espressif/esp32c6-bt-lib.git
+[submodule "components/esp_coex/lib"]
+	path = components/esp_coex/lib
+	url = ../../espressif/esp-coex-lib.git
