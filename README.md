@@ -12,25 +12,19 @@ Except for the scripts, no manual development happens in this branch.
 
 ## Branch naming convention
 
-### sync-[name]-[branch]
+### sync/[branch].[name]
 
 These are the automatically updated sync branches.
 
 Where:
 
 - `sync` means this is a branch maintained by the script.
-- `[name]`: either a number (whose file list will be described somewhere), or a single component (in case someone needs it...)
 - `[branch]`: the IDF branch the branch is synced from, e.g. `master`, `release/v5.0`
+- `[name]`: either a letter (whose file list will be described somewhere), or a single component (in case someone needs it...)
 
 #### Existing branches
 
-- [`sync-2-release_v5.1`](../../tree/sync-2-release_v5.1):
-    - Based on ESP-IDF `release/v5.1` branch.
-    - Includes components: `bootloader_support`, `bt`, `efuse`, `esp_app_format`, `esp_common`,
-    `esp_event`, `esp_hw_support`, `esp_phy`, `esp_rom`, `esp_system`, `esp_timer`, `esp_wifi`,
-    `hal`, `log`, `mbedtls`, `newlib`, `riscv`, `soc`, `spi_flash`, `wpa_supplicant`, `xtensa`.
-
-- [`sync-3-release_v5.1`](../../tree/sync-3-release_v5.1):
+- [`sync/release_v5.1.b`](../../tree/sync/release_v5.1.b):
     - Based on ESP-IDF `release/v5.1` branch.
     - Includes components: `bootloader`, `bootloader_support`, `bt`, `efuse`, `esp_adc`,
     `esp_app_format`, `esp_coex`, `esp_common`, `esp_event`, `esp_hw_support`, `esp_phy`,
@@ -46,6 +40,19 @@ The following branches are deprecated (not updated anymore):
     - Includes components: `bootloader_support`, `efuse`, `esp_app_format`, `esp_common`,
     `esp_event`, `esp_hw_support`, `esp_phy`, `esp_rom`, `esp_system`, `esp_timer`, `esp_wifi`,
     `hal`, `log`, `mbedtls`, `newlib`, `riscv`, `soc`, `spi_flash`, `wpa_supplicant`, `xtensa`.
+
+- [`sync-2-release_v5.1`](../../tree/sync-2-release_v5.1):
+    - Based on ESP-IDF `release/v5.1` branch.
+    - Includes components: `bootloader_support`, `bt`, `efuse`, `esp_app_format`, `esp_common`,
+    `esp_event`, `esp_hw_support`, `esp_phy`, `esp_rom`, `esp_system`, `esp_timer`, `esp_wifi`,
+    `hal`, `log`, `mbedtls`, `newlib`, `riscv`, `soc`, `spi_flash`, `wpa_supplicant`, `xtensa`.
+
+- [`sync-3-release_v5.1`](../../tree/sync-3-release_v5.1):
+    - Based on ESP-IDF `release/v5.1` branch.
+    - Includes components: `bootloader`, `bootloader_support`, `bt`, `efuse`, `esp_adc`,
+    `esp_app_format`, `esp_coex`, `esp_common`, `esp_event`, `esp_hw_support`, `esp_phy`,
+    `esp_rom`, `esp_system`, `esp_timer`, `esp_wifi`, `hal`, `log`, `mbedtls`, `newlib`, `riscv`,
+    `soc`, `spi_flash`, `wpa_supplicant`, `xtensa`.
 
 #### Restrictions
 
