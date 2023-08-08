@@ -1,3 +1,12 @@
+[submodule "components/bootloader/subproject/components/micro-ecc/micro-ecc"]
+	path = components/bootloader/subproject/components/micro-ecc/micro-ecc
+	url = ../../kmackay/micro-ecc.git
+	sbom-version = 1.0
+	sbom-cpe = cpe:2.3:a:micro-ecc_project:micro-ecc:{}:*:*:*:*:*:*:*
+	sbom-supplier = Person: Ken MacKay
+	sbom-url = https://github.com/kmackay/micro-ecc
+	sbom-description = A small and fast ECDH and ECDSA implementation for 8-bit, 32-bit, and 64-bit processors
+	sbom-hash = d037ec89546fad14b5c4d5456c2e23a71e554966
 [submodule "components/mbedtls/mbedtls"]
 	path = components/mbedtls/mbedtls
 	url = ../../espressif/mbedtls.git
