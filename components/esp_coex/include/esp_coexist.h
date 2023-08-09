@@ -9,7 +9,9 @@
 
 #include <stdbool.h>
 #include "esp_err.h"
+#ifndef __NuttX__
 #include "hal/gpio_types.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
