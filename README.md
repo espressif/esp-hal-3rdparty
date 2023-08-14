@@ -83,3 +83,6 @@ Where:
 - [`release/v5.1.a`](../../tree/release/v5.1.a):
     - Based on [`sync-2-release_v5.1`](../../tree/sync-2-release_v5.1) branch.
     - Currently used by NuttX, cloned by commit SHA.
+- [`release/v5.1.b`](../../tree/release/v5.1.b):
+    - Based on [`sync/release_v5.1.b`](../../tree/sync/release_v5.1.b) branch.
+    - Currently used by NuttX, cloned by commit SHA.
