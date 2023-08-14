@@ -169,6 +169,7 @@ ARG=$(cat << EOF
                    log \
                    mbedtls \
                    newlib \
+                   partition_table \
                    riscv \
                    soc \
                    spi_flash \
@@ -178,7 +179,7 @@ ARG=$(cat << EOF
 EOF
 )
 
-extract_components "release/v5.1" "sync/release_v5.1.b" ${ARG} --message-callback "${MSG_CALLBACK}"
+extract_components "release/v5.1" "sync/release_v5.1.c" ${ARG} --message-callback "${MSG_CALLBACK}"
 
 # Add new one here if you have new requirement
 
@@ -285,3 +286,35 @@ fi
 # )
 
 # extract_components "release/v5.1" "sync-3-release_v5.1" ${ARG} --message-callback "${MSG_CALLBACK}"
+
+# ARG=$(cat << EOF
+#       ${LIC_ARG} $(get_arg_by_components \
+#                    bootloader \
+#                    bootloader_support \
+#                    bt \
+#                    efuse \
+#                    esp_adc \
+#                    esp_app_format \
+#                    esp_coex \
+#                    esp_common \
+#                    esp_event \
+#                    esp_hw_support \
+#                    esp_phy \
+#                    esp_rom \
+#                    esp_system \
+#                    esp_timer \
+#                    esp_wifi \
+#                    hal \
+#                    log \
+#                    mbedtls \
+#                    newlib \
+#                    riscv \
+#                    soc \
+#                    spi_flash \
+#                    wpa_supplicant\
+#                    xtensa \
+#                    )
+# EOF
+# )
+
+# extract_components "release/v5.1" "sync/release_v5.1.b" ${ARG} --message-callback "${MSG_CALLBACK}"

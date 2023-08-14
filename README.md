@@ -24,12 +24,12 @@ Where:
 
 #### Existing branches
 
-- [`sync/release_v5.1.b`](../../tree/sync/release_v5.1.b):
+- [`sync/release_v5.1.c`](../../tree/sync/release_v5.1.c):
     - Based on ESP-IDF `release/v5.1` branch.
     - Includes components: `bootloader`, `bootloader_support`, `bt`, `efuse`, `esp_adc`,
     `esp_app_format`, `esp_coex`, `esp_common`, `esp_event`, `esp_hw_support`, `esp_phy`,
-    `esp_rom`, `esp_system`, `esp_timer`, `esp_wifi`, `hal`, `log`, `mbedtls`, `newlib`, `riscv`,
-    `soc`, `spi_flash`, `wpa_supplicant`, `xtensa`.
+    `esp_rom`, `esp_system`, `esp_timer`, `esp_wifi`, `hal`, `log`, `mbedtls`, `newlib`,
+    `partition_table`, `riscv`, `soc`, `spi_flash`, `wpa_supplicant`, `xtensa`.
 
 ## Depreacated branches
 
@@ -48,6 +48,13 @@ The following branches are deprecated (not updated anymore):
     `hal`, `log`, `mbedtls`, `newlib`, `riscv`, `soc`, `spi_flash`, `wpa_supplicant`, `xtensa`.
 
 - [`sync-3-release_v5.1`](../../tree/sync-3-release_v5.1):
+    - Based on ESP-IDF `release/v5.1` branch.
+    - Includes components: `bootloader`, `bootloader_support`, `bt`, `efuse`, `esp_adc`,
+    `esp_app_format`, `esp_coex`, `esp_common`, `esp_event`, `esp_hw_support`, `esp_phy`,
+    `esp_rom`, `esp_system`, `esp_timer`, `esp_wifi`, `hal`, `log`, `mbedtls`, `newlib`, `riscv`,
+    `soc`, `spi_flash`, `wpa_supplicant`, `xtensa`.
+
+- [`sync/release_v5.1.b`](../../tree/sync/release_v5.1.b):
     - Based on ESP-IDF `release/v5.1` branch.
     - Includes components: `bootloader`, `bootloader_support`, `bt`, `efuse`, `esp_adc`,
     `esp_app_format`, `esp_coex`, `esp_common`, `esp_event`, `esp_hw_support`, `esp_phy`,
@@ -85,4 +92,7 @@ Where:
     - Currently used by NuttX, cloned by commit SHA.
 - [`release/v5.1.b`](../../tree/release/v5.1.b):
     - Based on [`sync/release_v5.1.b`](../../tree/sync/release_v5.1.b) branch.
+    - Currently used by NuttX, cloned by commit SHA.
+- [`release/v5.1.c`](../../tree/release/v5.1.c):
+    - Based on [`sync/release_v5.1.c`](../../tree/sync/release_v5.1.c) branch.
     - Currently used by NuttX, cloned by commit SHA.
