@@ -9,6 +9,8 @@
 
 #ifdef __NuttX__
 #include <nuttx/config.h>
+
+#include <sys/types.h>
 #include <assert.h>
 #endif
 
