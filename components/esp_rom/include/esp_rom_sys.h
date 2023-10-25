@@ -9,6 +9,10 @@
 #include <stdint.h>
 #include "soc/reset_reasons.h"
 
+#ifdef __NuttX__
+#include <sys/types.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
