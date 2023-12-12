@@ -43,7 +43,9 @@
 #endif
 
 #include    <xtensa/config/tie.h>
+#ifndef __NuttX__
 #include    <xtensa/corebits.h>
+#endif
 #include    <xtensa/config/system.h>
 #include <xtensa/xtruntime-frames.h>
 

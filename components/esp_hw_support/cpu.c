@@ -26,7 +26,11 @@
 #include "esp_err.h"
 #include "esp_cpu.h"
 #if __XTENSA__
+#ifndef __NuttX__
 #include "xtensa/config/core-isa.h"
+#else
+#include <arch/chip/core-isa.h>
+#endif
 #else
 #include "soc/system_reg.h"     // For SYSTEM_CPU_PER_CONF_REG
 #include "soc/dport_access.h"   // For Dport access

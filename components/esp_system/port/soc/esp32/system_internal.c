@@ -22,8 +22,7 @@
 #include "soc/rtc.h"
 #include "esp_private/rtc_clk.h"
 #include "hal/wdt_hal.h"
-#include "freertos/xtensa_api.h"
-#include "soc/soc_memory_layout.h"
+#include "xtensa/xtensa_api.h"
 #include "esp_private/cache_err_int.h"
 
 #include "esp32/rom/cache.h"

@@ -29,7 +29,11 @@
 
 /*  Import STRUCT_xxx macros for defining structures:  */
 #include <xtensa/xtruntime-frames.h>
+#ifndef __NuttX__
 #include <xtensa/config/core.h>
+#else
+#include <arch/xtensa/core.h>
+#endif
 #include <xtensa/config/tie.h>
 #if XCHAL_HAVE_IDMA
 #include <xtensa/idma.h>

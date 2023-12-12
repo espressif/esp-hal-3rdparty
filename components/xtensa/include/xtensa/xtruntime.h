@@ -26,8 +26,13 @@
 #ifndef XTRUNTIME_H
 #define XTRUNTIME_H
 
+#ifndef __NuttX__
 #include <xtensa/config/core.h>
 #include <xtensa/config/specreg.h>
+#else
+#include <arch/xtensa/core.h>
+#include <arch/xtensa/xtensa_corebits.h>
+#endif
 #include <xtensa/xtruntime-core-state.h>
 
 #ifndef XTSTR
