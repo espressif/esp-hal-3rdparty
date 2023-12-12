@@ -47,7 +47,11 @@
 
 /*  CONFIGURATION SPECIFIC DEFINITIONS:  */
 #ifdef __XTENSA__
+#ifndef __NuttX__
 #include <xtensa/config/core-isa.h>
+#else
+#include <arch/chip/core-isa.h>
+#endif
 #include <xtensa/config/core-matmap.h>
 #include <xtensa/config/tie.h>
 #else
