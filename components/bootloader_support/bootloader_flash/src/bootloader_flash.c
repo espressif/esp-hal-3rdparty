@@ -47,6 +47,10 @@
 #define ESP_BOOTLOADER_SPIFLASH_QE_GD_SR2        BIT1   // QE position when you write 8 bits(for SR2) at one time.
 #define ESP_BOOTLOADER_SPIFLASH_QE_SR1_2BYTE     BIT9   // QE position when you write 16 bits at one time.
 
+#if defined(__NuttX__) && defined(CONFIG_ESPRESSIF_SIMPLE_BOOT)
+#define BOOTLOADER_BUILD 1
+#endif
+
 #ifndef BOOTLOADER_BUILD
 /* Normal app version maps to spi_flash_mmap.h operations...
  */
@@ -756,3 +760,7 @@ bool IRAM_ATTR bootloader_flash_is_octal_mode_enabled(void)
     return false;
 #endif
 }
+
+#if defined(__NuttX__) && defined(CONFIG_ESPRESSIF_SIMPLE_BOOT)
+#undef BOOTLOADER_BUILD
+#endif
