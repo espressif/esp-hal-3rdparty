@@ -25,6 +25,7 @@
 #include "esp_err.h"
 #include "supplicant_opt.h"
 #include "esp_wifi.h"
+#include "esp_private/wifi.h"
 
 typedef time_t os_time_t;
 
@@ -39,6 +40,11 @@ struct os_time {
 	os_time_t sec;
 	suseconds_t usec;
 };
+
+#ifdef __NuttX__
+typedef void*           TaskHandle_t;
+typedef void*           SemaphoreHandle_t;
+#endif
 
 #define os_reltime os_time
 
@@ -229,6 +235,18 @@ static inline char *os_readfile(const char *name, size_t *len)
 
 #ifndef os_free
 #define os_free(p) kmm_free((p))
+#endif
+
+#ifndef pdTRUE
+#define pdTRUE              (1)
+#endif
+
+#ifndef pdPASS
+#define pdPASS              (pdTRUE)
+#endif
+
+#ifndef portMAX_DELAY
+#define portMAX_DELAY       OSI_FUNCS_TIME_BLOCKING
 #endif
 
 #else

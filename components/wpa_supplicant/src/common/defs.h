@@ -9,6 +9,10 @@
 #ifndef DEFS_H
 #define DEFS_H
 
+#ifdef __NuttX__
+#include "esp_bit_defs.h"
+#endif
+
 #ifdef FALSE
 #undef FALSE
 #endif
