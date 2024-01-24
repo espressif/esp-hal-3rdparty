@@ -110,7 +110,11 @@ void ap_free_sta(struct hostapd_data *hapd, struct sta_info *sta)
 	os_free(sta->sae);
 	if (sta->lock) {
 		os_semphr_give(sta->lock);
+#ifdef __NuttX__
+		os_semphr_delete(sta->lock);
+#else
 		os_mutex_delete(sta->lock);
+#endif
 		sta->lock = NULL;
 	}
 #endif /* CONFIG_SAE */
