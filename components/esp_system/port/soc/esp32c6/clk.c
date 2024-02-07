@@ -106,7 +106,7 @@ static const char *TAG = "clk";
     }
 
     // Re calculate the ccount to make time calculation correct.
-    esp_cpu_set_cycle_count( (uint64_t)esp_cpu_get_cycle_count() * new_freq_mhz / old_freq_mhz );
+    esp_cpu_set_cycle_count( (uint64_t)(esp_cpu_get_cycle_count() * new_freq_mhz) / old_freq_mhz );
 }
 
 static void select_rtc_slow_clk(soc_rtc_slow_clk_src_t rtc_slow_clk_src)

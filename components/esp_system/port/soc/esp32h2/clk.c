@@ -105,7 +105,7 @@ static const char *TAG = "clk";
     }
 
     // Re calculate the ccount to make time calculation correct.
-    esp_cpu_set_cycle_count( (uint64_t)esp_cpu_get_cycle_count() * new_freq_mhz / old_freq_mhz );
+    esp_cpu_set_cycle_count( (uint64_t)(esp_cpu_get_cycle_count() * new_freq_mhz) / old_freq_mhz );
 
     // Set crypto clock (`clk_sec`) to use 96M PLL clock
     REG_SET_FIELD(PCR_SEC_CONF_REG, PCR_SEC_CLK_SEL, 0x3);

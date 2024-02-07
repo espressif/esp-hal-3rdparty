@@ -55,3 +55,13 @@
 #define CONFIG_LOG_DEFAULT_LEVEL 0
 #define CONFIG_LOG_MAXIMUM_LEVEL 0
 #endif
+
+#ifdef CONFIG_ESPRESSIF_SIMPLE_BOOT
+#  define CONFIG_ESP_CONSOLE_UART               1
+#  define CONFIG_ESP_CONSOLE_UART_BAUDRATE      115200
+#  define CONFIG_PARTITION_TABLE_OFFSET         0x0000
+#  define CONFIG_BOOTLOADER_OFFSET_IN_FLASH     0x0000
+#  define IDF_VER                               0
+#  define CONFIG_FREERTOS_UNICORE               1
+#  define CONFIG_BOOTLOADER_FLASH_XMC_SUPPORT   1
+#endif
