@@ -5,6 +5,7 @@
  */
 #include <stdbool.h>
 #include <assert.h>
+#include <stddef.h>
 #include "soc/soc.h"
 #include "soc/lp_analog_peri_reg.h"
 

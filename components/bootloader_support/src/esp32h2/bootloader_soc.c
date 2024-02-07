@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 #include <stdbool.h>
+#include <stddef.h>
 #include "soc/lp_analog_peri_reg.h"
 
 void bootloader_ana_super_wdt_reset_config(bool enable)
