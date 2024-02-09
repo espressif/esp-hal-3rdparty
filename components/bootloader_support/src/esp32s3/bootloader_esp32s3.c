@@ -38,7 +38,11 @@
 #include "esp_efuse.h"
 #include "hal/mmu_hal.h"
 #include "hal/cache_hal.h"
+#ifndef __NuttX__
 #include "xtensa/config/core.h"
+#else
+#include <arch/xtensa/core.h>
+#endif
 #include "xt_instr_macros.h"
 
 
