@@ -1,0 +1,821 @@
+diff --git a/library/aes.c b/library/aes.c
+index f2cff51..9a3b816 100644
+--- a/library/aes.c
++++ b/library/aes.c
+@@ -1076,7 +1076,7 @@ int esp_mbedtls_aes_crypt_cbc(mbedtls_aes_context *ctx,
+                 goto exit;
+             }
+ 
+-            mbedtls_xor(output, output, iv, 16);
++            esp_mbedtls_xor(output, output, iv, 16);
+ 
+             memcpy(iv, temp, 16);
+ 
+@@ -1086,7 +1086,7 @@ int esp_mbedtls_aes_crypt_cbc(mbedtls_aes_context *ctx,
+         }
+     } else {
+         while (length > 0) {
+-            mbedtls_xor(output, input, iv, 16);
++            esp_mbedtls_xor(output, input, iv, 16);
+ 
+             ret = esp_mbedtls_aes_crypt_ecb(ctx, mode, output, output);
+             if (ret != 0) {
+@@ -1182,14 +1182,14 @@ int esp_mbedtls_aes_crypt_xts(mbedtls_aes_xts_context *ctx,
+             esp_mbedtls_gf128mul_x_ble(tweak, tweak);
+         }
+ 
+-        mbedtls_xor(tmp, input, tweak, 16);
++        esp_mbedtls_xor(tmp, input, tweak, 16);
+ 
+         ret = esp_mbedtls_aes_crypt_ecb(&ctx->crypt, mode, tmp, tmp);
+         if (ret != 0) {
+             return ret;
+         }
+ 
+-        mbedtls_xor(output, tmp, tweak, 16);
++        esp_mbedtls_xor(output, tmp, tweak, 16);
+ 
+         /* Update the tweak for the next block. */
+         esp_mbedtls_gf128mul_x_ble(tweak, tweak);
+@@ -1215,11 +1215,11 @@ int esp_mbedtls_aes_crypt_xts(mbedtls_aes_xts_context *ctx,
+         }
+ 
+         /* Copy the remainder of the input for this final round. */
+-        mbedtls_xor(tmp, input, t, leftover);
++        esp_mbedtls_xor(tmp, input, t, leftover);
+ 
+         /* Copy ciphertext bytes from the previous block for input in this
+          * round. */
+-        mbedtls_xor(tmp + i, prev_output + i, t + i, 16 - i);
++        esp_mbedtls_xor(tmp + i, prev_output + i, t + i, 16 - i);
+ 
+         ret = esp_mbedtls_aes_crypt_ecb(&ctx->crypt, mode, tmp, tmp);
+         if (ret != 0) {
+@@ -1228,7 +1228,7 @@ int esp_mbedtls_aes_crypt_xts(mbedtls_aes_xts_context *ctx,
+ 
+         /* Write the result back to the previous block, overriding the previous
+          * output we copied. */
+-        mbedtls_xor(prev_output, tmp, t, 16);
++        esp_mbedtls_xor(prev_output, tmp, t, 16);
+     }
+ 
+     return 0;
+diff --git a/library/alignment.h b/library/alignment.h
+index a518a8a..811b7a6 100644
+--- a/library/alignment.h
++++ b/library/alignment.h
+@@ -53,7 +53,7 @@
+  * \param   p pointer to 2 bytes of data
+  * \return  Data at the given address
+  */
+-inline uint16_t mbedtls_get_unaligned_uint16(const void *p)
++inline uint16_t esp_mbedtls_get_unaligned_uint16(const void *p)
+ {
+     uint16_t r;
+     memcpy(&r, p, sizeof(r));
+@@ -67,7 +67,7 @@ inline uint16_t mbedtls_get_unaligned_uint16(const void *p)
+  * \param   p pointer to 2 bytes of data
+  * \param   x data to write
+  */
+-inline void mbedtls_put_unaligned_uint16(void *p, uint16_t x)
++inline void esp_mbedtls_put_unaligned_uint16(void *p, uint16_t x)
+ {
+     memcpy(p, &x, sizeof(x));
+ }
+@@ -79,7 +79,7 @@ inline void mbedtls_put_unaligned_uint16(void *p, uint16_t x)
+  * \param   p pointer to 4 bytes of data
+  * \return  Data at the given address
+  */
+-inline uint32_t mbedtls_get_unaligned_uint32(const void *p)
++inline uint32_t esp_mbedtls_get_unaligned_uint32(const void *p)
+ {
+     uint32_t r;
+     memcpy(&r, p, sizeof(r));
+@@ -93,7 +93,7 @@ inline uint32_t mbedtls_get_unaligned_uint32(const void *p)
+  * \param   p pointer to 4 bytes of data
+  * \param   x data to write
+  */
+-inline void mbedtls_put_unaligned_uint32(void *p, uint32_t x)
++inline void esp_mbedtls_put_unaligned_uint32(void *p, uint32_t x)
+ {
+     memcpy(p, &x, sizeof(x));
+ }
+@@ -105,7 +105,7 @@ inline void mbedtls_put_unaligned_uint32(void *p, uint32_t x)
+  * \param   p pointer to 8 bytes of data
+  * \return  Data at the given address
+  */
+-inline uint64_t mbedtls_get_unaligned_uint64(const void *p)
++inline uint64_t esp_mbedtls_get_unaligned_uint64(const void *p)
+ {
+     uint64_t r;
+     memcpy(&r, p, sizeof(r));
+@@ -119,7 +119,7 @@ inline uint64_t mbedtls_get_unaligned_uint64(const void *p)
+  * \param   p pointer to 8 bytes of data
+  * \param   x data to write
+  */
+-inline void mbedtls_put_unaligned_uint64(void *p, uint64_t x)
++inline void esp_mbedtls_put_unaligned_uint64(void *p, uint64_t x)
+ {
+     memcpy(p, &x, sizeof(x));
+ }
+@@ -247,8 +247,8 @@ static const uint16_t mbedtls_byte_order_detector = { 0x100 };
+  */
+ #define MBEDTLS_GET_UINT32_BE(data, offset)                                \
+     ((MBEDTLS_IS_BIG_ENDIAN)                                               \
+-        ? mbedtls_get_unaligned_uint32((data) + (offset))                  \
+-        : MBEDTLS_BSWAP32(mbedtls_get_unaligned_uint32((data) + (offset))) \
++        ? esp_mbedtls_get_unaligned_uint32((data) + (offset))                  \
++        : MBEDTLS_BSWAP32(esp_mbedtls_get_unaligned_uint32((data) + (offset))) \
+     )
+ 
+ /**
+@@ -264,11 +264,11 @@ static const uint16_t mbedtls_byte_order_detector = { 0x100 };
+     {                                                                            \
+         if (MBEDTLS_IS_BIG_ENDIAN)                                               \
+         {                                                                        \
+-            mbedtls_put_unaligned_uint32((data) + (offset), (uint32_t) (n));     \
++            esp_mbedtls_put_unaligned_uint32((data) + (offset), (uint32_t) (n));     \
+         }                                                                        \
+         else                                                                     \
+         {                                                                        \
+-            mbedtls_put_unaligned_uint32((data) + (offset), MBEDTLS_BSWAP32((uint32_t) (n))); \
++            esp_mbedtls_put_unaligned_uint32((data) + (offset), MBEDTLS_BSWAP32((uint32_t) (n))); \
+         }                                                                        \
+     }
+ 
+@@ -283,8 +283,8 @@ static const uint16_t mbedtls_byte_order_detector = { 0x100 };
+  */
+ #define MBEDTLS_GET_UINT32_LE(data, offset)                                \
+     ((MBEDTLS_IS_BIG_ENDIAN)                                               \
+-        ? MBEDTLS_BSWAP32(mbedtls_get_unaligned_uint32((data) + (offset))) \
+-        : mbedtls_get_unaligned_uint32((data) + (offset))                  \
++        ? MBEDTLS_BSWAP32(esp_mbedtls_get_unaligned_uint32((data) + (offset))) \
++        : esp_mbedtls_get_unaligned_uint32((data) + (offset))                  \
+     )
+ 
+ 
+@@ -301,11 +301,11 @@ static const uint16_t mbedtls_byte_order_detector = { 0x100 };
+     {                                                                            \
+         if (MBEDTLS_IS_BIG_ENDIAN)                                               \
+         {                                                                        \
+-            mbedtls_put_unaligned_uint32((data) + (offset), MBEDTLS_BSWAP32((uint32_t) (n))); \
++            esp_mbedtls_put_unaligned_uint32((data) + (offset), MBEDTLS_BSWAP32((uint32_t) (n))); \
+         }                                                                        \
+         else                                                                     \
+         {                                                                        \
+-            mbedtls_put_unaligned_uint32((data) + (offset), ((uint32_t) (n)));   \
++            esp_mbedtls_put_unaligned_uint32((data) + (offset), ((uint32_t) (n)));   \
+         }                                                                        \
+     }
+ 
+@@ -320,8 +320,8 @@ static const uint16_t mbedtls_byte_order_detector = { 0x100 };
+  */
+ #define MBEDTLS_GET_UINT16_LE(data, offset)                                \
+     ((MBEDTLS_IS_BIG_ENDIAN)                                               \
+-        ? MBEDTLS_BSWAP16(mbedtls_get_unaligned_uint16((data) + (offset))) \
+-        : mbedtls_get_unaligned_uint16((data) + (offset))                  \
++        ? MBEDTLS_BSWAP16(esp_mbedtls_get_unaligned_uint16((data) + (offset))) \
++        : esp_mbedtls_get_unaligned_uint16((data) + (offset))                  \
+     )
+ 
+ /**
+@@ -337,11 +337,11 @@ static const uint16_t mbedtls_byte_order_detector = { 0x100 };
+     {                                                                            \
+         if (MBEDTLS_IS_BIG_ENDIAN)                                               \
+         {                                                                        \
+-            mbedtls_put_unaligned_uint16((data) + (offset), MBEDTLS_BSWAP16((uint16_t) (n))); \
++            esp_mbedtls_put_unaligned_uint16((data) + (offset), MBEDTLS_BSWAP16((uint16_t) (n))); \
+         }                                                                        \
+         else                                                                     \
+         {                                                                        \
+-            mbedtls_put_unaligned_uint16((data) + (offset), (uint16_t) (n));     \
++            esp_mbedtls_put_unaligned_uint16((data) + (offset), (uint16_t) (n));     \
+         }                                                                        \
+     }
+ 
+@@ -356,8 +356,8 @@ static const uint16_t mbedtls_byte_order_detector = { 0x100 };
+  */
+ #define MBEDTLS_GET_UINT16_BE(data, offset)                                \
+     ((MBEDTLS_IS_BIG_ENDIAN)                                               \
+-        ? mbedtls_get_unaligned_uint16((data) + (offset))                  \
+-        : MBEDTLS_BSWAP16(mbedtls_get_unaligned_uint16((data) + (offset))) \
++        ? esp_mbedtls_get_unaligned_uint16((data) + (offset))                  \
++        : MBEDTLS_BSWAP16(esp_mbedtls_get_unaligned_uint16((data) + (offset))) \
+     )
+ 
+ /**
+@@ -373,11 +373,11 @@ static const uint16_t mbedtls_byte_order_detector = { 0x100 };
+     {                                                                            \
+         if (MBEDTLS_IS_BIG_ENDIAN)                                               \
+         {                                                                        \
+-            mbedtls_put_unaligned_uint16((data) + (offset), (uint16_t) (n));     \
++            esp_mbedtls_put_unaligned_uint16((data) + (offset), (uint16_t) (n));     \
+         }                                                                        \
+         else                                                                     \
+         {                                                                        \
+-            mbedtls_put_unaligned_uint16((data) + (offset), MBEDTLS_BSWAP16((uint16_t) (n))); \
++            esp_mbedtls_put_unaligned_uint16((data) + (offset), MBEDTLS_BSWAP16((uint16_t) (n))); \
+         }                                                                        \
+     }
+ 
+@@ -456,8 +456,8 @@ static const uint16_t mbedtls_byte_order_detector = { 0x100 };
+  */
+ #define MBEDTLS_GET_UINT64_BE(data, offset)                                \
+     ((MBEDTLS_IS_BIG_ENDIAN)                                               \
+-        ? mbedtls_get_unaligned_uint64((data) + (offset))                  \
+-        : MBEDTLS_BSWAP64(mbedtls_get_unaligned_uint64((data) + (offset))) \
++        ? esp_mbedtls_get_unaligned_uint64((data) + (offset))                  \
++        : MBEDTLS_BSWAP64(esp_mbedtls_get_unaligned_uint64((data) + (offset))) \
+     )
+ 
+ /**
+@@ -473,11 +473,11 @@ static const uint16_t mbedtls_byte_order_detector = { 0x100 };
+     {                                                                            \
+         if (MBEDTLS_IS_BIG_ENDIAN)                                               \
+         {                                                                        \
+-            mbedtls_put_unaligned_uint64((data) + (offset), (uint64_t) (n));     \
++            esp_mbedtls_put_unaligned_uint64((data) + (offset), (uint64_t) (n));     \
+         }                                                                        \
+         else                                                                     \
+         {                                                                        \
+-            mbedtls_put_unaligned_uint64((data) + (offset), MBEDTLS_BSWAP64((uint64_t) (n))); \
++            esp_mbedtls_put_unaligned_uint64((data) + (offset), MBEDTLS_BSWAP64((uint64_t) (n))); \
+         }                                                                        \
+     }
+ 
+@@ -492,8 +492,8 @@ static const uint16_t mbedtls_byte_order_detector = { 0x100 };
+  */
+ #define MBEDTLS_GET_UINT64_LE(data, offset)                                \
+     ((MBEDTLS_IS_BIG_ENDIAN)                                               \
+-        ? MBEDTLS_BSWAP64(mbedtls_get_unaligned_uint64((data) + (offset))) \
+-        : mbedtls_get_unaligned_uint64((data) + (offset))                  \
++        ? MBEDTLS_BSWAP64(esp_mbedtls_get_unaligned_uint64((data) + (offset))) \
++        : esp_mbedtls_get_unaligned_uint64((data) + (offset))                  \
+     )
+ 
+ /**
+@@ -509,11 +509,11 @@ static const uint16_t mbedtls_byte_order_detector = { 0x100 };
+     {                                                                            \
+         if (MBEDTLS_IS_BIG_ENDIAN)                                               \
+         {                                                                        \
+-            mbedtls_put_unaligned_uint64((data) + (offset), MBEDTLS_BSWAP64((uint64_t) (n))); \
++            esp_mbedtls_put_unaligned_uint64((data) + (offset), MBEDTLS_BSWAP64((uint64_t) (n))); \
+         }                                                                        \
+         else                                                                     \
+         {                                                                        \
+-            mbedtls_put_unaligned_uint64((data) + (offset), (uint64_t) (n));     \
++            esp_mbedtls_put_unaligned_uint64((data) + (offset), (uint64_t) (n));     \
+         }                                                                        \
+     }
+ 
+diff --git a/library/aria.c b/library/aria.c
+index d048149..93d8a06 100644
+--- a/library/aria.c
++++ b/library/aria.c
+@@ -558,7 +558,7 @@ int esp_mbedtls_aria_crypt_cbc(mbedtls_aria_context *ctx,
+             memcpy(temp, input, MBEDTLS_ARIA_BLOCKSIZE);
+             esp_mbedtls_aria_crypt_ecb(ctx, input, output);
+ 
+-            mbedtls_xor(output, output, iv, MBEDTLS_ARIA_BLOCKSIZE);
++            esp_mbedtls_xor(output, output, iv, MBEDTLS_ARIA_BLOCKSIZE);
+ 
+             memcpy(iv, temp, MBEDTLS_ARIA_BLOCKSIZE);
+ 
+@@ -568,7 +568,7 @@ int esp_mbedtls_aria_crypt_cbc(mbedtls_aria_context *ctx,
+         }
+     } else {
+         while (length > 0) {
+-            mbedtls_xor(output, input, iv, MBEDTLS_ARIA_BLOCKSIZE);
++            esp_mbedtls_xor(output, input, iv, MBEDTLS_ARIA_BLOCKSIZE);
+ 
+             esp_mbedtls_aria_crypt_ecb(ctx, output, output);
+             memcpy(iv, output, MBEDTLS_ARIA_BLOCKSIZE);
+diff --git a/library/camellia.c b/library/camellia.c
+index 4a740bb..f4720ce 100644
+--- a/library/camellia.c
++++ b/library/camellia.c
+@@ -547,7 +547,7 @@ int esp_mbedtls_camellia_crypt_cbc(mbedtls_camellia_context *ctx,
+             memcpy(temp, input, 16);
+             esp_mbedtls_camellia_crypt_ecb(ctx, mode, input, output);
+ 
+-            mbedtls_xor(output, output, iv, 16);
++            esp_mbedtls_xor(output, output, iv, 16);
+ 
+             memcpy(iv, temp, 16);
+ 
+@@ -557,7 +557,7 @@ int esp_mbedtls_camellia_crypt_cbc(mbedtls_camellia_context *ctx,
+         }
+     } else {
+         while (length > 0) {
+-            mbedtls_xor(output, input, iv, 16);
++            esp_mbedtls_xor(output, input, iv, 16);
+ 
+             esp_mbedtls_camellia_crypt_ecb(ctx, mode, output, output);
+             memcpy(iv, output, 16);
+diff --git a/library/ccm.c b/library/ccm.c
+index 844a50c..d517785 100644
+--- a/library/ccm.c
++++ b/library/ccm.c
+@@ -126,7 +126,7 @@ static int esp_mbedtls_ccm_crypt(mbedtls_ccm_context *ctx,
+         return ret;
+     }
+ 
+-    mbedtls_xor(output, input, tmp_buf + offset, use_len);
++    esp_mbedtls_xor(output, input, tmp_buf + offset, use_len);
+ 
+     esp_mbedtls_platform_zeroize(tmp_buf, sizeof(tmp_buf));
+     return ret;
+@@ -302,7 +302,7 @@ int esp_mbedtls_ccm_update_ad(mbedtls_ccm_context *ctx,
+                 use_len = add_len;
+             }
+ 
+-            mbedtls_xor(ctx->y + offset, ctx->y + offset, add, use_len);
++            esp_mbedtls_xor(ctx->y + offset, ctx->y + offset, add, use_len);
+ 
+             ctx->processed += use_len;
+             add_len -= use_len;
+@@ -368,7 +368,7 @@ int esp_mbedtls_ccm_update(mbedtls_ccm_context *ctx,
+ 
+         if (ctx->mode == MBEDTLS_CCM_ENCRYPT || \
+             ctx->mode == MBEDTLS_CCM_STAR_ENCRYPT) {
+-            mbedtls_xor(ctx->y + offset, ctx->y + offset, input, use_len);
++            esp_mbedtls_xor(ctx->y + offset, ctx->y + offset, input, use_len);
+ 
+             if (use_len + offset == 16 || ctx->processed == ctx->plaintext_len) {
+                 if ((ret =
+@@ -397,7 +397,7 @@ int esp_mbedtls_ccm_update(mbedtls_ccm_context *ctx,
+                 goto exit;
+             }
+ 
+-            mbedtls_xor(ctx->y + offset, ctx->y + offset, local_output, use_len);
++            esp_mbedtls_xor(ctx->y + offset, ctx->y + offset, local_output, use_len);
+ 
+             memcpy(output, local_output, use_len);
+             esp_mbedtls_platform_zeroize(local_output, 16);
+diff --git a/library/chacha20.c b/library/chacha20.c
+index e39c6aa..26f616e 100644
+--- a/library/chacha20.c
++++ b/library/chacha20.c
+@@ -233,7 +233,7 @@ int esp_mbedtls_chacha20_update(mbedtls_chacha20_context *ctx,
+         esp_chacha20_block(ctx->state, ctx->keystream8);
+         ctx->state[CHACHA20_CTR_INDEX]++;
+ 
+-        mbedtls_xor(output + offset, input + offset, ctx->keystream8, 64U);
++        esp_mbedtls_xor(output + offset, input + offset, ctx->keystream8, 64U);
+ 
+         offset += CHACHA20_BLOCK_SIZE_BYTES;
+         size   -= CHACHA20_BLOCK_SIZE_BYTES;
+@@ -245,7 +245,7 @@ int esp_mbedtls_chacha20_update(mbedtls_chacha20_context *ctx,
+         esp_chacha20_block(ctx->state, ctx->keystream8);
+         ctx->state[CHACHA20_CTR_INDEX]++;
+ 
+-        mbedtls_xor(output + offset, input + offset, ctx->keystream8, size);
++        esp_mbedtls_xor(output + offset, input + offset, ctx->keystream8, size);
+ 
+         ctx->keystream_bytes_used = size;
+ 
+diff --git a/library/cmac.c b/library/cmac.c
+index d024e6e..7d64593 100644
+--- a/library/cmac.c
++++ b/library/cmac.c
+@@ -237,7 +237,7 @@ int esp_mbedtls_cipher_cmac_update(mbedtls_cipher_context_t *ctx,
+                input,
+                block_size - cmac_ctx->unprocessed_len);
+ 
+-        mbedtls_xor(state, cmac_ctx->unprocessed_block, state, block_size);
++        esp_mbedtls_xor(state, cmac_ctx->unprocessed_block, state, block_size);
+ 
+         if ((ret = esp_mbedtls_cipher_update(ctx, state, block_size, state,
+                                          &olen)) != 0) {
+@@ -255,7 +255,7 @@ int esp_mbedtls_cipher_cmac_update(mbedtls_cipher_context_t *ctx,
+     /* Iterate across the input data in block sized chunks, excluding any
+      * final partial or complete block */
+     for (j = 1; j < n; j++) {
+-        mbedtls_xor(state, input, state, block_size);
++        esp_mbedtls_xor(state, input, state, block_size);
+ 
+         if ((ret = esp_mbedtls_cipher_update(ctx, state, block_size, state,
+                                          &olen)) != 0) {
+@@ -307,14 +307,14 @@ int esp_mbedtls_cipher_cmac_finish(mbedtls_cipher_context_t *ctx,
+     /* Calculate last block */
+     if (cmac_ctx->unprocessed_len < block_size) {
+         esp_cmac_pad(M_last, block_size, last_block, cmac_ctx->unprocessed_len);
+-        mbedtls_xor(M_last, M_last, K2, block_size);
++        esp_mbedtls_xor(M_last, M_last, K2, block_size);
+     } else {
+         /* Last block is complete block */
+-        mbedtls_xor(M_last, last_block, K1, block_size);
++        esp_mbedtls_xor(M_last, last_block, K1, block_size);
+     }
+ 
+ 
+-    mbedtls_xor(state, M_last, state, block_size);
++    esp_mbedtls_xor(state, M_last, state, block_size);
+     if ((ret = esp_mbedtls_cipher_update(ctx, state, block_size, state,
+                                      &olen)) != 0) {
+         goto exit;
+diff --git a/library/common.h b/library/common.h
+index 1273b57..ebc32fd 100644
+--- a/library/common.h
++++ b/library/common.h
+@@ -121,13 +121,13 @@ static inline const unsigned char *mbedtls_buffer_offset_const(
+  * \param   b Pointer to input (buffer of at least \p n bytes)
+  * \param   n Number of bytes to process.
+  */
+-inline void mbedtls_xor(unsigned char *r, const unsigned char *a, const unsigned char *b, size_t n)
++inline void esp_mbedtls_xor(unsigned char *r, const unsigned char *a, const unsigned char *b, size_t n)
+ {
+     size_t i = 0;
+ #if defined(MBEDTLS_EFFICIENT_UNALIGNED_ACCESS)
+     for (; (i + 4) <= n; i += 4) {
+-        uint32_t x = mbedtls_get_unaligned_uint32(a + i) ^ mbedtls_get_unaligned_uint32(b + i);
+-        mbedtls_put_unaligned_uint32(r + i, x);
++        uint32_t x = esp_mbedtls_get_unaligned_uint32(a + i) ^ esp_mbedtls_get_unaligned_uint32(b + i);
++        esp_mbedtls_put_unaligned_uint32(r + i, x);
+     }
+ #endif
+     for (; i < n; i++) {
+diff --git a/library/constant_time.c b/library/constant_time.c
+index b2f796d..14f3373 100644
+--- a/library/constant_time.c
++++ b/library/constant_time.c
+@@ -56,7 +56,7 @@
+  * Define MBEDTLS_EFFICIENT_UNALIGNED_VOLATILE_ACCESS where assembly is present to
+  * perform fast unaligned access to volatile data.
+  *
+- * This is needed because mbedtls_get_unaligned_uintXX etc don't support volatile
++ * This is needed because esp_mbedtls_get_unaligned_uintXX etc don't support volatile
+  * memory accesses.
+  *
+  * Some of these definitions could be moved into alignment.h but for now they are
+@@ -474,9 +474,9 @@ void esp_mbedtls_ct_memcpy_if_eq(unsigned char *dest,
+     const unsigned char mask = (unsigned char) mask32 & 0xff;
+ 
+     for (; (i + 4) <= len; i += 4) {
+-        uint32_t a = mbedtls_get_unaligned_uint32(src  + i) &  mask32;
+-        uint32_t b = mbedtls_get_unaligned_uint32(dest + i) & ~mask32;
+-        mbedtls_put_unaligned_uint32(dest + i, a | b);
++        uint32_t a = esp_mbedtls_get_unaligned_uint32(src  + i) &  mask32;
++        uint32_t b = esp_mbedtls_get_unaligned_uint32(dest + i) & ~mask32;
++        esp_mbedtls_put_unaligned_uint32(dest + i, a | b);
+     }
+ #else
+     const unsigned char mask = (unsigned char) esp_mbedtls_ct_size_mask(equal);
+diff --git a/library/ctr_drbg.c b/library/ctr_drbg.c
+index e7cbb0c..b3f0a33 100644
+--- a/library/ctr_drbg.c
++++ b/library/ctr_drbg.c
+@@ -177,7 +177,7 @@ static int esp_block_cipher_df(unsigned char *output,
+         use_len = buf_len;
+ 
+         while (use_len > 0) {
+-            mbedtls_xor(chain, chain, p, MBEDTLS_CTR_DRBG_BLOCKSIZE);
++            esp_mbedtls_xor(chain, chain, p, MBEDTLS_CTR_DRBG_BLOCKSIZE);
+             p += MBEDTLS_CTR_DRBG_BLOCKSIZE;
+             use_len -= (use_len >= MBEDTLS_CTR_DRBG_BLOCKSIZE) ?
+                        MBEDTLS_CTR_DRBG_BLOCKSIZE : use_len;
+diff --git a/library/des.c b/library/des.c
+index a090c3f..d4d8e26 100644
+--- a/library/des.c
++++ b/library/des.c
+@@ -651,7 +651,7 @@ int esp_mbedtls_des_crypt_cbc(mbedtls_des_context *ctx,
+ 
+     if (mode == MBEDTLS_DES_ENCRYPT) {
+         while (length > 0) {
+-            mbedtls_xor(output, input, iv, 8);
++            esp_mbedtls_xor(output, input, iv, 8);
+ 
+             ret = esp_mbedtls_des_crypt_ecb(ctx, output, output);
+             if (ret != 0) {
+@@ -671,7 +671,7 @@ int esp_mbedtls_des_crypt_cbc(mbedtls_des_context *ctx,
+                 goto exit;
+             }
+ 
+-            mbedtls_xor(output, output, iv, 8);
++            esp_mbedtls_xor(output, output, iv, 8);
+ 
+             memcpy(iv, temp, 8);
+ 
+@@ -749,7 +749,7 @@ int esp_mbedtls_des3_crypt_cbc(mbedtls_des3_context *ctx,
+ 
+     if (mode == MBEDTLS_DES_ENCRYPT) {
+         while (length > 0) {
+-            mbedtls_xor(output, input, iv, 8);
++            esp_mbedtls_xor(output, input, iv, 8);
+ 
+             ret = esp_mbedtls_des3_crypt_ecb(ctx, output, output);
+             if (ret != 0) {
+@@ -769,7 +769,7 @@ int esp_mbedtls_des3_crypt_cbc(mbedtls_des3_context *ctx,
+                 goto exit;
+             }
+ 
+-            mbedtls_xor(output, output, iv, 8);
++            esp_mbedtls_xor(output, output, iv, 8);
+ 
+             memcpy(iv, temp, 8);
+ 
+diff --git a/library/gcm.c b/library/gcm.c
+index 5a3e1b2..b23d3b8 100644
+--- a/library/gcm.c
++++ b/library/gcm.c
+@@ -291,7 +291,7 @@ int esp_mbedtls_gcm_starts(mbedtls_gcm_context *ctx,
+         while (iv_len > 0) {
+             use_len = (iv_len < 16) ? iv_len : 16;
+ 
+-            mbedtls_xor(ctx->y, ctx->y, p, use_len);
++            esp_mbedtls_xor(ctx->y, ctx->y, p, use_len);
+ 
+             esp_gcm_mult(ctx, ctx->y, ctx->y);
+ 
+@@ -299,7 +299,7 @@ int esp_mbedtls_gcm_starts(mbedtls_gcm_context *ctx,
+             p += use_len;
+         }
+ 
+-        mbedtls_xor(ctx->y, ctx->y, work_buf, 16);
++        esp_mbedtls_xor(ctx->y, ctx->y, work_buf, 16);
+ 
+         esp_gcm_mult(ctx, ctx->y, ctx->y);
+     }
+@@ -349,7 +349,7 @@ int esp_mbedtls_gcm_update_ad(mbedtls_gcm_context *ctx,
+             use_len = add_len;
+         }
+ 
+-        mbedtls_xor(ctx->buf + offset, ctx->buf + offset, p, use_len);
++        esp_mbedtls_xor(ctx->buf + offset, ctx->buf + offset, p, use_len);
+ 
+         if (offset + use_len == 16) {
+             esp_gcm_mult(ctx, ctx->buf, ctx->buf);
+@@ -363,7 +363,7 @@ int esp_mbedtls_gcm_update_ad(mbedtls_gcm_context *ctx,
+     ctx->add_len += add_len;
+ 
+     while (add_len >= 16) {
+-        mbedtls_xor(ctx->buf, ctx->buf, p, 16);
++        esp_mbedtls_xor(ctx->buf, ctx->buf, p, 16);
+ 
+         esp_gcm_mult(ctx, ctx->buf, ctx->buf);
+ 
+@@ -372,7 +372,7 @@ int esp_mbedtls_gcm_update_ad(mbedtls_gcm_context *ctx,
+     }
+ 
+     if (add_len > 0) {
+-        mbedtls_xor(ctx->buf, ctx->buf, p, add_len);
++        esp_mbedtls_xor(ctx->buf, ctx->buf, p, add_len);
+     }
+ 
+     return 0;
+@@ -407,11 +407,11 @@ static int esp_gcm_mask(mbedtls_gcm_context *ctx,
+     }
+ 
+     if (ctx->mode == MBEDTLS_GCM_DECRYPT) {
+-        mbedtls_xor(ctx->buf + offset, ctx->buf + offset, input, use_len);
++        esp_mbedtls_xor(ctx->buf + offset, ctx->buf + offset, input, use_len);
+     }
+-    mbedtls_xor(output, ectr + offset, input, use_len);
++    esp_mbedtls_xor(output, ectr + offset, input, use_len);
+     if (ctx->mode == MBEDTLS_GCM_ENCRYPT) {
+-        mbedtls_xor(ctx->buf + offset, ctx->buf + offset, output, use_len);
++        esp_mbedtls_xor(ctx->buf + offset, ctx->buf + offset, output, use_len);
+     }
+ 
+     return 0;
+@@ -543,11 +543,11 @@ int esp_mbedtls_gcm_finish(mbedtls_gcm_context *ctx,
+         MBEDTLS_PUT_UINT32_BE((orig_len     >> 32), work_buf, 8);
+         MBEDTLS_PUT_UINT32_BE((orig_len), work_buf, 12);
+ 
+-        mbedtls_xor(ctx->buf, ctx->buf, work_buf, 16);
++        esp_mbedtls_xor(ctx->buf, ctx->buf, work_buf, 16);
+ 
+         esp_gcm_mult(ctx, ctx->buf, ctx->buf);
+ 
+-        mbedtls_xor(tag, tag, ctx->buf, tag_len);
++        esp_mbedtls_xor(tag, tag, ctx->buf, tag_len);
+     }
+ 
+     return 0;
+diff --git a/library/md.c b/library/md.c
+index 22979f5..5ff0004 100644
+--- a/library/md.c
++++ b/library/md.c
+@@ -850,8 +850,8 @@ int esp_mbedtls_md_hmac_starts(mbedtls_md_context_t *ctx, const unsigned char *k
+     memset(ipad, 0x36, ctx->md_info->block_size);
+     memset(opad, 0x5C, ctx->md_info->block_size);
+ 
+-    mbedtls_xor(ipad, ipad, key, keylen);
+-    mbedtls_xor(opad, opad, key, keylen);
++    esp_mbedtls_xor(ipad, ipad, key, keylen);
++    esp_mbedtls_xor(opad, opad, key, keylen);
+ 
+     if ((ret = esp_mbedtls_md_starts(ctx)) != 0) {
+         goto cleanup;
+diff --git a/library/pkcs5.c b/library/pkcs5.c
+index bf102ff..562b3db 100644
+--- a/library/pkcs5.c
++++ b/library/pkcs5.c
+@@ -287,7 +287,7 @@ static int esp_pkcs5_pbkdf2_hmac(mbedtls_md_context_t *ctx,
+ 
+             // U1 xor U2
+             //
+-            mbedtls_xor(work, work, md1, md_size);
++            esp_mbedtls_xor(work, work, md1, md_size);
+         }
+ 
+         use_len = (key_length < md_size) ? key_length : md_size;
+@@ -429,7 +429,7 @@ exit:
+ 
+             // U1 xor U2
+             //
+-            mbedtls_xor(work, work, md1, md_size);
++            esp_mbedtls_xor(work, work, md1, md_size);
+         }
+ 
+         use_len = (key_length < md_size) ? key_length : md_size;
+diff --git a/library/platform_util.c b/library/platform_util.c
+index 32f0b9b..6f353ad 100644
+--- a/library/platform_util.c
++++ b/library/platform_util.c
+@@ -203,19 +203,19 @@ void (*esp_mbedtls_test_hook_test_fail)(const char *, int, const char *);
+  * Provide external definitions of some inline functions so that the compiler
+  * has the option to not inline them
+  */
+-extern inline void mbedtls_xor(unsigned char *r,
+-                               const unsigned char *a,
+-                               const unsigned char *b,
+-                               size_t n);
++extern inline void esp_mbedtls_xor(unsigned char *r,
++                                   const unsigned char *a,
++                                   const unsigned char *b,
++                                   size_t n);
+ 
+-extern inline uint16_t mbedtls_get_unaligned_uint16(const void *p);
++extern inline uint16_t esp_mbedtls_get_unaligned_uint16(const void *p);
+ 
+-extern inline void mbedtls_put_unaligned_uint16(void *p, uint16_t x);
++extern inline void esp_mbedtls_put_unaligned_uint16(void *p, uint16_t x);
+ 
+-extern inline uint32_t mbedtls_get_unaligned_uint32(const void *p);
++extern inline uint32_t esp_mbedtls_get_unaligned_uint32(const void *p);
+ 
+-extern inline void mbedtls_put_unaligned_uint32(void *p, uint32_t x);
++extern inline void esp_mbedtls_put_unaligned_uint32(void *p, uint32_t x);
+ 
+-extern inline uint64_t mbedtls_get_unaligned_uint64(const void *p);
++extern inline uint64_t esp_mbedtls_get_unaligned_uint64(const void *p);
+ 
+-extern inline void mbedtls_put_unaligned_uint64(void *p, uint64_t x);
++extern inline void esp_mbedtls_put_unaligned_uint64(void *p, uint64_t x);
+diff --git a/library/ssl_msg.c b/library/ssl_msg.c
+index bb32fc0..c4c95d3 100644
+--- a/library/ssl_msg.c
++++ b/library/ssl_msg.c
+@@ -674,7 +674,7 @@ static void esp_ssl_build_record_nonce(unsigned char *dst_iv,
+     memcpy(dst_iv, fixed_iv, fixed_iv_len);
+ 
+     dst_iv += dst_iv_len - dynamic_iv_len;
+-    mbedtls_xor(dst_iv, dst_iv, dynamic_iv, dynamic_iv_len);
++    esp_mbedtls_xor(dst_iv, dst_iv, dynamic_iv, dynamic_iv_len);
+ }
+ #endif /* MBEDTLS_GCM_C || MBEDTLS_CCM_C || MBEDTLS_CHACHAPOLY_C */
+ 
+diff --git a/tests/suites/test_suite_alignment.function b/tests/suites/test_suite_alignment.function
+index f670331..bc88826 100644
+--- a/tests/suites/test_suite_alignment.function
++++ b/tests/suites/test_suite_alignment.function
+@@ -47,13 +47,13 @@ void mbedtls_unaligned_access(int size, int offset)
+     uint64_t r = 0;
+     switch (size) {
+         case 16:
+-            r = mbedtls_get_unaligned_uint16(x + offset);
++            r = esp_mbedtls_get_unaligned_uint16(x + offset);
+             break;
+         case 32:
+-            r = mbedtls_get_unaligned_uint32(x + offset);
++            r = esp_mbedtls_get_unaligned_uint32(x + offset);
+             break;
+         case 64:
+-            r = mbedtls_get_unaligned_uint64(x + offset);
++            r = esp_mbedtls_get_unaligned_uint64(x + offset);
+             break;
+     }
+ 
+@@ -99,18 +99,18 @@ void mbedtls_unaligned_access(int size, int offset)
+         x[i + offset] = 0xff;
+     }
+     /*
+-     * Write back to the array with mbedtls_put_unaligned_uint16 and validate
++     * Write back to the array with esp_mbedtls_put_unaligned_uint16 and validate
+      * that the array is unchanged as a result.
+      */
+     switch (size) {
+         case 16:
+-            mbedtls_put_unaligned_uint16(x + offset, r);
++            esp_mbedtls_put_unaligned_uint16(x + offset, r);
+             break;
+         case 32:
+-            mbedtls_put_unaligned_uint32(x + offset, r);
++            esp_mbedtls_put_unaligned_uint32(x + offset, r);
+             break;
+         case 64:
+-            mbedtls_put_unaligned_uint64(x + offset, r);
++            esp_mbedtls_put_unaligned_uint64(x + offset, r);
+             break;
+     }
+     for (size_t i = 0; i < sizeof(x); i++) {
+diff --git a/tests/suites/test_suite_common.data b/tests/suites/test_suite_common.data
+index 500852d..3c240a5 100644
+--- a/tests/suites/test_suite_common.data
++++ b/tests/suites/test_suite_common.data
+@@ -1,20 +1,20 @@
+ Block xor, length 0
+-mbedtls_xor:0
++esp_mbedtls_xor:0
+ 
+ Block xor, length 1
+-mbedtls_xor:1
++esp_mbedtls_xor:1
+ 
+ Block xor, length 3
+-mbedtls_xor:3
++esp_mbedtls_xor:3
+ 
+ Block xor, length 4
+-mbedtls_xor:4
++esp_mbedtls_xor:4
+ 
+ Block xor, length 7
+-mbedtls_xor:7
++esp_mbedtls_xor:7
+ 
+ Block xor, length 8
+-mbedtls_xor:8
++esp_mbedtls_xor:8
+ 
+ Block xor, length 16
+-mbedtls_xor:16
++esp_mbedtls_xor:16
+diff --git a/tests/suites/test_suite_common.function b/tests/suites/test_suite_common.function
+index dd0b2d5..43d8a8f 100644
+--- a/tests/suites/test_suite_common.function
++++ b/tests/suites/test_suite_common.function
+@@ -13,7 +13,7 @@ void fill_arrays(unsigned char *a, unsigned char *b, unsigned char *r1, unsigned
+ /* END_HEADER */
+ 
+ /* BEGIN_CASE */
+-void mbedtls_xor(int len)
++void esp_mbedtls_xor(int len)
+ {
+     size_t n = (size_t) len;
+     unsigned char *a = NULL, *b = NULL, *r1 = NULL, *r2 = NULL;
+@@ -27,7 +27,7 @@ void mbedtls_xor(int len)
+     for (size_t i = 0; i < n; i++) {
+         r1[i] = a[i] ^ b[i];
+     }
+-    mbedtls_xor(r2, a, b, n);
++    esp_mbedtls_xor(r2, a, b, n);
+     ASSERT_COMPARE(r1, n, r2, n);
+ 
+     /* Test r == a */
+@@ -35,7 +35,7 @@ void mbedtls_xor(int len)
+     for (size_t i = 0; i < n; i++) {
+         r1[i] = r1[i] ^ b[i];
+     }
+-    mbedtls_xor(r2, r2, b, n);
++    esp_mbedtls_xor(r2, r2, b, n);
+     ASSERT_COMPARE(r1, n, r2, n);
+ 
+     /* Test r == b */
+@@ -43,7 +43,7 @@ void mbedtls_xor(int len)
+     for (size_t i = 0; i < n; i++) {
+         r1[i] = a[i] ^ r1[i];
+     }
+-    mbedtls_xor(r2, a, r2, n);
++    esp_mbedtls_xor(r2, a, r2, n);
+     ASSERT_COMPARE(r1, n, r2, n);
+ 
+     /* Test a == b */
+@@ -51,7 +51,7 @@ void mbedtls_xor(int len)
+     for (size_t i = 0; i < n; i++) {
+         r1[i] = a[i] ^ a[i];
+     }
+-    mbedtls_xor(r2, a, a, n);
++    esp_mbedtls_xor(r2, a, a, n);
+     ASSERT_COMPARE(r1, n, r2, n);
+ 
+     /* Test a == b == r */
+@@ -59,7 +59,7 @@ void mbedtls_xor(int len)
+     for (size_t i = 0; i < n; i++) {
+         r1[i] = r1[i] ^ r1[i];
+     }
+-    mbedtls_xor(r2, r2, r2, n);
++    esp_mbedtls_xor(r2, r2, r2, n);
+     ASSERT_COMPARE(r1, n, r2, n);
+ 
+     /* Test non-word-aligned buffers, for all combinations of alignedness */
+@@ -70,7 +70,7 @@ void mbedtls_xor(int len)
+         for (size_t j = 0; j < n; j++) {
+             r1[j + r_off] = a[j + a_off] ^ b[j + b_off];
+         }
+-        mbedtls_xor(r2 + r_off, a + a_off, b + b_off, n);
++        esp_mbedtls_xor(r2 + r_off, a + a_off, b + b_off, n);
+         ASSERT_COMPARE(r1 + r_off, n, r2 + r_off, n);
+     }
+ exit:
