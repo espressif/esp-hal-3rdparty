@@ -27,6 +27,10 @@
 #ifdef __NuttX__
 #include <nuttx/mutex.h>
 #include <nuttx/spinlock.h>
+
+#ifdef CONFIG_IDF_TARGET_ESP32
+#include "esp32_rt_timer.h"
+#endif
 #else
 #include "freertos/FreeRTOS.h"
 #include "freertos/portmacro.h"
@@ -60,6 +64,10 @@
 #define ENTER_CRITICAL_SECTION(lock)    do { g_flags = spin_lock_irqsave(lock); } while(0)
 #define LEAVE_CRITICAL_SECTION(lock)    spin_unlock_irqrestore((lock), g_flags)
 
+#ifdef CONFIG_IDF_TARGET_ESP32
+#define esp_timer_get_time    rt_timer_time_us
+#endif
+
 static spinlock_t periph_spinlock;
 static irqstate_t g_flags;
 #else
@@ -69,8 +77,13 @@ static irqstate_t g_flags;
 static portMUX_TYPE periph_spinlock = portMUX_INITIALIZER_UNLOCKED;
 #endif
 
+#ifdef __NuttX__
+extern wifi_mac_time_update_cb_t g_wifi_mac_time_update_cb;
+#define s_wifi_mac_time_update_cb g_wifi_mac_time_update_cb
+#else
 #if CONFIG_IDF_TARGET_ESP32
 extern wifi_mac_time_update_cb_t s_wifi_mac_time_update_cb;
+#endif
 #endif
 
 static const char* TAG = "phy_init";

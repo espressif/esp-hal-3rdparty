@@ -14,9 +14,7 @@
 #include "esp_private/wifi.h"
 #include "esp_random.h"
 #include "esp_timer.h"
-#ifdef CONFIG_ESP32S3_WIFI
-#  include "esp_wpa.h"
-#endif
+#include "esp_wpa.h"
 #include "rom/ets_sys.h"
 #include "soc/soc_caps.h"
 
