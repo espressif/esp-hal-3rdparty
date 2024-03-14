@@ -70,9 +70,11 @@ div = 0x40000428;
 labs = 0x4000042c;
 ldiv = 0x40000430;
 qsort = 0x40000434;
+#ifndef  __NuttX__
 rand_r = 0x40000438;
 rand = 0x4000043c;
 srand = 0x40000440;
+#endif
 utoa = 0x40000444;
 itoa = 0x40000448;
 atoi = 0x4000044c;
