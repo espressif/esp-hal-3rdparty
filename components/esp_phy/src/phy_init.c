@@ -27,7 +27,8 @@
 #ifdef __NuttX__
 #include <nuttx/mutex.h>
 #include <nuttx/spinlock.h>
-
+#include <nuttx/irq.h>
+#include <nuttx/queue.h>
 #ifdef CONFIG_IDF_TARGET_ESP32
 #include "esp32_rt_timer.h"
 #endif
@@ -61,15 +62,48 @@
 #endif
 
 #ifdef __NuttX__
-#define ENTER_CRITICAL_SECTION(lock)    do { g_flags = spin_lock_irqsave(lock); } while(0)
-#define LEAVE_CRITICAL_SECTION(lock)    spin_unlock_irqrestore((lock), g_flags)
+#define NR_IRQSTATE_FLAGS   3
+
+#define ENTER_CRITICAL_SECTION(lock) do { \
+        if (!g_phy_lock_initialized) { \
+            sq_init(&g_phy_int_flags_free); \
+            sq_init(&g_phy_int_flags_used); \
+            for (int i = 0; i < NR_IRQSTATE_FLAGS; i++) { \
+                sq_addlast((sq_entry_t *)&g_phy_int_flags[i], &g_phy_int_flags_free); \
+            } \
+            g_phy_lock_initialized = true; \
+        } \
+        struct irqstate_list_s *irqstate; \
+        irqstate = (struct irqstate_list_s *)sq_remlast(&g_phy_int_flags_free); \
+        assert(irqstate != NULL); \
+        irqstate->flags = enter_critical_section(); \
+        sq_addlast((sq_entry_t *)irqstate, &g_phy_int_flags_used); \
+    } while(0)
+
+#define LEAVE_CRITICAL_SECTION(lock) do { \
+        struct irqstate_list_s *irqstate; \
+        irqstate = (struct irqstate_list_s *)sq_remlast(&g_phy_int_flags_used); \
+        assert(irqstate != NULL); \
+        leave_critical_section(irqstate->flags); \
+        sq_addlast((sq_entry_t *)irqstate, &g_phy_int_flags_free); \
+    } while(0)
 
 #ifdef CONFIG_IDF_TARGET_ESP32
 #define esp_timer_get_time    rt_timer_time_us
 #endif
 
+struct irqstate_list_s
+{
+  struct irqstate_list_s *flink;
+  irqstate_t flags;
+};
+
 static spinlock_t periph_spinlock;
 static irqstate_t g_flags;
+static bool g_phy_lock_initialized = false;
+static sq_queue_t g_phy_int_flags_free;
+static sq_queue_t g_phy_int_flags_used;
+static struct irqstate_list_s g_phy_int_flags[NR_IRQSTATE_FLAGS];
 #else
 #define ENTER_CRITICAL_SECTION(lock)    portENTER_CRITICAL_SAFE(lock)
 #define LEAVE_CRITICAL_SECTION(lock)    portEXIT_CRITICAL_SAFE(lock)
