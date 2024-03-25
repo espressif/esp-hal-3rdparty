@@ -90,7 +90,11 @@ static void IRAM_ATTR bootloader_flash_clock_init(void)
 
 static void update_flash_config(const esp_image_header_t *bootloader_hdr)
 {
+#ifdef __NuttX__
+    volatile uint32_t size;
+#else
     uint32_t size;
+#endif
     switch (bootloader_hdr->spi_size) {
     case ESP_IMAGE_FLASH_SIZE_1MB:
         size = 1;
