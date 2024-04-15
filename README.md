@@ -31,6 +31,13 @@ Where:
     `esp_rom`, `esp_system`, `esp_timer`, `esp_wifi`, `hal`, `log`, `mbedtls`, `newlib`,
     `partition_table`, `riscv`, `soc`, `spi_flash`, `wpa_supplicant`, `xtensa`.
 
+- [`sync/release_v5.2.a`](../../tree/sync/release_v5.2.a):
+    - Based on ESP-IDF `release/v5.2` branch.
+    - Includes components: `bootloader`, `bootloader_support`, `bt`, `efuse`, `esp_adc`,
+    `esp_app_format`, `esp_coex`, `esp_common`, `esp_event`, `esp_hw_support`, `esp_phy`,
+    `esp_rom`, `esp_system`, `esp_timer`, `esp_wifi`, `hal`, `log`, `mbedtls`, `newlib`,
+    `partition_table`, `riscv`, `soc`, `spi_flash`, `wpa_supplicant`, `xtensa`.
+
 ## Depreacated branches
 
 The following branches are deprecated (not updated anymore):
