@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <nuttx/config.h>
+
 /* RESERVED interrupts: 0 to 14 */
 
 #define WIFI_MAC_INTR_SOURCE                0
@@ -85,6 +87,14 @@
 #define ESP_NCPUINTS               32
 
 #define ESP_CPUINT_PERIPHSET       0xfffffffe
+
+/* The Wireless drivers may require other CPU interrupts to be reserved */
+
+#ifdef CONFIG_ESPRESSIF_WIFI
+#  define ESP_WIRELESS_RESERVE_INT  0
+#else
+#  define ESP_WIRELESS_RESERVE_INT  0
+#endif
 
 /* Reserved CPU interrupt for specific drivers */
 

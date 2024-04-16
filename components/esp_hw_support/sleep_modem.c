@@ -13,7 +13,9 @@
 #include "esp_attr.h"
 #include "esp_sleep.h"
 #include "soc/soc_caps.h"
+#ifndef __NuttX__
 #include "esp_private/pm_impl.h"
+#endif
 #include "esp_private/sleep_modem.h"
 #include "esp_private/sleep_retention.h"
 #include "sdkconfig.h"

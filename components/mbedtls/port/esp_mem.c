@@ -13,8 +13,8 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sdkconfig.h>
-#include "xtensa_attr.h"
-#include "xtensa_mm.h"
+#include "esp_attr.h"
+#include <nuttx/kmalloc.h>
 #endif
 
 #ifndef CONFIG_MBEDTLS_CUSTOM_MEM_ALLOC

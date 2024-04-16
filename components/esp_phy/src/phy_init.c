@@ -542,7 +542,7 @@ IRAM_ATTR void esp_mac_bb_power_down(void)
 }
 #endif // CONFIG_MAC_BB_PD
 
-#ifndef __NuttX__
+#if !defined(__NuttX__) || defined(CONFIG_ARCH_RISCV)
 // PHY init data handling functions
 #if CONFIG_ESP_PHY_INIT_DATA_IN_PARTITION
 #include "esp_partition.h"
@@ -918,7 +918,7 @@ void esp_phy_load_cal_and_init(void)
     free(cal_data); // PHY maintains a copy of calibration data, so we can free this
 }
 
-#ifndef __NuttX__
+#if !defined(__NuttX__) || defined(CONFIG_ARCH_RISCV)
 #if CONFIG_ESP_PHY_MULTIPLE_INIT_DATA_BIN
 static esp_err_t phy_crc_check_init_data(uint8_t* init_data, const uint8_t* checksum, size_t init_data_length)
 {

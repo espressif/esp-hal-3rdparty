@@ -11,7 +11,9 @@
 
 #include "esp_private/regdma_link.h"
 
+#ifndef __NuttX__
 #include "esp_heap_caps.h"
+#endif
 #include "esp_log.h"
 #include "esp_regdma.h"
 
@@ -20,6 +22,7 @@
 #define REGDMA_LINK_ADDR_ALIGN      (4)
 #define REGDMA_LINK_MEM_TYPE_CAPS   (MALLOC_CAP_DMA | MALLOC_CAP_DEFAULT)
 
+#ifndef __NuttX__
 void * regdma_link_new_continuous(void *backup, void *buff, int len, void *restore, void *next, bool skip_b, bool skip_r, int id, uint32_t module)
 {
     regdma_link_continuous_t *link = (regdma_link_continuous_t *)heap_caps_aligned_alloc(
@@ -400,6 +403,7 @@ void * regdma_link_recursive(void *link, int entry, void (*hook)(void *, int, in
     return regdma_link_recursive_impl(link, entry, 0, hook);
 }
 
+#endif /* __NuttX__ */
 static void * regdma_link_get_instance(void *link)
 {
     void * container_memaddr[] = {

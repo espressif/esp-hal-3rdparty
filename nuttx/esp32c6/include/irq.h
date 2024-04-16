@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <nuttx/config.h>
+
 #define WIFI_MAC_INTR_SOURCE                0
 #define WIFI_MAC_NMI_SOURCE                 1
 #define WIFI_PWR_INTR_SOURCE                2
@@ -95,6 +97,14 @@
 /* The interrupts numbered 0, 3, 4, and 7 are used by the CPU for core-local interrupts (CLINT) */
 
 #define ESP_CPUINT_PERIPHSET       0xffffff66
+
+/* The Wireless drivers may require other CPU interrupts to be reserved */
+
+#ifdef CONFIG_ESPRESSIF_WIFI
+#  define ESP_WIRELESS_RESERVE_INT  (1 << 1)
+#else
+#  define ESP_WIRELESS_RESERVE_INT  0
+#endif
 
 /* IRQ numbers. */
 
