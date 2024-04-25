@@ -31,7 +31,7 @@
 #define ENTER_CRITICAL_SECTION(lock)    do { g_flags = spin_lock_irqsave(lock); } while(0)
 #define LEAVE_CRITICAL_SECTION(lock)    spin_unlock_irqrestore((lock), g_flags)
 
-static spinlock_t rtc_spinlock;
+spinlock_t rtc_spinlock;
 static irqstate_t g_flags;
 #else
 #define ENTER_CRITICAL_SECTION(lock)    portENTER_CRITICAL_SAFE(lock)

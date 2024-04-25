@@ -436,7 +436,6 @@ void intr_matrix_set(int cpu_no, uint32_t model_num, uint32_t intr_num);
 #ifdef ESP_PLATFORM
 // Remove in IDF v6.0 (IDF-7044)
 typedef enum {
-    OK = 0,
     FAIL,
     PENDING,
     BUSY,

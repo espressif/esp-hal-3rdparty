@@ -22,7 +22,11 @@
 #include "sys/lock.h"
 #include "esp_log.h"
 #include "esp_check.h"
+#ifdef __NuttX__
+#include <nuttx/spinlock.h>
+#else
 #include "freertos/FreeRTOS.h"
+#endif
 #include "hal/adc_types.h"
 #include "hal/adc_hal.h"
 #include "hal/adc_hal_common.h"
@@ -35,10 +39,20 @@
 #include "esp_efuse_rtc_calib.h"
 #endif
 
-
 static const char *TAG = "adc_share_hw_ctrl";
-extern portMUX_TYPE rtc_spinlock;
+#ifdef __NuttX__
+#define ENTER_CRITICAL_SECTION(lock)    do { g_flags = spin_lock_irqsave(lock); } while(0)
+#define LEAVE_CRITICAL_SECTION(lock)    spin_unlock_irqrestore((lock), g_flags)
 
+static irqstate_t g_flags;
+
+extern spinlock_t rtc_spinlock;
+#else
+#define ENTER_CRITICAL_SECTION(lock)    portENTER_CRITICAL_SAFE(lock)
+#define LEAVE_CRITICAL_SECTION(lock)    portEXIT_CRITICAL_SAFE(lock)
+
+extern portMUX_TYPE rtc_spinlock;
+#endif
 
 #if SOC_ADC_CALIBRATION_V1_SUPPORTED
 /*---------------------------------------------------------------
@@ -77,11 +91,11 @@ void adc_calc_hw_calibration_code(adc_unit_t adc_n, adc_atten_t atten)
     else {
         ESP_EARLY_LOGD(TAG, "Calibration eFuse is not configured, use self-calibration for ICode");
         sar_periph_ctrl_adc_oneshot_power_acquire();
-        portENTER_CRITICAL(&rtc_spinlock);
+        ENTER_CRITICAL_SECTION(&rtc_spinlock);
         adc_ll_pwdet_set_cct(ADC_LL_PWDET_CCT_DEFAULT);
         const bool internal_gnd = true;
         init_code = adc_hal_self_calibration(adc_n, atten, internal_gnd);
-        portEXIT_CRITICAL(&rtc_spinlock);
+        LEAVE_CRITICAL_SECTION(&rtc_spinlock);
         sar_periph_ctrl_adc_oneshot_power_release();
     }
 #else
