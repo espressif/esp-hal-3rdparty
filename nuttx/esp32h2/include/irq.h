@@ -88,11 +88,7 @@
 
 /* The Wireless drivers may require other CPU interrupts to be reserved */
 
-#ifdef CONFIG_ESPRESSIF_WIFI
-#  define ESP_WIRELESS_RESERVE_INT  0
-#else
-#  define ESP_WIRELESS_RESERVE_INT  0
-#endif
+#define ESP_WIRELESS_RESERVE_INT  0
 
 /* IRQ numbers. */
 
