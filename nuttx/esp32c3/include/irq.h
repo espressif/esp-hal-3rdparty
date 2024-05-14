@@ -198,6 +198,31 @@
 #  define ESP_NIRQ_GPIO           0
 #endif
 
-/* Total number of IRQs: ecall + Number of peripheral IRQs + GPIOs IRQs. */
+#ifdef CONFIG_ESPRESSIF_RTCIO_IRQ
 
-#define NR_IRQS  (RISCV_NIRQ_INTERRUPTS + ESP_NIRQ_PERIPH + ESP_NIRQ_GPIO)
+/* Second level RTC interrupts.  RTC interrupts are decoded and dispatched
+ * as a second level of decoding:  The first level dispatches to the RTC
+ * interrupt handler.  The second to the decoded RTC interrupt handler.
+ * A third level might be required to be implemented on the driver.
+ */
+
+#  define ESP_NIRQ_RTCIO              9
+
+#  define ESP_FIRST_RTCIOIRQ          (RISCV_NIRQ_INTERRUPTS+ESP_NIRQ_PERIPH+ESP_NIRQ_GPIO)
+#  define ESP_LAST_RTCIOIRQ           (ESP_FIRST_RTCIOIRQ+ESP_NIRQ_RTCIO-1)
+#  define ESP_IRQ_RTC_SLP_WAKEUP      (ESP_FIRST_RTCIOIRQ+0)
+#  define ESP_IRQ_RTC_SLP_REJECT      (ESP_FIRST_RTCIOIRQ+1)
+#  define ESP_IRQ_RTC_WDT             (ESP_FIRST_RTCIOIRQ+2)
+#  define ESP_IRQ_RTC_BROWN_OUT       (ESP_FIRST_RTCIOIRQ+3)
+#  define ESP_IRQ_RTC_MAIN_TIMER      (ESP_FIRST_RTCIOIRQ+4)
+#  define ESP_IRQ_RTC_SWD             (ESP_FIRST_RTCIOIRQ+5)
+#  define ESP_IRQ_RTC_XTAL32K_DEAD    (ESP_FIRST_RTCIOIRQ+6)
+#  define ESP_IRQ_RTC_GLITCH_DET      (ESP_FIRST_RTCIOIRQ+7)
+#  define ESP_IRQ_RTC_BBPLL_CAL       (ESP_FIRST_RTCIOIRQ+8)
+#else
+#  define ESP_NIRQ_RTCIO              0
+#endif /* CONFIG_ESPRESSIF_RTCIO_IRQ */
+
+/* Total number of IRQs: ecall + Number of peripheral IRQs + GPIOs IRQs + RTCIO IRQs. */
+
+#define NR_IRQS  (RISCV_NIRQ_INTERRUPTS + ESP_NIRQ_PERIPH + ESP_NIRQ_GPIO + ESP_NIRQ_RTCIO)
