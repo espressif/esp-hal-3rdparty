@@ -16,8 +16,10 @@
 #include "esp_private/regi2c_ctrl.h"
 #include "hal/adc_ll.h"
 
+#if !(defined(__NuttX__) && defined(CONFIG_ESPRESSIF_SIMPLE_BOOT))
 #ifndef BOOTLOADER_BUILD
 #include "esp_private/periph_ctrl.h"
+#endif
 #endif
 
 void bootloader_random_enable(void)
@@ -25,11 +27,15 @@ void bootloader_random_enable(void)
     /* Ensure the Wifi clock for RNG modiule is enabled following a soft reset.  This should always be the case already
        (this clock is never disabled while the CPU is running), this is a "belt and braces" type check.
      */
+#if defined(__NuttX__) && defined(CONFIG_ESPRESSIF_SIMPLE_BOOT)
+    DPORT_SET_PERI_REG_MASK(DPORT_WIFI_CLK_EN_REG, DPORT_WIFI_CLK_RNG_EN);
+#else
 #ifdef BOOTLOADER_BUILD
     DPORT_SET_PERI_REG_MASK(DPORT_WIFI_CLK_EN_REG, DPORT_WIFI_CLK_RNG_EN);
 #else
     periph_module_enable(PERIPH_RNG_MODULE);
 #endif // BOOTLOADER_BUILD
+#endif
 
     // Enable 8M clock source for RNG (this is actually enough to produce strong random results,
     // but enabling the SAR ADC as well adds some insurance.)
