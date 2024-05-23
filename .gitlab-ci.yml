@@ -12,4 +12,4 @@ test_nuttx:
     project: idf/apache/incubator-nuttx
     strategy: depend
   variables:
-    PARENT_ESP_HAL_3RDPARTY_VERSION: ${CI_COMMIT_REF_NAME}
+    PARENT_ESP_HAL_3RDPARTY_VERSION: ${CI_COMMIT_SHA}
