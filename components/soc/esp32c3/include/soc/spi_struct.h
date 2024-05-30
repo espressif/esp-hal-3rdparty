@@ -10,7 +10,11 @@
 extern "C" {
 #endif
 
+#ifdef __NuttX__
+typedef volatile struct spi_dev_struct {
+#else
 typedef volatile struct spi_dev_s {
+#endif
     union {
         struct {
             uint32_t conf_bitlen                   :    18;  /*Define the APB cycles of  SPI_CONF state. Can be configured in CONF state.*/
