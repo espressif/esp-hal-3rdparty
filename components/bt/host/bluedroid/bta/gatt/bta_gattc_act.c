@@ -122,8 +122,11 @@ void bta_gattc_reset_discover_st(tBTA_GATTC_SERV *p_srcb, tBTA_GATT_STATUS statu
 static void bta_gattc_enable(tBTA_GATTC_CB *p_cb)
 {
     APPL_TRACE_DEBUG("bta_gattc_enable");
-
-    if (p_cb->state == BTA_GATTC_STATE_DISABLED) {
+    /* This is a workaround because the task priority of btc (BTA_GATTC_CLOSE_EVT
+    in that task) is lower than the priority of the btu task.
+    Consequently, the p_cb->state fails to be restored to BTA_GATTC_STATE_DISABLED
+    and remains in the BTA_GATTC_STATE_DISABLING state. */
+    if (p_cb->state == BTA_GATTC_STATE_DISABLED || p_cb->state == BTA_GATTC_STATE_DISABLING) {
         /* initialize control block */
         memset(&bta_gattc_cb, 0, sizeof(tBTA_GATTC_CB));
         bta_gattc_cb.auto_disc = true;
@@ -200,7 +203,11 @@ void bta_gattc_register(tBTA_GATTC_CB *p_cb, tBTA_GATTC_DATA *p_data)
     cb_data.reg_oper.status = BTA_GATT_NO_RESOURCES;
 
     /* check if  GATTC module is already enabled . Else enable */
-    if (p_cb->state == BTA_GATTC_STATE_DISABLED) {
+    /* This is a workaround because the task priority of btc (BTA_GATTC_CLOSE_EVT
+    in that task) is lower than the priority of the btu task.
+    Consequently, the p_cb->state fails to be restored to BTA_GATTC_STATE_DISABLED
+    and remains in the BTA_GATTC_STATE_DISABLING state. */
+    if (p_cb->state == BTA_GATTC_STATE_DISABLED || p_cb->state == BTA_GATTC_STATE_DISABLING) {
         bta_gattc_enable (p_cb);
     }
     /* todo need to check duplicate uuid */
@@ -1174,6 +1181,37 @@ void bta_gattc_read_multi(tBTA_GATTC_CLCB *p_clcb, tBTA_GATTC_DATA *p_data)
 }
 /*******************************************************************************
 **
+** Function         bta_gattc_read_multi_var
+**
+** Description      read multiple variable
+**
+** Returns          None.
+*********************************************************************************/
+void bta_gattc_read_multi_var(tBTA_GATTC_CLCB *p_clcb, tBTA_GATTC_DATA *p_data)
+{
+    tBTA_GATT_STATUS    status = BTA_GATT_OK;
+    tGATT_READ_PARAM    read_param;
+
+    if (bta_gattc_enqueue(p_clcb, p_data)) {
+        memset(&read_param, 0, sizeof(tGATT_READ_PARAM));
+
+        if (status == BTA_GATT_OK) {
+            read_param.read_multiple.num_handles = p_data->api_read_multi.num_attr;
+            read_param.read_multiple.auth_req = p_data->api_read_multi.auth_req;
+            memcpy(&read_param.read_multiple.handles, p_data->api_read_multi.handles,
+                    sizeof(UINT16) * p_data->api_read_multi.num_attr);
+
+            status = GATTC_Read(p_clcb->bta_conn_id, GATT_READ_MULTIPLE_VAR, &read_param);
+        }
+
+        /* read fail */
+        if (status != BTA_GATT_OK) {
+            bta_gattc_cmpl_sendmsg(p_clcb->bta_conn_id, GATTC_OPTYPE_READ, status, NULL);
+        }
+    }
+}
+/*******************************************************************************
+**
 ** Function         bta_gattc_write
 **
 ** Description      Write an attribute
@@ -1289,7 +1327,8 @@ void bta_gattc_read_cmpl(tBTA_GATTC_CLCB *p_clcb, tBTA_GATTC_OP_CMPL *p_data)
         cb_data.read.handle = p_clcb->p_q_cmd->api_read.handle;
     }
 
-    if (p_clcb->p_q_cmd->hdr.event != BTA_GATTC_API_READ_MULTI_EVT) {
+    if (p_clcb->p_q_cmd->hdr.event != BTA_GATTC_API_READ_MULTI_EVT &&
+        p_clcb->p_q_cmd->hdr.event != BTA_GATTC_API_READ_MULTI_VAR_EVT) {
         event = p_clcb->p_q_cmd->api_read.cmpl_evt;
     } else {
         event = p_clcb->p_q_cmd->api_read_multi.cmpl_evt;
@@ -1426,7 +1465,9 @@ void  bta_gattc_op_cmpl(tBTA_GATTC_CLCB *p_clcb, tBTA_GATTC_DATA *p_data)
             return;
         }
         if (p_clcb->p_q_cmd->hdr.event != bta_gattc_opcode_to_int_evt[op - GATTC_OPTYPE_READ]) {
-            if ((p_clcb->p_q_cmd->hdr.event != BTA_GATTC_API_READ_MULTI_EVT)&&(p_clcb->p_q_cmd->hdr.event != BTA_GATTC_API_READ_BY_TYPE_EVT)) {
+            if ((p_clcb->p_q_cmd->hdr.event != BTA_GATTC_API_READ_MULTI_EVT) &&
+                (p_clcb->p_q_cmd->hdr.event != BTA_GATTC_API_READ_BY_TYPE_EVT) &&
+                (p_clcb->p_q_cmd->hdr.event != BTA_GATTC_API_READ_MULTI_VAR_EVT)) {
                 mapped_op = p_clcb->p_q_cmd->hdr.event - BTA_GATTC_API_READ_EVT + GATTC_OPTYPE_READ;
                 if ( mapped_op > GATTC_OPTYPE_INDICATION) {
                     mapped_op = 0;

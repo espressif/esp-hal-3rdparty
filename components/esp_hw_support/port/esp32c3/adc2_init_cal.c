@@ -37,9 +37,9 @@ extern portMUX_TYPE rtc_spinlock;
 static __attribute__((constructor)) void adc2_init_code_calibration(void)
 {
     adc_hal_calibration_init(ADC_UNIT_2);
-    adc_calc_hw_calibration_code(ADC_UNIT_2, ADC_ATTEN_DB_11);
+    adc_calc_hw_calibration_code(ADC_UNIT_2, ADC_ATTEN_DB_12);
     ENTER_CRITICAL_SECTION(&rtc_spinlock);
-    adc_set_hw_calibration_code(ADC_UNIT_2, ADC_ATTEN_DB_11);
+    adc_set_hw_calibration_code(ADC_UNIT_2, ADC_ATTEN_DB_12);
     LEAVE_CRITICAL_SECTION(&rtc_spinlock);
 }
 

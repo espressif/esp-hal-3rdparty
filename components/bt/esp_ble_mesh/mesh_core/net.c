@@ -2,7 +2,7 @@
 
 /*
  * SPDX-FileCopyrightText: 2017 Intel Corporation
- * SPDX-FileContributor: 2018-2021 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileContributor: 2018-2023 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -1265,7 +1265,7 @@ static void bt_mesh_net_relay(struct net_buf_simple *sbuf,
 #endif
 
     if (!buf) {
-        BT_ERR("Out of relay buffers");
+        BT_INFO("Out of relay buffers");
         return;
     }
 
@@ -1432,9 +1432,7 @@ static bool ignore_net_msg(uint16_t src, uint16_t dst)
     }
 
     if (IS_ENABLED(CONFIG_BLE_MESH_PROVISIONER) &&
-        bt_mesh_is_provisioner_en() &&
-        BLE_MESH_ADDR_IS_UNICAST(dst) &&
-        bt_mesh_elem_find(dst)) {
+        bt_mesh_is_provisioner_en()) {
         /* If the destination address of the message is the element
          * address of Provisioner, but Provisioner fails to find the
          * node in its provisioning database, then this message will
@@ -1509,7 +1507,11 @@ void bt_mesh_net_recv(struct net_buf_simple *data, int8_t rssi,
      * was neither a local element nor an LPN we're Friends for.
      */
     if (!BLE_MESH_ADDR_IS_UNICAST(rx.ctx.recv_dst) ||
-            (!rx.local_match && !rx.friend_match)) {
+        (!rx.local_match && !rx.friend_match
+#if CONFIG_BLE_MESH_NOT_RELAY_REPLAY_MSG
+        && !rx.replay_msg
+#endif
+        )) {
         net_buf_simple_restore(&buf, &state);
         bt_mesh_net_relay(&buf, &rx);
     }
