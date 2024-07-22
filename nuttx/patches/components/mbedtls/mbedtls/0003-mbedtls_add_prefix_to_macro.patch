@@ -1,9 +1,9 @@
 diff --git a/library/ecp_curves.c b/library/ecp_curves.c
-index 2c41d4d87a7cd884d2ab24921c50717e8948588d..1b4f93f6bc0e72a4f4b55e239884c3d45190ba20 100644
+index 256f3f90fe254d6840a1bfc2b351c578eeb28b2c..aeed030515affafbfbbab5caaed44b4de427c72f 100644
 --- a/library/ecp_curves.c
 +++ b/library/ecp_curves.c
-@@ -4592,7 +4592,7 @@ MBEDTLS_STATIC_TESTABLE
- int esp_mbedtls_ecp_mod_p521_raw(mbedtls_mpi_uint *N_p, size_t N_n);
+@@ -4564,7 +4564,7 @@ static int esp_ecp_mod_p384(mbedtls_mpi *);
+ static int esp_ecp_mod_p521(mbedtls_mpi *);
  #endif
  
 -#define NIST_MODP(P)      grp->modp = ecp_mod_ ## P;
@@ -11,7 +11,7 @@ index 2c41d4d87a7cd884d2ab24921c50717e8948588d..1b4f93f6bc0e72a4f4b55e239884c3d4
  #else
  #define NIST_MODP(P)
  #endif /* MBEDTLS_ECP_NIST_OPTIM */
-@@ -4616,23 +4616,23 @@ static int esp_ecp_mod_p256k1(mbedtls_mpi *);
+@@ -4588,23 +4588,23 @@ static int esp_ecp_mod_p256k1(mbedtls_mpi *);
  
  #if defined(ECP_LOAD_GROUP)
  #define LOAD_GROUP_A(G)   esp_ecp_group_load(grp,            \
@@ -49,10 +49,10 @@ index 2c41d4d87a7cd884d2ab24921c50717e8948588d..1b4f93f6bc0e72a4f4b55e239884c3d4
  #endif /* ECP_LOAD_GROUP */
  
 diff --git a/library/md.c b/library/md.c
-index fd5a31cd2a836d2ff252a26c6a619d9fe734b1c1..22979f53b240e3c3d8ea3ab15791f99bf1175e7a 100644
+index 4ec3432b4e7a730259546ef62d582b6ebcef2cf0..2b65deb333adb187fc92621f7aa7ddd4409eedb2 100644
 --- a/library/md.c
 +++ b/library/md.c
-@@ -370,7 +370,7 @@ int esp_mbedtls_md_clone(mbedtls_md_context_t *dst,
+@@ -411,7 +411,7 @@ int esp_mbedtls_md_clone(mbedtls_md_context_t *dst,
          ctx->md_ctx = esp_mbedtls_calloc(1, sizeof(mbedtls_##type##_context)); \
          if (ctx->md_ctx == NULL)                                       \
          return MBEDTLS_ERR_MD_ALLOC_FAILED;                      \
