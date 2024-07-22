@@ -16,16 +16,19 @@ bzero = 0x400078c8;
 _cleanup_r = 0x4001a480;
 creat = 0x4000788c;
 div = 0x40000620;
+#ifndef __NuttX__
 fclose = 0x4001a804;
 _fclose_r = 0x4001a714;
 fflush = 0x40001bb8;
 _fflush_r = 0x40001b30;
+#endif
 __fp_unlock_all = 0x4001a64c;
 __fputwc = 0x40001770;
 fputwc = 0x40001864;
 _fputwc_r = 0x400017f8;
 _fwalk = 0x4001bcec;
 _fwalk_reent = 0x4001bd24;
+#ifndef __NuttX__
 isalnum = 0x400078d8;
 isalpha = 0x400078e8;
 isascii = 0x4001aaec;
@@ -38,12 +41,15 @@ isprint = 0x40007980;
 ispunct = 0x40007994;
 isspace = 0x400079ac;
 isupper = 0x400079c4;
+#endif
 labs = 0x40000648;
 ldiv = 0x40000650;
 __locale_ctype_ptr = 0x40001c2c;
 __locale_ctype_ptr_l = 0x40001c24;
 __locale_mb_cur_max = 0x40001c0c;
+#ifndef  __NuttX__
 longjmp = 0x400005a4;
+#endif
 _mbtowc_r = 0x400079e0;
 memccpy = 0x4001ab00;
 memchr = 0x4001ab24;
@@ -54,10 +60,14 @@ memrchr = 0x4001acec;
 memset = 0x4001ad3c;
 open = 0x400080c4;
 qsort = 0x400006f4;
+#ifndef  __NuttX__
 rand_r = 0x40007af4;
+#endif
 __sclose = 0x4001a700;
 __seofread = 0x4001a690;
+#ifndef  __NuttX__
 setjmp = 0x40000540;
+#endif
 setlocale = 0x40001c44;
 _setlocale_r = 0x40001bdc;
 __sflush_r = 0x400019dc;
@@ -68,7 +78,9 @@ __sfp_lock_release = 0x4001a514;
 __sinit = 0x4001a538;
 __sinit_lock_acquire = 0x4001a520;
 __sinit_lock_release = 0x4001a52c;
+#ifndef  __NuttX__
 srand = 0x40007a24;
+#endif
 __sread = 0x4001a660;
 __sseek = 0x4001a6cc;
 strcasecmp = 0x40007b38;

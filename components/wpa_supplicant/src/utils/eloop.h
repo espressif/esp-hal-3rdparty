@@ -17,6 +17,10 @@
 #ifndef ELOOP_H
 #define ELOOP_H
 
+#ifdef __NuttX__
+#include "os.h"
+#endif
+
 /**
  * ELOOP_ALL_CTX - eloop_cancel_timeout() magic number to match all timeouts
  */

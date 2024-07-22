@@ -32,6 +32,10 @@
 #include <nuttx/queue.h>
 #ifdef CONFIG_IDF_TARGET_ESP32
 #include "esp32_rt_timer.h"
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+#include "esp32s3_rt_timer.h"
+#else
+#include "esp_hr_timer.h"
 #endif
 #else
 #include "freertos/FreeRTOS.h"
@@ -91,6 +95,10 @@
 
 #ifdef CONFIG_IDF_TARGET_ESP32
 #define esp_timer_get_time    rt_timer_time_us
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+#define esp_timer_get_time    esp32s3_rt_timer_time_us
+#else
+#define esp_timer_get_time    esp_hr_timer_time_us
 #endif
 
 struct irqstate_list_s

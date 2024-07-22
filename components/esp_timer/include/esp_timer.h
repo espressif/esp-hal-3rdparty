@@ -44,7 +44,11 @@ extern "C" {
 /**
  * @brief Opaque type representing a single esp_timer
  */
+#ifdef __NuttX__
+typedef struct esp_hr_timer_s* esp_timer_handle_t;
+#else
 typedef struct esp_timer* esp_timer_handle_t;
+#endif
 
 /**
  * @brief Timer callback function type
@@ -64,6 +68,10 @@ typedef enum {
     ESP_TIMER_MAX,      //!< Count of the methods for dispatching timer callback
 } esp_timer_dispatch_t;
 
+#if defined(__NuttX__) && defined(CONFIG_IDF_TARGET_ARCH_RISCV)
+typedef struct esp_hr_timer_args_s esp_timer_create_args_t;
+#else
+
 /**
  * @brief Timer configuration passed to esp_timer_create
  */
@@ -75,6 +83,7 @@ typedef struct {
     bool skip_unhandled_events;     //!< Skip unhandled events for periodic timers
 } esp_timer_create_args_t;
 
+#endif
 
 /**
  * @brief Minimal initialization of esp_timer

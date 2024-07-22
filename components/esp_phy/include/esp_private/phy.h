@@ -5,6 +5,11 @@
  */
 
 #pragma once
+
+#ifdef __NuttX__
+#include <sys/lock.h>
+#endif
+
 #include "esp_phy_init.h"
 
 #ifdef __cplusplus

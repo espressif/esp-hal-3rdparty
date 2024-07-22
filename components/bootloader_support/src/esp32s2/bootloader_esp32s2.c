@@ -150,7 +150,11 @@ esp_err_t bootloader_init(void)
 
     // init eFuse virtual mode (read eFuses to RAM)
 #ifdef CONFIG_EFUSE_VIRTUAL
+#ifdef __NuttX__
+    ESP_EARLY_LOGW(TAG, "eFuse virtual mode is enabled. If Secure boot or Flash encryption is enabled then it does not provide any security. FOR TESTING ONLY!");
+#else
     ESP_LOGW(TAG, "eFuse virtual mode is enabled. If Secure boot or Flash encryption is enabled then it does not provide any security. FOR TESTING ONLY!");
+#endif
 #ifndef CONFIG_EFUSE_VIRTUAL_KEEP_IN_FLASH
     esp_efuse_init_virtual_mode_in_ram();
 #endif
@@ -170,17 +174,15 @@ esp_err_t bootloader_init(void)
     mmu_hal_init();
     // Workaround: normal ROM bootloader exits with DROM0 cache unmasked, but 2nd bootloader exits with it masked.
     REG_CLR_BIT(EXTMEM_PRO_ICACHE_CTRL1_REG, EXTMEM_PRO_ICACHE_MASK_DROM0);
-#if defined(__NuttX__) && defined(CONFIG_ESPRESSIF_SIMPLE_BOOT)
-    // initialize spi flash
-    if ((ret = bootloader_init_spi_flash()) != ESP_OK) {
-        return ret;
-    }
-#endif
     // update flash ID
     bootloader_flash_update_id();
     // Check and run XMC startup flow
     if ((ret = bootloader_flash_xmc_startup()) != ESP_OK) {
+#ifdef __NuttX__
+        ESP_EARLY_LOGE(TAG, "failed when running XMC startup flow, reboot!");
+#else
         ESP_LOGE(TAG, "failed when running XMC startup flow, reboot!");
+#endif
         return ret;
     }
 #if !CONFIG_APP_BUILD_TYPE_RAM
@@ -193,13 +195,10 @@ esp_err_t bootloader_init(void)
         return ret;
     }
 #endif // !CONFIG_APP_BUILD_TYPE_RAM
-
-#if !(defined(__NuttX__) && defined(CONFIG_ESPRESSIF_SIMPLE_BOOT))
     // initialize spi flash
     if ((ret = bootloader_init_spi_flash()) != ESP_OK) {
         return ret;
     }
-#endif
 #endif // #if !CONFIG_APP_BUILD_TYPE_PURE_RAM_APP
 
     // check whether a WDT reset happend

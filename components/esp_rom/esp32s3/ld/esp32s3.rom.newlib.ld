@@ -63,16 +63,20 @@ strsep = 0x40001410;
 strspn = 0x4000141c;
 strtok_r = 0x40001428;
 strupr = 0x40001434;
+#ifndef  __NuttX__
 longjmp = 0x40001440;
 setjmp = 0x4000144c;
+#endif
 abs = 0x40001458;
 div = 0x40001464;
 labs = 0x40001470;
 ldiv = 0x4000147c;
 qsort = 0x40001488;
+#ifndef __NuttX__
 rand_r = 0x40001494;
 rand = 0x400014a0;
 srand = 0x400014ac;
+#endif
 utoa = 0x400014b8;
 itoa = 0x400014c4;
 atoi = 0x400014d0;

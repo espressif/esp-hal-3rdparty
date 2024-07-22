@@ -331,12 +331,12 @@ static const DRAM_ATTR uint32_t initial_gating_mode[MODEM_CLOCK_DOMAIN_MAX] = {
 
 static IRAM_ATTR void modem_clock_module_icg_map_init_all(void)
 {
-    portENTER_CRITICAL_SAFE(&MODEM_CLOCK_instance()->lock);
+    ENTER_CRITICAL_SECTION(&MODEM_CLOCK_instance()->lock);
     for (int domain = 0; domain < MODEM_CLOCK_DOMAIN_MAX; domain++) {
         uint32_t code = modem_clock_hal_get_clock_domain_icg_bitmap(MODEM_CLOCK_instance()->hal, domain);
         modem_clock_hal_set_clock_domain_icg_bitmap(MODEM_CLOCK_instance()->hal, domain, initial_gating_mode[domain] | code);
     }
-    portEXIT_CRITICAL_SAFE(&MODEM_CLOCK_instance()->lock);
+    LEAVE_CRITICAL_SECTION(&MODEM_CLOCK_instance()->lock);
 }
 #endif // SOC_PM_SUPPORT_PMU_MODEM_STATE
 

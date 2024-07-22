@@ -10,6 +10,24 @@
 #include "esp_private/phy.h"
 #include <stdint.h>
 
+#ifdef __NuttX__
+#ifdef CONFIG_IDF_TARGET_ESP32
+#include "esp32_rt_timer.h"
+#define esp_timer_get_time    rt_timer_time_us
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+#include "esp32s3_rt_timer.h"
+#define esp_timer_get_time    esp32s3_rt_timer_time_us
+#else
+#include "esp_hr_timer.h"
+#define esp_timer_get_time          esp_hr_timer_time_us
+#define esp_timer_create            esp_hr_timer_create
+#define esp_timer_start_once        esp_hr_timer_start_once
+#define esp_timer_start_periodic    esp_hr_timer_start_periodic
+#define esp_timer_stop              esp_hr_timer_stop
+#define esp_timer_delete            esp_hr_timer_delete
+#endif
+#endif
+
 static volatile uint16_t s_phy_modem_flag = 0;
 
 extern void phy_param_track_tot(bool en_wifi, bool en_ble_154);
@@ -95,14 +113,24 @@ void phy_track_pll_init(void)
             .callback = &phy_track_pll_timer_callback,
             .name = "phy-track-pll-timer"
     };
+#ifndef __NuttX__
     ESP_ERROR_CHECK(esp_timer_create(&phy_track_pll_timer_args, &phy_track_pll_timer));
     ESP_ERROR_CHECK(esp_timer_start_periodic(phy_track_pll_timer, PHY_TRACK_PLL_PERIOD_IN_US));
+#else
+    esp_timer_create(&phy_track_pll_timer_args, &phy_track_pll_timer);
+    esp_timer_start_periodic(phy_track_pll_timer, PHY_TRACK_PLL_PERIOD_IN_US);
+#endif
 }
 
 void phy_track_pll_deinit(void)
 {
+#ifndef __NuttX__
     ESP_ERROR_CHECK(esp_timer_stop(phy_track_pll_timer));
     ESP_ERROR_CHECK(esp_timer_delete(phy_track_pll_timer));
+#else
+    esp_timer_stop(phy_track_pll_timer);
+    esp_timer_delete(phy_track_pll_timer);
+#endif
 }
 
 void phy_set_modem_flag(esp_phy_modem_t modem)

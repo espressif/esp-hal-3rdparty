@@ -167,11 +167,11 @@ void wps_task(void *pvParameters )
                 break;
 
             case SIG_WPS_RX: {
-                struct wps_rx_param *param = NULL;
-                while ((param = wps_rxq_dequeue()) != NULL) {
-                    wps_sm_rx_eapol_internal(param->sa, param->buf, param->len);
-                    os_free(param->buf);
-                    os_free(param);
+                struct wps_rx_param *p = NULL;
+                while ((p = wps_rxq_dequeue()) != NULL) {
+                    wps_sm_rx_eapol_internal(p->sa, p->buf, p->len);
+                    os_free(p->buf);
+                    os_free(p);
                 }
                 break;
             }

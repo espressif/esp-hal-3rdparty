@@ -27,10 +27,12 @@ __dummy_lock = 0x4000c728;
 __dummy_lock_try = 0x4000c730;
 __env_lock = 0x40001fd4;
 __env_unlock = 0x40001fe0;
+#ifndef __NuttX__
 fclose = 0x400020ac;
 _fclose_r = 0x40001fec;
 fflush = 0x40059394;
 _fflush_r = 0x40059320;
+#endif
 _findenv_r = 0x40001f44;
 __fp_lock_all = 0x40001f1c;
 __fp_unlock_all = 0x40001f30;
@@ -56,7 +58,9 @@ __itoa = 0x40056678;
 itoa = 0x400566b4;
 labs = 0x40056370;
 ldiv = 0x40056378;
+#ifndef  __NuttX__
 longjmp = 0x400562cc;
+#endif
 memccpy = 0x4000c220;
 memchr = 0x4000c244;
 memcmp = 0x4000c260;
@@ -65,12 +69,16 @@ memmove = 0x4000c3c0;
 memrchr = 0x4000c400;
 memset = 0x4000c44c;
 qsort = 0x40056424;
+#ifndef  __NuttX__
 rand = 0x40001058;
 rand_r = 0x400010d4;
+#endif
 __sccl = 0x4000c498;
 __sclose = 0x400011b8;
 __seofread = 0x40001148;
+#ifndef  __NuttX__
 setjmp = 0x40056268;
+#endif
 __sflush_r = 0x400591e0;
 __sfmoreglue = 0x40001dc8;
 __sfp = 0x40001e90;
@@ -79,7 +87,9 @@ __sfp_lock_release = 0x40001e14;
 __sinit = 0x40001e38;
 __sinit_lock_acquire = 0x40001e20;
 __sinit_lock_release = 0x40001e2c;
+#ifndef  __NuttX__
 srand = 0x40001004;
+#endif
 __sread = 0x40001118;
 __sseek = 0x40001184;
 strcasecmp = 0x400011cc;
