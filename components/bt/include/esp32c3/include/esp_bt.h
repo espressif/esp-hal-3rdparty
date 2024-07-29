@@ -407,6 +407,8 @@ esp_err_t esp_ble_tx_power_set(esp_ble_power_type_t power_type, esp_power_level_
  */
 esp_power_level_t esp_ble_tx_power_get(esp_ble_power_type_t power_type);
 
+#ifndef __NuttX__
+
 /**
  * @brief       Initialize BT controller to allocate task and other resource.
  *              This function should be called only once, before any other BT functions are called.
@@ -449,6 +451,8 @@ esp_err_t esp_bt_controller_disable(void);
  * @return status value
  */
 esp_bt_controller_status_t esp_bt_controller_get_status(void);
+
+#endif /* __NuttX__ */
 
 uint16_t esp_bt_get_tx_buf_num(void);
 
