@@ -32,6 +32,8 @@
 #include <nuttx/queue.h>
 #ifdef CONFIG_IDF_TARGET_ESP32
 #include "esp32_rt_timer.h"
+#elif defined(CONFIG_IDF_TARGET_ESP32S2)
+#include "esp32s2_rt_timer.h"
 #elif defined(CONFIG_IDF_TARGET_ESP32S3)
 #include "esp32s3_rt_timer.h"
 #else

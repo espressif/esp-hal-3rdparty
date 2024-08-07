@@ -47,7 +47,7 @@ ldiv = 0x40000650;
 __locale_ctype_ptr = 0x40001c2c;
 __locale_ctype_ptr_l = 0x40001c24;
 __locale_mb_cur_max = 0x40001c0c;
-#ifndef  __NuttX__
+#ifndef __NuttX__
 longjmp = 0x400005a4;
 #endif
 _mbtowc_r = 0x400079e0;
@@ -60,12 +60,12 @@ memrchr = 0x4001acec;
 memset = 0x4001ad3c;
 open = 0x400080c4;
 qsort = 0x400006f4;
-#ifndef  __NuttX__
+#ifndef __NuttX__
 rand_r = 0x40007af4;
 #endif
 __sclose = 0x4001a700;
 __seofread = 0x4001a690;
-#ifndef  __NuttX__
+#ifndef __NuttX__
 setjmp = 0x40000540;
 #endif
 setlocale = 0x40001c44;
@@ -78,7 +78,7 @@ __sfp_lock_release = 0x4001a514;
 __sinit = 0x4001a538;
 __sinit_lock_acquire = 0x4001a520;
 __sinit_lock_release = 0x4001a52c;
-#ifndef  __NuttX__
+#ifndef __NuttX__
 srand = 0x40007a24;
 #endif
 __sread = 0x4001a660;
@@ -115,8 +115,11 @@ __swbuf = 0x4000167c;
 __swbuf_r = 0x400015bc;
 __swrite = 0x4001a698;
 toascii = 0x4001af90;
+#ifndef __NuttX__
 tolower = 0x40008158;
 toupper = 0x40008174;
+#endif
 wcrtomb = 0x400012f4;
 _wcrtomb_r = 0x400012a0;
 _wctomb_r = 0x400018ac;
+
