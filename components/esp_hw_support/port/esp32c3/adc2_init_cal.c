@@ -18,10 +18,16 @@ Don't put any other code into this file. */
 #include "esp_private/adc_share_hw_ctrl.h"
 
 #ifdef __NuttX__
-#define ENTER_CRITICAL_SECTION(lock)    do { g_flags = spin_lock_irqsave(lock); } while(0)
-#define LEAVE_CRITICAL_SECTION(lock)    spin_unlock_irqrestore((lock), g_flags)
+#define ENTER_CRITICAL_SECTION(lock) do { \
+            assert(g_flags == UINT32_MAX); \
+            g_flags = spin_lock_irqsave(lock); \
+        } while(0)
+#define LEAVE_CRITICAL_SECTION(lock) do { \
+            spin_unlock_irqrestore((lock), g_flags); \
+            g_flags = UINT32_MAX; \
+        } while(0)
 
-static irqstate_t g_flags;
+static irqstate_t g_flags = UINT32_MAX;
 extern spinlock_t rtc_spinlock;
 #else
 #define ENTER_CRITICAL_SECTION(lock)    portENTER_CRITICAL_SAFE(lock)
