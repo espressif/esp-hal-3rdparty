@@ -108,7 +108,6 @@ struct irqstate_list_s
 };
 
 static spinlock_t periph_spinlock;
-static irqstate_t g_flags = UINT32_MAX;
 static bool g_phy_lock_initialized = false;
 static sq_queue_t g_phy_int_flags_free;
 static sq_queue_t g_phy_int_flags_used;

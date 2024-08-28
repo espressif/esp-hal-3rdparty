@@ -13,23 +13,53 @@
 #endif
 
 #ifdef __NuttX__
+#include <nuttx/mutex.h>
 #include <nuttx/spinlock.h>
+#include <nuttx/irq.h>
+#include <nuttx/queue.h>
 #else
 #include "freertos/FreeRTOS.h"
 #endif
 
 #ifdef __NuttX__
+#define NR_IRQSTATE_FLAGS   3
+
 #define ENTER_CRITICAL_SECTION(lock) do { \
-            assert(g_flags == UINT32_MAX); \
-            g_flags = spin_lock_irqsave(lock); \
-        } while(0)
+        if (!g_periph_ctrl_lock_initialized) { \
+            sq_init(&g_periph_ctrl_int_flags_free); \
+            sq_init(&g_periph_ctrl_int_flags_used); \
+            for (int i = 0; i < NR_IRQSTATE_FLAGS; i++) { \
+                sq_addlast((sq_entry_t *)&g_periph_ctrl_int_flags[i], &g_periph_ctrl_int_flags_free); \
+            } \
+            g_periph_ctrl_lock_initialized = true; \
+        } \
+        struct irqstate_list_s *irqstate; \
+        irqstate = (struct irqstate_list_s *)sq_remlast(&g_periph_ctrl_int_flags_free); \
+        assert(irqstate != NULL); \
+        irqstate->flags = spin_lock_irqsave(lock); \
+        sq_addlast((sq_entry_t *)irqstate, &g_periph_ctrl_int_flags_used); \
+    } while(0)
+
 #define LEAVE_CRITICAL_SECTION(lock) do { \
-            spin_unlock_irqrestore((lock), g_flags); \
-            g_flags = UINT32_MAX; \
-        } while(0)
+        struct irqstate_list_s *irqstate; \
+        irqstate = (struct irqstate_list_s *)sq_remlast(&g_periph_ctrl_int_flags_used); \
+        assert(irqstate != NULL); \
+        spin_unlock_irqrestore((lock), irqstate->flags); \
+        sq_addlast((sq_entry_t *)irqstate, &g_periph_ctrl_int_flags_free); \
+    } while(0)
+
+struct irqstate_list_s
+{
+  struct irqstate_list_s *flink;
+  irqstate_t flags;
+};
 
 static spinlock_t periph_spinlock;
-static irqstate_t g_flags = UINT32_MAX;
+static bool g_periph_ctrl_lock_initialized = false;
+static sq_queue_t g_periph_ctrl_int_flags_free;
+static sq_queue_t g_periph_ctrl_int_flags_used;
+static struct irqstate_list_s g_periph_ctrl_int_flags[NR_IRQSTATE_FLAGS];
+static spinlock_t periph_spinlock;
 #else
 #define ENTER_CRITICAL_SECTION(lock)    portENTER_CRITICAL_SAFE(lock)
 #define LEAVE_CRITICAL_SECTION(lock)    portEXIT_CRITICAL_SAFE(lock)
