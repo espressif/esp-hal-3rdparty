@@ -10,11 +10,15 @@
 #include <stdio.h>
 #include <sys/param.h>  // For MIN/MAX(a, b)
 
+#ifndef __NuttX__
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <freertos/semphr.h>
+#endif
 #include <soc/soc.h>
+#ifndef __NuttX__
 #include <soc/soc_memory_layout.h>
+#endif
 #include "soc/io_mux_reg.h"
 #include "sdkconfig.h"
 #include "esp_attr.h"
