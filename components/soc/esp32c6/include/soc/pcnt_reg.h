@@ -1221,6 +1221,38 @@ extern "C" {
 #define PCNT_DATE_V  0xFFFFFFFFU
 #define PCNT_DATE_S  0
 
+/* Index macros for CONF0/1/2 */
+
+#define PCNT_CONF0_U(X)   (PCNT_U0_CONF0_REG + (X) * 12)
+#define PCNT_CONF1_U(X)   (PCNT_U0_CONF1_REG + (X) * 12)
+#define PCNT_CONF2_U(X)   (PCNT_U0_CONF2_REG + (X) * 12)
+
+/* Index macros for CONT */
+
+#define PCNT_CNT_U(X)     (PCNT_U0_CNT_REG + (X) * 4)
+
+/* Index macros for STATUS */
+
+#define PCNT_STATUS_U(X)  (PCNT_U0_STATUS_REG + (X) * 4)
+
+/* PCNT Reset bit, Even bits: 0, 2, 4, 6 */
+
+#define PCNT_CNT_RST_U(X) (1 << ((X) * 2))
+
+/* PCNT channel action on control level */
+
+#define PCNT_MODE_KEEP    0 /* Control mode: won't change counter mode */
+#define PCNT_MODE_REVERSE 1 /* Control mode: invert counter mode(increase -> decrease, decrease -> increase) */
+#define PCNT_MODE_DISABLE 2 /* Control mode: Inhibit counter(counter value will not change in this condition) */
+#define PCNT_MODE_MAX     3
+
+/* PCNT channel action on signal edge */
+
+#define PCNT_COUNT_DIS    0 /* Counter mode: Inhibit counter(counter value will not change in this condition) */
+#define PCNT_COUNT_INC    1 /* Counter mode: Increase counter value */
+#define PCNT_COUNT_DEC    2 /* Counter mode: Decrease counter value */
+#define PCNT_COUNT_MAX    3
+
 #ifdef __cplusplus
 }
 #endif
