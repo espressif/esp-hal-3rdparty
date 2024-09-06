@@ -82,13 +82,14 @@
 
 #define ESP_NCPUINTS               32
 
-/* The interrupts numbered 0, 3, 4, and 7 are used by the CPU for core-local interrupts (CLINT) */
+/* The following interrupts are reserved:
+ *   - 0, 3, 4, and 7 are used by the CPU for core-local interrupts (CLINT);
+ *   - 1 for Wi-Fi;
+ *   - 5 and 8 for Bluetooth;
+ *   - 6 for "permanently disabled interrupt
+ */
 
-#define ESP_CPUINT_PERIPHSET       0xffffff66
-
-/* The Wireless drivers may require other CPU interrupts to be reserved */
-
-#define ESP_WIRELESS_RESERVE_INT  0
+#define ESP_CPUINT_PERIPHSET       0xfffffe04
 
 /* IRQ numbers. */
 

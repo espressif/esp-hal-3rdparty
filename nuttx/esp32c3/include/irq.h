@@ -79,28 +79,18 @@
 
 #define ESP_NSOURCES                        62
 
-/* CPU Interrupts.
- *
- * The ESP32-C3 CPU interrupt controller accepts 31 asynchronous interrupts.
- */
+/* CPU Interrupts */
 
 #define ESP_NCPUINTS               32
 
-#define ESP_CPUINT_PERIPHSET       0xfffffffe
+ /* The following interrupts are reserved:
+  *   - 0 (not available);
+  *   - 1 for Wi-Fi;
+  *   - 5 and 8 for Bluetooth;
+  *   - 6 for "permanently disabled interrupt
+ */
 
-/* The Wireless drivers may require other CPU interrupts to be reserved */
-
-#ifdef CONFIG_ESPRESSIF_WIFI
-#  define ESP_WIRELESS_RESERVE_INT  (1 << 1)
-#else
-#  define ESP_WIRELESS_RESERVE_INT  0
-#endif
-
-/* Reserved CPU interrupt for specific drivers */
-
-#define ESP_CPUINT_WMAC            1  /* Wi-Fi MAC */
-#define ESP_CPUINT_BT_BB           5  /* BT BB */
-#define ESP_CPUINT_RWBLE           8  /* RW BLE */
+#define ESP_CPUINT_PERIPHSET       0xfffffe9c
 
 /* IRQ numbers. */
 
