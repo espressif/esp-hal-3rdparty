@@ -32,6 +32,7 @@
 #include "crypto/sha256.h"
 #ifndef __NuttX__
 #include "esp_rom_sys.h"
+#include <nuttx/arch.h>
 #endif
 #include "common/bss.h"
 #include "esp_common_i.h"
