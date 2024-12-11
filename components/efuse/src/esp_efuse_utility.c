@@ -418,11 +418,20 @@ uint32_t esp_efuse_utility_get_read_register_address(esp_efuse_block_t block)
 
 }
 
+#ifndef __NuttX__
 #if defined(BOOTLOADER_BUILD) && defined(CONFIG_EFUSE_VIRTUAL) && !defined(CONFIG_EFUSE_VIRTUAL_KEEP_IN_FLASH)
 void esp_efuse_init_virtual_mode_in_ram(void)
 {
     esp_efuse_utility_update_virt_blocks();
 }
+#endif
+#else
+#if defined(CONFIG_EFUSE_VIRTUAL) && !defined(CONFIG_EFUSE_VIRTUAL_KEEP_IN_FLASH)
+void esp_efuse_init_virtual_mode_in_ram(void)
+{
+    esp_efuse_utility_update_virt_blocks();
+}
+#endif
 #endif
 
 #ifdef CONFIG_EFUSE_VIRTUAL_KEEP_IN_FLASH

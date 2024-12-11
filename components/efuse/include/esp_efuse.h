@@ -390,6 +390,7 @@ bool esp_efuse_check_secure_version(uint32_t secure_version);
  */
 esp_err_t esp_efuse_update_secure_version(uint32_t secure_version);
 
+#ifndef __NuttX__
 #if defined(BOOTLOADER_BUILD) && defined(CONFIG_EFUSE_VIRTUAL) && !defined(CONFIG_EFUSE_VIRTUAL_KEEP_IN_FLASH)
 /**
  *  @brief Initializes eFuses API to keep eFuses in RAM.
@@ -398,6 +399,17 @@ esp_err_t esp_efuse_update_secure_version(uint32_t secure_version);
  * (Used only in bootloader).
  */
 void esp_efuse_init_virtual_mode_in_ram(void);
+#endif
+#else
+#if defined(CONFIG_EFUSE_VIRTUAL) && !defined(CONFIG_EFUSE_VIRTUAL_KEEP_IN_FLASH)
+/**
+ *  @brief Initializes eFuses API to keep eFuses in RAM.
+ *
+ * This function just copies all eFuses to RAM. IDF eFuse APIs perform all operators with RAM instead of real eFuse.
+ * (Used only in bootloader).
+ */
+void esp_efuse_init_virtual_mode_in_ram(void);
+#endif
 #endif
 
 #ifdef CONFIG_EFUSE_VIRTUAL_KEEP_IN_FLASH
