@@ -15,7 +15,7 @@ sync_from_idf:
     IDF_URL: ${CI_IDF_URL}
     ESP_HAL_3RDPARTY_URL: https://gitlab-ci-token:${CI_ESP_HAL_3RDPARTY_TOKEN}@${CI_SERVER_HOST}:${CI_SERVER_PORT}/${CI_PROJECT_PATH}.git
   script:
-    - pip install git-filter-repo
+    - pip install git-filter-repo==2.45.0
     - tools/extract_idf_components.sh
   rules:
     - if: $CI_PIPELINE_SOURCE == "push"
