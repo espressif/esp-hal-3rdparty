@@ -79,6 +79,19 @@ bool cache_hal_is_cache_enabled(cache_type_t type);
  */
 void cache_hal_invalidate_addr(uint32_t vaddr, uint32_t size);
 
+#if __NuttX__
+#if CONFIG_SOC_CACHE_WRITEBACK_SUPPORTED
+/**
+ * @brief Writeback cache supported addr
+ *
+ * Writeback the DCache item to external memory
+ *
+ * @param vaddr  Start address of the region to writeback
+ * @param size   Size of the region to writeback
+ */
+void cache_hal_writeback_addr(uint32_t vaddr, uint32_t size);
+#endif  //#if CONFIG_SOC_CACHE_WRITEBACK_SUPPORTED
+#else
 #if SOC_CACHE_WRITEBACK_SUPPORTED
 /**
  * @brief Writeback cache supported addr
@@ -90,6 +103,7 @@ void cache_hal_invalidate_addr(uint32_t vaddr, uint32_t size);
  */
 void cache_hal_writeback_addr(uint32_t vaddr, uint32_t size);
 #endif  //#if SOC_CACHE_WRITEBACK_SUPPORTED
+#endif
 
 #if SOC_CACHE_FREEZE_SUPPORTED
 /**
