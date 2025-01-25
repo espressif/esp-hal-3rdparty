@@ -28,10 +28,10 @@
 #ifdef __NuttX__
 #define ENTER_CRITICAL_SECTION(lock) do { \
             assert(g_flags == UINT32_MAX); \
-            g_flags = spin_lock_irqsave(lock); \
+            g_flags = raw_spin_lock_irqsave(lock); \
         } while(0)
 #define LEAVE_CRITICAL_SECTION(lock) do { \
-            spin_unlock_irqrestore((lock), g_flags); \
+            raw_spin_unlock_irqrestore((lock), g_flags); \
             g_flags = UINT32_MAX; \
         } while(0)
 
