@@ -11,7 +11,11 @@
 extern "C" {
 #endif
 
+#ifdef __NuttX__
+typedef volatile struct i2s_dev_struct {
+#else
 typedef volatile struct i2s_dev_s {
+#endif
     uint32_t reserved_0;
     uint32_t reserved_4;
     uint32_t reserved_8;
