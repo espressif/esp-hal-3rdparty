@@ -69,7 +69,12 @@
 #endif
 
 #ifdef __NuttX__
-#define NR_IRQSTATE_FLAGS   3
+
+#ifdef CONFIG_ESP_PHY_IRQSTATE_FLAGS_NUMBER
+#define NR_IRQSTATE_FLAGS CONFIG_ESP_PHY_IRQSTATE_FLAGS_NUMBER
+#else
+#define NR_IRQSTATE_FLAGS 3
+#endif
 
 #define ENTER_CRITICAL_SECTION(lock) do { \
         if (!g_phy_lock_initialized) { \
