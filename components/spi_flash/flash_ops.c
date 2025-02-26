@@ -118,12 +118,27 @@ static __attribute__((unused)) bool is_safe_write_address(size_t addr, size_t si
 }
 
 #if CONFIG_SPI_FLASH_ROM_IMPL
+#ifndef __NuttX__
 #include "esp_heap_caps.h"
+#else
+#include <nuttx/kmalloc.h>
+#endif
 
 void IRAM_ATTR *spi_flash_malloc_internal(size_t size)
 {
+#ifndef __NuttX__
     return heap_caps_malloc(size, MALLOC_CAP_8BIT|MALLOC_CAP_INTERNAL);
+#else
+    return kmm_malloc(size);
+#endif
 }
+
+#ifdef __NuttX__
+void IRAM_ATTR spi_flash_free_internal(void *p)
+{
+    kmm_free(p);
+}
+#endif
 
 void IRAM_ATTR spi_flash_rom_impl_init(void)
 {
@@ -131,8 +146,11 @@ void IRAM_ATTR spi_flash_rom_impl_init(void)
 
     /* These two functions are in ROM only */
     extern void spi_flash_mmap_os_func_set(void *(*func1)(size_t size), void (*func2)(void *p));
+#ifndef __NuttX__
     spi_flash_mmap_os_func_set(spi_flash_malloc_internal, heap_caps_free);
-
+#else
+    spi_flash_mmap_os_func_set(spi_flash_malloc_internal, spi_flash_free_internal);
+#endif
     extern esp_err_t spi_flash_mmap_page_num_init(uint32_t page_num);
     spi_flash_mmap_page_num_init(128);
 }
@@ -152,12 +170,14 @@ void IRAM_ATTR esp_mspi_pin_init(void)
     }
     //Set F4R4 board pin drive strength. TODO: IDF-3663
 #endif
+#ifndef __NuttX__
     /* Reserve the GPIO pins */
     uint64_t reserve_pin_mask = 0;
     for (esp_mspi_io_t i = 0; i < ESP_MSPI_IO_MAX; i++) {
         reserve_pin_mask |= BIT64(esp_mspi_get_io(i));
     }
     esp_gpio_reserve_pins(reserve_pin_mask);
+#endif
 }
 
 esp_err_t IRAM_ATTR spi_flash_init_chip_state(void)
