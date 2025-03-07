@@ -10,7 +10,9 @@
 #include "esp_types.h"
 #include "esp_err.h"
 #include "esp_check.h"
+#ifndef __NuttX__
 #include "esp_heap_caps.h"
+#endif
 #include "hal/adc_types.h"
 #include "hal/efuse_ll.h"
 #include "soc/soc_caps.h"
@@ -161,12 +163,19 @@ esp_err_t adc_cali_create_scheme_line_fitting(const adc_cali_line_fitting_config
     ESP_RETURN_ON_FALSE(config->atten < SOC_ADC_ATTEN_NUM, ESP_ERR_INVALID_ARG, TAG, "invalid ADC attenuation");
     ESP_RETURN_ON_FALSE(((config->bitwidth >= SOC_ADC_RTC_MIN_BITWIDTH && config->bitwidth <= SOC_ADC_RTC_MAX_BITWIDTH) || config->bitwidth == ADC_BITWIDTH_DEFAULT), ESP_ERR_INVALID_ARG, TAG, "invalid bitwidth");
 
+#ifdef __NuttX__
+    adc_cali_scheme_t *scheme = (adc_cali_scheme_t *)kmm_malloc(sizeof(adc_cali_scheme_t));
+    ESP_RETURN_ON_FALSE(scheme, ESP_ERR_NO_MEM, TAG, "no mem for adc calibration scheme");
+
+    cali_chars_line_fitting_t *chars = (cali_chars_line_fitting_t *)kmm_malloc(sizeof(cali_chars_line_fitting_t));
+    ESP_GOTO_ON_FALSE(chars, ESP_ERR_NO_MEM, err, TAG, "no memory for the calibration characteristics");
+#else
     adc_cali_scheme_t *scheme = (adc_cali_scheme_t *)heap_caps_calloc(1, sizeof(adc_cali_scheme_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
     ESP_RETURN_ON_FALSE(scheme, ESP_ERR_NO_MEM, TAG, "no mem for adc calibration scheme");
 
     cali_chars_line_fitting_t *chars = (cali_chars_line_fitting_t *)heap_caps_calloc(1, sizeof(cali_chars_line_fitting_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
     ESP_GOTO_ON_FALSE(chars, ESP_ERR_NO_MEM, err, TAG, "no memory for the calibration characteristics");
-
+#endif
     //Check eFuse if enabled to do so
     if (check_efuse_tp() && EFUSE_TP_ENABLED) {
         //Characterize based on Two Point values

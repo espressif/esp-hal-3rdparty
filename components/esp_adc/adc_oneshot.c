@@ -10,8 +10,10 @@
 #include "stdatomic.h"
 #include "esp_log.h"
 #include "esp_check.h"
+#ifndef __NuttX__
 #include "esp_heap_caps.h"
 #include "freertos/FreeRTOS.h"
+#endif
 #include "driver/gpio.h"
 #include "driver/rtc_io.h"
 #include "esp_adc/adc_oneshot.h"

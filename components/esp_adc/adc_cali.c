@@ -11,7 +11,9 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "esp_check.h"
+#ifndef __NuttX__
 #include "esp_heap_caps.h"
+#endif
 #include "hal/adc_types.h"
 #include "esp_adc/adc_cali.h"
 #include "adc_cali_interface.h"

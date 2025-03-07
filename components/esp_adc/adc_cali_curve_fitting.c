@@ -11,7 +11,9 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "esp_check.h"
+#ifndef __NuttX__
 #include "esp_heap_caps.h"
+#endif
 #include "soc/soc_caps.h"
 #include "esp_adc/adc_cali_scheme.h"
 #include "adc_cali_interface.h"
@@ -79,11 +81,17 @@ esp_err_t adc_cali_create_scheme_curve_fitting(const adc_cali_curve_fitting_conf
     ESP_RETURN_ON_FALSE((adc_encoding_version >= ESP_EFUSE_ADC_CALIB_VER_MIN) &&
                         (adc_encoding_version <= ESP_EFUSE_ADC_CALIB_VER_MAX), ESP_ERR_NOT_SUPPORTED, TAG, "Calibration required eFuse bits not burnt");
 
+#ifdef __NuttX__
+    adc_cali_scheme_t *scheme = (adc_cali_scheme_t *)kmm_malloc(sizeof(adc_cali_scheme_t));
+    ESP_RETURN_ON_FALSE(scheme, ESP_ERR_NO_MEM, TAG, "no mem for adc calibration scheme");
+    cali_chars_curve_fitting_t *chars = (cali_chars_curve_fitting_t *)kmm_malloc(sizeof(cali_chars_curve_fitting_t));
+    ESP_GOTO_ON_FALSE(chars, ESP_ERR_NO_MEM, err, TAG, "no memory for the calibration characteristics");
+#else
     adc_cali_scheme_t *scheme = (adc_cali_scheme_t *)heap_caps_calloc(1, sizeof(adc_cali_scheme_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
     ESP_RETURN_ON_FALSE(scheme, ESP_ERR_NO_MEM, TAG, "no mem for adc calibration scheme");
-
     cali_chars_curve_fitting_t *chars = (cali_chars_curve_fitting_t *)heap_caps_calloc(1, sizeof(cali_chars_curve_fitting_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
     ESP_GOTO_ON_FALSE(chars, ESP_ERR_NO_MEM, err, TAG, "no memory for the calibration characteristics");
+#endif
 
     scheme->raw_to_voltage = cali_raw_to_voltage;
     scheme->ctx = chars;
@@ -154,6 +162,9 @@ static void get_first_step_reference_point(int version_num, adc_unit_t unit_id, 
     assert((version_num >= ESP_EFUSE_ADC_CALIB_VER_MIN) &&
            (version_num <= ESP_EFUSE_ADC_CALIB_VER_MAX));
     esp_err_t ret;
+#ifdef __NuttX__
+    UNUSED(ret);
+#endif
 
     calib_info->version_num = version_num;
     calib_info->unit_id = unit_id;
