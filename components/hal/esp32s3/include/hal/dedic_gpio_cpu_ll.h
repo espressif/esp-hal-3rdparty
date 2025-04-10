@@ -11,11 +11,15 @@
 #include "soc/soc_caps.h"
 
 #include "xt_instr_macros.h"
+#ifndef __NuttX__
 #include "xtensa/config/specreg.h"
+#endif
 #include "xtensa/config/extreg.h"
 #include "esp_bit_defs.h"
 #include "esp_attr.h"
+#ifndef __NuttX__
 #include "xtensa/config/core.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
