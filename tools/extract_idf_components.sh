@@ -219,6 +219,46 @@ EOF
 
 extract_components "release/v5.2" "sync/release_v5.2.a" ${ARG} --message-callback "${MSG_CALLBACK}"
 
+ARG=$(cat << EOF
+      ${LIC_ARG} $(get_arg_by_components \
+                   bootloader \
+                   bootloader_support \
+                   bt \
+                   efuse \
+                   esp_adc \
+                   esp_app_format \
+                   esp_coex \
+                   esp_common \
+                   esp_event \
+                   esp_hw_support \
+                   esp_mm \
+                   esp_phy \
+                   esp_pm \
+                   esp_psram \
+                   esp_rom \
+                   esp_system \
+                   esp_timer \
+                   esp_wifi \
+                   hal \
+                   heap \
+                   ieee802154 \
+                   log \
+                   mbedtls \
+                   newlib \
+                   partition_table \
+                   riscv \
+                   soc \
+                   spi_flash \
+                   ulp \
+                   usb \
+                   wpa_supplicant\
+                   xtensa \
+                   )
+EOF
+)
+
+extract_components "master" "sync/master.a" ${ARG} --message-callback "${MSG_CALLBACK}"
+
 # Add new one here if you have new requirement
 
 # Push to protected branch will cause that branch to appear on Github.

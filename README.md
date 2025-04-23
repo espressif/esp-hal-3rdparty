@@ -38,6 +38,14 @@ Where:
     `esp_rom`, `esp_system`, `esp_timer`, `esp_wifi`, `hal`, `log`, `mbedtls`, `newlib`,
     `partition_table`, `riscv`, `soc`, `spi_flash`, `wpa_supplicant`, `xtensa`.
 
+- [`sync/master.a`](../../tree/sync/master.a):
+    - Based on ESP-IDF `master` branch.
+    - Includes components: `bootloader`, `bootloader_support`, `bt`, `efuse`, `esp_adc`,
+      `esp_app_format`, `esp_coex`, `esp_common`, `esp_event`, `esp_hw_support`, `esp_mm`,
+      `esp_phy`, `esp_pm`, `esp_psram`, `esp_rom`, `esp_system`, `esp_timer`, `esp_wifi`,
+      `hal`, `heap`, `ieee802154`, `log`, `mbedtls`, `newlib`, `partition_table`, `riscv`,
+      `soc`, `spi_flash`, `ulp`, `usb`, `wpa_supplicant`, `xtensa`.
+
 ## Depreacated branches
 
 The following branches are deprecated (not updated anymore):
