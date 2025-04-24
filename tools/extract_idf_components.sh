@@ -53,10 +53,17 @@ extract_components() {
     git checkout -B ${SYNC_BRANCH_NAME}
     git push ${ESP_HAL_3RDPARTY_URL} ${SYNC_BRANCH_NAME} || {
         push_to_temporary_branch ${ESP_HAL_3RDPARTY_URL} ${SYNC_BRANCH_NAME}
-        force_push_job "${SYNC_BRANCH_NAME}" >> ../force_push.yml
+        SET_RUN_FORCE_PUSH="true"
     }
     git clean -xdff
+
     popd
+
+    if [ -n "${SET_RUN_FORCE_PUSH}" ]; then
+        force_push_job "${SYNC_BRANCH_NAME}" >> force_push.yml
+        echo "Content of force_push.yml:"
+        cat force_push.yml
+    fi
 }
 
 # Create a temporary branch to store the branch to be pushed
@@ -71,8 +78,6 @@ push_to_temporary_branch() {
 
 # Create yaml to force push the sync branch
 force_push_job() {
-    SET_RUN_FORCE_PUSH="true"
-
     echo "force_push_${1}:"
     echo "  stage: Force Push"
     echo "  allow_failure: true"
