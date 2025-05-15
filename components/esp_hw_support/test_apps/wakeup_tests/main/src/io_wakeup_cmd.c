@@ -177,7 +177,7 @@ static int process_rtcio_wakeup(int argc, char **argv)
     ESP_LOGI(TAG, "io_wakeup_level = %d\n", io_wakeup_level);
 
     if (rtcio_wakeup_args.disable->count) {
-        ESP_ERROR_CHECK(gpio_deep_sleep_wakeup_disable(io_wakeup_num));
+        ESP_ERROR_CHECK(gpio_wakeup_disable_on_hp_periph_powerdown_sleep(io_wakeup_num));
     } else {
         gpio_config_t config = {
             .pin_bit_mask = BIT64(io_wakeup_num),

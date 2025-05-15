@@ -1018,9 +1018,9 @@ esp_err_t gpio_sleep_sel_dis(gpio_num_t gpio_num)
 }
 
 #if SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP && SOC_DEEP_SLEEP_SUPPORTED
-esp_err_t gpio_deep_sleep_wakeup_enable(gpio_num_t gpio_num, gpio_int_type_t intr_type)
+esp_err_t gpio_wakeup_enable_on_hp_periph_powerdown_sleep(gpio_num_t gpio_num, gpio_int_type_t intr_type)
 {
-    if (!GPIO_IS_DEEP_SLEEP_WAKEUP_VALID_GPIO(gpio_num)) {
+    if (!GPIO_IS_HP_PERIPH_PD_WAKEUP_VALID_IO(gpio_num)) {
         ESP_LOGE(GPIO_TAG, "GPIO %d does not support deep sleep wakeup", gpio_num);
         return ESP_ERR_INVALID_ARG;
     }
@@ -1040,9 +1040,9 @@ esp_err_t gpio_deep_sleep_wakeup_enable(gpio_num_t gpio_num, gpio_int_type_t int
     return ESP_OK;
 }
 
-esp_err_t gpio_deep_sleep_wakeup_disable(gpio_num_t gpio_num)
+esp_err_t gpio_wakeup_disable_on_hp_periph_powerdown_sleep(gpio_num_t gpio_num)
 {
-    if (!GPIO_IS_DEEP_SLEEP_WAKEUP_VALID_GPIO(gpio_num)) {
+    if (!GPIO_IS_HP_PERIPH_PD_WAKEUP_VALID_IO(gpio_num)) {
         ESP_LOGE(GPIO_TAG, "GPIO %d does not support deep sleep wakeup", gpio_num);
         return ESP_ERR_INVALID_ARG;
     }
@@ -1057,7 +1057,7 @@ esp_err_t gpio_deep_sleep_wakeup_disable(gpio_num_t gpio_num)
     portEXIT_CRITICAL(&gpio_context.gpio_spinlock);
     return ESP_OK;
 }
-#endif // SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP && SOC_DEEP_SLEEP_SUPPORTED
+#endif // SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP
 
 esp_err_t gpio_get_io_config(gpio_num_t gpio_num, gpio_io_config_t *out_io_config)
 {

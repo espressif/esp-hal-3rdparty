@@ -362,7 +362,7 @@ static void touch_wakeup_prepare(void);
 static void vbat_under_volt_wakeup_prepare(void);
 #endif
 #if SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP && SOC_DEEP_SLEEP_SUPPORTED
-static void gpio_deep_sleep_wakeup_prepare(void);
+static void esp_sleep_gpio_wakeup_prepare_on_hp_periph_powerdown(void);
 #endif
 
 #if ESP_ROM_SUPPORT_DEEP_SLEEP_WAKEUP_STUB && SOC_DEEP_SLEEP_SUPPORTED
@@ -995,7 +995,7 @@ static esp_err_t SLEEP_FN_ATTR esp_sleep_start(uint32_t sleep_flags, uint32_t cl
 
 #if SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP && SOC_DEEP_SLEEP_SUPPORTED
     if (deep_sleep && (s_config.wakeup_triggers & RTC_GPIO_TRIG_EN)) {
-        gpio_deep_sleep_wakeup_prepare();
+        esp_sleep_gpio_wakeup_prepare_on_hp_periph_powerdown();
     }
 #endif
 
@@ -2129,7 +2129,7 @@ uint64_t esp_sleep_get_gpio_wakeup_status(void)
     return rtc_hal_gpio_get_wakeup_status();
 }
 
-static void gpio_deep_sleep_wakeup_prepare(void)
+static void esp_sleep_gpio_wakeup_prepare_on_hp_periph_powerdown(void)
 {
     uint32_t valid_wake_io_mask = SOC_GPIO_HP_PERIPH_PD_SLEEP_WAKEABLE_MASK;
     for (gpio_num_t gpio_idx = __builtin_ctz(valid_wake_io_mask); valid_wake_io_mask >> gpio_idx; gpio_idx++) {
@@ -2179,7 +2179,7 @@ esp_err_t esp_deep_sleep_enable_gpio_wakeup(uint64_t gpio_pin_mask, esp_deepslee
         if ((gpio_pin_mask & BIT64(gpio_idx)) == 0) {
             continue;
         }
-        err = gpio_deep_sleep_wakeup_enable(gpio_idx, intr_type);
+        err = gpio_wakeup_enable_on_hp_periph_powerdown_sleep(gpio_idx, intr_type);
 
         s_config.gpio_wakeup_mask |= BIT(gpio_idx);
         if (mode == ESP_GPIO_WAKEUP_GPIO_HIGH) {

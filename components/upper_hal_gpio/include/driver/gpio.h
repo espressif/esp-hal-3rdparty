@@ -567,11 +567,11 @@ esp_err_t gpio_sleep_set_pull_mode(gpio_num_t gpio_num, gpio_pull_mode_t pull);
 
 #if SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP
 
-#define GPIO_IS_DEEP_SLEEP_WAKEUP_VALID_GPIO(gpio_num)    ((gpio_num >= 0) && \
-                                                          (((1ULL << (gpio_num)) & SOC_GPIO_DEEP_SLEEP_WAKE_VALID_GPIO_MASK) != 0))
+#define GPIO_IS_HP_PERIPH_PD_WAKEUP_VALID_IO(gpio_num)    ((gpio_num >= 0) && \
+                                                      (((1ULL << (gpio_num)) & SOC_GPIO_HP_PERIPH_PD_SLEEP_WAKEABLE_MASK) != 0))
 
 /**
- * @brief Enable GPIO deep-sleep wake-up function.
+ * @brief Enable GPIO wake-up function on peripheral powerdowned sleep (including deepsleep and peripheral powerdowned lightsleep).
  *
  * @param gpio_num GPIO number.
  *
@@ -583,10 +583,10 @@ esp_err_t gpio_sleep_set_pull_mode(gpio_num_t gpio_num, gpio_pull_mode_t pull);
  *     - ESP_OK Success
  *     - ESP_ERR_INVALID_ARG Parameter error
  */
-esp_err_t gpio_deep_sleep_wakeup_enable(gpio_num_t gpio_num, gpio_int_type_t intr_type);
+esp_err_t gpio_wakeup_enable_on_hp_periph_powerdown_sleep(gpio_num_t gpio_num, gpio_int_type_t intr_type);
 
 /**
- * @brief Disable GPIO deep-sleep wake-up function.
+ * @brief Disable GPIO peripheral powerdowned sleep (including deepsleep and peripheral powerdowned lightsleep) wake-up function.
  *
  * @param gpio_num GPIO number
  *
@@ -594,7 +594,7 @@ esp_err_t gpio_deep_sleep_wakeup_enable(gpio_num_t gpio_num, gpio_int_type_t int
  *     - ESP_OK Success
  *     - ESP_ERR_INVALID_ARG Parameter error
  */
-esp_err_t gpio_deep_sleep_wakeup_disable(gpio_num_t gpio_num);
+esp_err_t gpio_wakeup_disable_on_hp_periph_powerdown_sleep(gpio_num_t gpio_num);
 
 #endif //SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP
 
