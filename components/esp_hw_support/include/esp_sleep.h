@@ -41,7 +41,7 @@ typedef enum {
 #endif
 #endif
 
-#if SOC_GPIO_SUPPORT_DEEPSLEEP_WAKEUP
+#if SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP
 typedef enum {
     ESP_GPIO_WAKEUP_GPIO_LOW = 0,
     ESP_GPIO_WAKEUP_GPIO_HIGH = 1
@@ -452,7 +452,7 @@ __attribute__((deprecated("please use 'esp_sleep_enable_ext1_wakeup_io' and 'esp
 #endif // SOC_PM_SUPPORT_EXT1_WAKEUP_MODE_PER_PIN
 #endif // SOC_PM_SUPPORT_EXT1_WAKEUP
 
-#if SOC_GPIO_SUPPORT_DEEPSLEEP_WAKEUP
+#if SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP
 /**
  * @brief Enable wakeup using specific gpio pins
  *
@@ -581,7 +581,7 @@ esp_err_t esp_sleep_disable_wifi_beacon_wakeup(void);
  */
 uint64_t esp_sleep_get_ext1_wakeup_status(void);
 
-#if SOC_GPIO_SUPPORT_DEEPSLEEP_WAKEUP
+#if SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP
 /**
  * @brief Get the bit mask of GPIOs which caused wakeup (gpio)
  *
@@ -590,7 +590,7 @@ uint64_t esp_sleep_get_ext1_wakeup_status(void);
  * @return bit mask, if GPIOn caused wakeup, BIT(n) will be set
  */
 uint64_t esp_sleep_get_gpio_wakeup_status(void);
-#endif //SOC_GPIO_SUPPORT_DEEPSLEEP_WAKEUP
+#endif //SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP
 
 /**
  * @brief Configure power domain options for sleep mode

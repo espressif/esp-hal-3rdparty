@@ -565,7 +565,7 @@ esp_err_t gpio_sleep_set_direction(gpio_num_t gpio_num, gpio_mode_t mode);
  */
 esp_err_t gpio_sleep_set_pull_mode(gpio_num_t gpio_num, gpio_pull_mode_t pull);
 
-#if SOC_GPIO_SUPPORT_DEEPSLEEP_WAKEUP
+#if SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP
 
 #define GPIO_IS_DEEP_SLEEP_WAKEUP_VALID_GPIO(gpio_num)    ((gpio_num >= 0) && \
                                                           (((1ULL << (gpio_num)) & SOC_GPIO_DEEP_SLEEP_WAKE_VALID_GPIO_MASK) != 0))
@@ -596,7 +596,7 @@ esp_err_t gpio_deep_sleep_wakeup_enable(gpio_num_t gpio_num, gpio_int_type_t int
  */
 esp_err_t gpio_deep_sleep_wakeup_disable(gpio_num_t gpio_num);
 
-#endif //SOC_GPIO_SUPPORT_DEEPSLEEP_WAKEUP
+#endif //SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP
 
 /**
  * @brief Dump IO configuration information to console

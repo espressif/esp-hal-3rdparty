@@ -225,7 +225,7 @@
 // LP IO peripherals have independent clock gating to manage
 #define SOC_LP_IO_CLOCK_IS_INDEPENDENT      (1)
 
-// GPIO7~14 on ESP32H2 can support chip deep sleep wakeup through EXT1 wake up
+// GPIO7~14 on ESP32H2 can support chip HP peripheral powerdown-ed sleep wakeup through EXT1 wake up
 
 #define SOC_GPIO_VALID_GPIO_MASK        ((1U << SOC_GPIO_PIN_COUNT) - 1)
 #define SOC_GPIO_VALID_OUTPUT_GPIO_MASK SOC_GPIO_VALID_GPIO_MASK

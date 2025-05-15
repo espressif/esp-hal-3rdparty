@@ -497,7 +497,7 @@ void gpio_hal_matrix_out(gpio_hal_context_t *hal, uint32_t gpio_num, uint32_t si
   */
 #define gpio_hal_sleep_output_enable(hal, gpio_num) gpio_ll_sleep_output_enable((hal)->dev, gpio_num)
 
-#if SOC_GPIO_SUPPORT_DEEPSLEEP_WAKEUP && (SOC_RTCIO_PIN_COUNT == 0) && SOC_DEEP_SLEEP_SUPPORTED
+#if SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP && (SOC_RTCIO_PIN_COUNT == 0) && SOC_DEEP_SLEEP_SUPPORTED
 /**
  * @brief Enable GPIO deep-sleep wake-up function.
  *
@@ -524,7 +524,7 @@ void gpio_hal_matrix_out(gpio_hal_context_t *hal, uint32_t gpio_num, uint32_t si
  * @return True if the pin is enabled to wake up from deep-sleep
  */
 #define gpio_hal_deepsleep_wakeup_is_enabled(hal, gpio_num) gpio_ll_deepsleep_wakeup_is_enabled((hal)->dev, gpio_num)
-#endif //SOC_GPIO_SUPPORT_DEEPSLEEP_WAKEUP && (SOC_RTCIO_PIN_COUNT == 0) && SOC_DEEP_SLEEP_SUPPORTED
+#endif //SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP && (SOC_RTCIO_PIN_COUNT == 0)
 
 #if SOC_GPIO_SUPPORT_PIN_HYS_FILTER
 /**

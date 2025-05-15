@@ -244,8 +244,8 @@ void esp_deep_sleep_wakeup_io_reset(void)
     }
 #endif
 
-#if SOC_GPIO_SUPPORT_DEEPSLEEP_WAKEUP
-    uint32_t dl_io_mask = SOC_GPIO_DEEP_SLEEP_WAKE_VALID_GPIO_MASK;
+#if SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP
+    uint32_t dl_io_mask = SOC_GPIO_HP_PERIPH_PD_SLEEP_WAKEABLE_MASK;
     gpio_hal_context_t gpio_hal = {
         .dev = GPIO_HAL_GET_HW(GPIO_PORT_0)
     };
