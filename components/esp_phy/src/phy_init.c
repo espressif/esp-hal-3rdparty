@@ -30,6 +30,7 @@
 #include <nuttx/spinlock.h>
 #include <nuttx/irq.h>
 #include <nuttx/queue.h>
+#include <nuttx/kmalloc.h>
 #ifdef CONFIG_IDF_TARGET_ESP32
 #include "esp32_rt_timer.h"
 #elif defined(CONFIG_IDF_TARGET_ESP32S2)
