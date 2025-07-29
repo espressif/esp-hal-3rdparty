@@ -728,13 +728,13 @@ static inline void gpio_ll_sleep_output_enable(gpio_dev_t *hw, uint32_t gpio_num
 }
 
 /**
- * @brief Enable GPIO deep-sleep wake-up function.
+ * @brief Enable GPIO wake-up on HP periph powerdown sleep function.
  *
  * @param hw Peripheral GPIO hardware instance address.
  * @param gpio_num GPIO number.
  * @param intr_type GPIO wake-up type. Only GPIO_INTR_LOW_LEVEL or GPIO_INTR_HIGH_LEVEL can be used.
  */
-static inline void gpio_ll_deepsleep_wakeup_enable(gpio_dev_t *hw, uint32_t gpio_num, gpio_int_type_t intr_type)
+static inline void gpio_ll_wakeup_enable_on_hp_periph_powerdown_sleep(gpio_dev_t *hw, uint32_t gpio_num, gpio_int_type_t intr_type)
 {
     HAL_ASSERT((gpio_num >= GPIO_NUM_7 && gpio_num <= GPIO_NUM_14) &&
                "only gpio7~14 support deep sleep wake-up function");
@@ -756,12 +756,12 @@ static inline void gpio_ll_deepsleep_wakeup_enable(gpio_dev_t *hw, uint32_t gpio
 }
 
 /**
- * @brief Disable GPIO deep-sleep wake-up function.
+ * @brief Disable GPIO wake-up on HP periph powerdown sleep function.
  *
  * @param hw Peripheral GPIO hardware instance address.
  * @param gpio_num GPIO number
  */
-static inline void gpio_ll_deepsleep_wakeup_disable(gpio_dev_t *hw, uint32_t gpio_num)
+static inline void gpio_ll_wakeup_disable_on_hp_periph_powerdown_sleep(gpio_dev_t *hw, uint32_t gpio_num)
 {
     HAL_ASSERT((gpio_num >= GPIO_NUM_7 && gpio_num <= GPIO_NUM_14) &&
                "only gpio7~14 support deep sleep wake-up function");
@@ -772,13 +772,13 @@ static inline void gpio_ll_deepsleep_wakeup_disable(gpio_dev_t *hw, uint32_t gpi
 }
 
 /**
- * @brief Get the status of whether an IO is used for deep-sleep wake-up.
+ * @brief Get the status of whether an IO is used for HP periph powerdown sleep wake-up.
  *
  * @param hw Peripheral GPIO hardware instance address.
  * @param gpio_num GPIO number
- * @return True if the pin is enabled to wake up from deep-sleep
+ * @return True if the pin is enabled to wake up from HP periph powerdown sleep.
  */
-static inline bool gpio_ll_deepsleep_wakeup_is_enabled(gpio_dev_t *hw, uint32_t gpio_num)
+static inline bool gpio_ll_hp_periph_powerdown_sleep_wakeup_is_enabled(gpio_dev_t *hw, uint32_t gpio_num)
 {
     HAL_ASSERT((gpio_num >= GPIO_NUM_7 && gpio_num <= GPIO_NUM_14) &&
                "only gpio7~14 support deep sleep wake-up function");

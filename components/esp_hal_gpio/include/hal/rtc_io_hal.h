@@ -297,9 +297,9 @@ void rtcio_hal_isolate(int rtcio_num);
 
 #if SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP && (SOC_RTCIO_PIN_COUNT > 0)
 
-#define gpio_hal_deepsleep_wakeup_enable(hal, gpio_num, intr_type)  rtcio_hal_wakeup_enable(rtc_io_num_map[gpio_num], intr_type)
-#define gpio_hal_deepsleep_wakeup_disable(hal, gpio_num)            rtcio_hal_wakeup_disable(rtc_io_num_map[gpio_num])
-#define gpio_hal_deepsleep_wakeup_is_enabled(hal, gpio_num)         rtcio_hal_wakeup_is_enabled(rtc_io_num_map[gpio_num])
+#define gpio_hal_wakeup_enable_on_hp_periph_powerdown_sleep(hal, gpio_num, intr_type)  rtcio_hal_wakeup_enable(rtc_io_num_map[gpio_num], intr_type)
+#define gpio_hal_wakeup_disable_on_hp_periph_powerdown_sleep(hal, gpio_num)            rtcio_hal_wakeup_disable(rtc_io_num_map[gpio_num])
+#define gpio_hal_wakeup_is_enabled_on_hp_periph_powerdown_sleep(hal, gpio_num)         rtcio_hal_wakeup_is_enabled(rtc_io_num_map[gpio_num])
 #define rtc_hal_gpio_get_wakeup_status()                            rtcio_hal_get_interrupt_status()
 #define rtc_hal_gpio_clear_wakeup_status()                          rtcio_hal_clear_interrupt_status()
 
