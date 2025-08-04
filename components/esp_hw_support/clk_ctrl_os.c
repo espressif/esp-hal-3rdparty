@@ -24,7 +24,7 @@
             spin_unlock_irqrestore((lock), g_flags); \
             g_flags = UINT32_MAX; \
         } while(0)
-#define LOCK_INITIALIZER_UNLOCKED       0
+#define LOCK_INITIALIZER_UNLOCKED       SP_UNLOCKED
 
 typedef spinlock_t lock_type_t;
 static irqstate_t g_flags = UINT32_MAX;
