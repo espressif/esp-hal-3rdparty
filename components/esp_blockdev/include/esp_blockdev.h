@@ -46,7 +46,7 @@ extern "C" {
  * Supplied to ESP_BLOCKDEV_CMD_ERASE_CONTENTS and similar ioctls to describe
  * the erase window.
  */
-typedef struct {
+typedef struct esp_blockdev_cmd_arg_erase {
     uint64_t start_addr;                            /*!< IN  - starting address of the disk space to erase/trim/discard/sanitize (in bytes), must be a multiple of erase block size */
     size_t erase_len;                               /*!< IN  - size of the area to erase/trim/discard/sanitize (in bytes), must be a multiple of erase block size */
 } esp_blockdev_cmd_arg_erase_t;
@@ -59,7 +59,7 @@ typedef struct {
  *  @note Convenience macros ESP_BLOCKDEV_FLAGS_<INST>_CONFIG_DEFAULT() provide the most common setup of usual ESP-IDF component equipped with BDL interface. They can be used as a starting point for own initializers.
  */
 #if defined(__DOXYGEN__)
-typedef struct {
+typedef struct esp_blockdev_flags {
     uint32_t read_only: 1;                          /*!< no erase/write operations allowed */
     uint32_t encrypted: 1;                          /*!< the device data is encrypted */
     uint32_t erase_before_write: 1;                 /*!< erasing required before any write operation */
@@ -69,7 +69,7 @@ typedef struct {
     uint32_t val;                                   /*!< Raw bitfield view for bulk initialization */
 } esp_blockdev_flags_t;
 #else
-typedef union {
+typedef union esp_blockdev_flags {
     struct {
         uint32_t read_only: 1;                      /*!< no erase/write operations allowed */
         uint32_t encrypted: 1;                      /*!< the device data is encrypted */
@@ -107,7 +107,7 @@ typedef union {
  *
  * Various block size parameters needed for proper R/W/E processing on given device.
  */
-typedef struct {
+typedef struct esp_blockdev_geometry {
 
     /** Size of the device disk space (in bytes).
      *  Mandatory parameter.
@@ -161,7 +161,7 @@ typedef esp_blockdev_t* esp_blockdev_handle_t;
  *
  * Various block operations needed for proper R/W/E processing on given device.
  */
-typedef struct {
+typedef struct esp_blockdev_ops {
 
     /** READ operation:
      *   Read required number of bytes from the device at given offset, store the data into the output buffer.
