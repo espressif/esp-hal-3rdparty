@@ -158,8 +158,8 @@
 // ESP32-S31 has 1 GPIO peripheral
 #define SOC_GPIO_PORT                      1U
 #define SOC_GPIO_PIN_COUNT                 62
-// #define SOC_GPIO_SUPPORT_PIN_GLITCH_FILTER 1 // TODO: [ESP32S31] IDF-14781
-// #define SOC_GPIO_FLEX_GLITCH_FILTER_NUM    8 // TODO: [ESP32S31] IDF-14781
+#define SOC_GPIO_SUPPORT_PIN_GLITCH_FILTER 1
+#define SOC_GPIO_FLEX_GLITCH_FILTER_NUM    8
 #define SOC_GPIO_SUPPORT_PIN_HYS_FILTER    1
 
 // GPIO peripheral has the ETM extension
