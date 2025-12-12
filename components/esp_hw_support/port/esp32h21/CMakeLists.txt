@@ -11,6 +11,10 @@ if(CONFIG_SOC_PMU_SUPPORTED)
         )
 endif()
 
+if(CONFIG_SOC_MODEM_CLOCK_IS_INDEPENDENT AND CONFIG_SOC_MODEM_CLOCK_SUPPORTED)
+    list(APPEND srcs "modem_clock_impl.c")
+endif()
+
 add_prefix(srcs "${CMAKE_CURRENT_LIST_DIR}/" "${srcs}")
 
 target_sources(${COMPONENT_LIB} PRIVATE "${srcs}")

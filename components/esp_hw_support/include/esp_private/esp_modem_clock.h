@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2022-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2022-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -15,14 +15,107 @@
 #include "soc/periph_defs.h"
 #include "hal/modem_clock_types.h"
 #include "esp_private/esp_pmu.h"
+#include "esp_private/critical_section.h"
 
-#if SOC_MODEM_CLOCK_IS_INDEPENDENT
+#if SOC_MODEM_CLOCK_IS_INDEPENDENT && SOC_MODEM_CLOCK_SUPPORTED
 #include "hal/modem_clock_hal.h"
 #endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#if SOC_MODEM_CLOCK_IS_INDEPENDENT && SOC_MODEM_CLOCK_SUPPORTED
+// Please define the frequently called modules in the low bit,
+// which will improve the execution efficiency
+typedef enum {
+    MODEM_CLOCK_MODEM_ADC_COMMON_FE,
+    MODEM_CLOCK_MODEM_PRIVATE_FE,
+    MODEM_CLOCK_COEXIST,
+#if ANA_I2C_MST_CLK_HAS_ROOT_GATING
+    MODEM_CLOCK_I2C_MASTER,
+#endif
+#if SOC_PHY_CALIBRATION_CLOCK_IS_INDEPENDENT
+    MODEM_CLOCK_WIFI_APB,
+    MODEM_CLOCK_WIFI_BB_44M,
+#endif
+#if SOC_WIFI_SUPPORTED
+    MODEM_CLOCK_WIFI_MAC,
+    MODEM_CLOCK_WIFI_BB,
+#endif
+    MODEM_CLOCK_ETM,
+#if SOC_BT_SUPPORTED
+    MODEM_CLOCK_BLE_MAC,
+#endif
+#if SOC_BT_SUPPORTED || SOC_IEEE802154_SUPPORTED
+    MODEM_CLOCK_BT_I154_COMMON_BB,
+#endif
+#if SOC_IEEE802154_SUPPORTED
+    MODEM_CLOCK_802154_MAC,
+#endif
+    MODEM_CLOCK_DATADUMP,
+    MODEM_CLOCK_DEVICE_MAX
+} modem_clock_device_t;
+
+#define MODEM_STATUS_IDLE           (0)
+#define MODEM_STATUS_WIFI_INITED    (0x1UL)
+
+struct modem_clock_context;
+
+typedef struct {
+    int16_t     refs;               /* Reference count for this device, if with_refcnt is enabled */
+    uint16_t    with_refcnt : 1;    /* Enable reference count management (true=use refs, false=ignore refs) */
+    uint16_t    reserved    : 15;   /* reserved for 15 bits aligned */
+    void        (*configure)(struct modem_clock_context *, bool);
+#if CONFIG_ESP_MODEM_CLOCK_ENABLE_CHECKING
+    esp_err_t   (*check_enable)(struct modem_clock_context *);
+#endif
+} modem_clock_device_context_t;
+
+typedef struct modem_clock_context {
+    modem_clock_hal_context_t *hal;
+    spinlock_t                lock;
+    modem_clock_device_context_t *dev;
+#if SOC_PM_SUPPORT_PMU_MODEM_STATE
+    const uint8_t *initial_gating_mode;
+#endif
+    /* the low-power clock source for each module */
+    modem_clock_lpclk_src_t lpclk_src[PERIPH_MODEM_MODULE_NUM];
+#if SOC_WIFI_SUPPORTED
+    uint32_t modem_status;
+#endif
+} modem_clock_context_t;
+
+/**
+ * @brief Get module clock dependencies
+ * Each chip implements this function in its port file
+ * @param module The modem module
+ * @return Bitmask of clock dependencies
+ */
+uint32_t modem_clock_get_module_deps(shared_periph_module_t module);
+
+/**
+ * @brief Modem clock device context array
+ * Each chip defines this array in its port file
+ */
+extern modem_clock_device_context_t g_modem_clock_dev[MODEM_CLOCK_DEVICE_MAX];
+
+#if SOC_PM_SUPPORT_PMU_MODEM_STATE
+/**
+ * @brief Initial gating mode for each clock domain
+ * Each chip defines this array in its port file
+ */
+extern const uint8_t g_initial_gating_mode[MODEM_CLOCK_DOMAIN_MAX];
+#endif
+
+#if SOC_PM_SUPPORT_PMU_MODEM_STATE
+/* the ICG code's bit 0, 1 and 2 indicates the ICG state
+ * of pmu SLEEP, MODEM and ACTIVE mode respectively */
+ #define ICG_NOGATING_ACTIVE (BIT(PMU_HP_ICG_MODEM_CODE_ACTIVE))
+ #define ICG_NOGATING_SLEEP  (BIT(PMU_HP_ICG_MODEM_CODE_SLEEP))
+ #define ICG_NOGATING_MODEM  (BIT(PMU_HP_ICG_MODEM_CODE_MODEM))
+#endif // SOC_PM_SUPPORT_PMU_MODEM_STATE
+#endif // SOC_MODEM_CLOCK_IS_INDEPENDENT && SOC_MODEM_CLOCK_SUPPORTED
 
 /**
  * @brief Enable the clock of modem module
@@ -93,28 +186,13 @@ void modem_clock_module_mac_reset(shared_periph_module_t module);
 
 #if SOC_BLE_USE_WIFI_PWR_CLK_WORKAROUND
 /**
- * @brief Enable modem clock domain clock gate to gate it's output
+ * @brief Apply or clear BT low-power clock workaround for enabling Wi-Fi power clock
  *
- * @param domain modem module clock domain
- * @param mode   PMU HP system ACTIVE, MODEM and SLEEP state
- *
- * @return
- *      - ESP_OK on success
- *      - ESP_ERR_INVALID_ARG if the argument value are not correct
+ * @param ctx    modem clock context
+ * @param select true to apply (ungate); false to clear (gate)
+ * @param src    lowpower clock source
  */
-esp_err_t modem_clock_domain_clk_gate_enable(modem_clock_domain_t domain, pmu_hp_icg_modem_mode_t mode);
-
-/**
- * @brief Disable modem clock domain clock gate to ungate it's output
- *
- * @param domain modem module clock domain
- * @param mode   PMU HP system ACTIVE, MODEM and SLEEP state
- *
- * @return
- *      - ESP_OK on success
- *      - ESP_ERR_INVALID_ARG if the argument value are not correct
- */
-esp_err_t modem_clock_domain_clk_gate_disable(modem_clock_domain_t domain, pmu_hp_icg_modem_mode_t mode);
+void modem_clock_bt_wifipwr_clk_workaround(modem_clock_context_t *ctx, bool select, modem_clock_lpclk_src_t src);
 #endif
 
 /**
@@ -136,6 +214,17 @@ void modem_clock_deselect_lp_clock_source(shared_periph_module_t module);
 * @brief Disable all modem module's lowpower clock source selection
  */
 void modem_clock_deselect_all_module_lp_clock_source(void);
+
+#if CONFIG_IDF_TARGET_ESP32H2
+/**
+ * @brief BLE RTC timer LPCLK workaround on ESP32H2
+ *
+ * @param ctx    modem clock context
+ * @param enable true to enable rc32k; false to disable rc32k
+ * @param src    lowpower clock source
+ */
+void modem_clock_select_ble_rtc_timer_clk_workaround(modem_clock_context_t *ctx, bool enable, modem_clock_lpclk_src_t src);
+#endif
 
 /**
  * @brief Reset wifi mac
