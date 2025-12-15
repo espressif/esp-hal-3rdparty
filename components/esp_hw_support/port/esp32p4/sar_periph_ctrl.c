@@ -19,7 +19,6 @@
 #include "freertos/FreeRTOS.h"
 #include "esp_private/sar_periph_ctrl.h"
 #include "esp_private/regi2c_ctrl.h"
-#include "esp_private/esp_modem_clock.h"
 #include "esp_private/critical_section.h"
 #include "esp_private/adc_share_hw_ctrl.h"
 #include "hal/sar_ctrl_ll.h"

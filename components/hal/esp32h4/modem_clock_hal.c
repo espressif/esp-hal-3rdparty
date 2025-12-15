@@ -48,9 +48,6 @@ void IRAM_ATTR modem_clock_hal_set_clock_domain_icg_bitmap(modem_clock_hal_conte
     case MODEM_CLOCK_DOMAIN_COEX:
         modem_lpcon_ll_set_coex_icg_bitmap(hal->lpcon_dev, bitmap);
         break;
-    case MODEM_CLOCK_DOMAIN_WIFIPWR:
-        modem_lpcon_ll_set_wifipwr_icg_bitmap(hal->lpcon_dev, bitmap);
-        break;
     default:
         HAL_ASSERT(0);
     }
@@ -82,6 +79,9 @@ uint32_t IRAM_ATTR modem_clock_hal_get_clock_domain_icg_bitmap(modem_clock_hal_c
         break;
     case MODEM_CLOCK_DOMAIN_I2C_MASTER:
         bitmap = modem_lpcon_ll_get_i2c_master_icg_bitmap(hal->lpcon_dev);
+        break;
+    case MODEM_CLOCK_DOMAIN_COEX:
+        bitmap = modem_lpcon_ll_get_coex_icg_bitmap(hal->lpcon_dev);
         break;
     default:
         HAL_ASSERT(0);

@@ -31,7 +31,6 @@
 #define SOC_AHB_GDMA_SUPPORTED          1
 #define SOC_GPTIMER_SUPPORTED           1
 #define SOC_BT_SUPPORTED                1
-//  \#define SOC_IEEE802154_SUPPORTED        1
 #define SOC_USB_SERIAL_JTAG_SUPPORTED   1
 #define SOC_ASYNC_MEMCPY_SUPPORTED      1
 #define SOC_TEMP_SENSOR_SUPPORTED       1

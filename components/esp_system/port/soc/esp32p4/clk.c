@@ -22,7 +22,6 @@
 #include "mspi_timing_tuning_configs.h"
 #include "hal/clk_gate_ll.h"
 #include "hal/wdt_hal.h"
-#include "esp_private/esp_modem_clock.h"
 #include "esp_private/esp_sleep_internal.h"
 #include "esp_private/esp_clk.h"
 #include "esp_private/esp_pmu.h"
