@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2010-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2010-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -49,8 +49,6 @@ typedef struct {
     _Atomic spi_bus_fsm_t fsm;
     spi_dma_ctx_t   *dma_ctx;
     uint16_t internal_mem_align_size;
-    int max_transfer_sz;
-    uint32_t flags;
     portMUX_TYPE int_spinlock;
     intr_handle_t intr;
     intr_handle_t intr_dma;
@@ -131,10 +129,11 @@ esp_err_t spi_slave_hd_init(spi_host_device_t host_id, const spi_bus_config_t *b
     host->bus_attr = (spi_bus_attr_t *)spi_bus_get_attr(host_id);
     host->cs_io_num = config->spics_io_num;
 
-    ret = spicommon_dma_chan_alloc(host_id, config->dma_chan, &host->dma_ctx);
+    ret = spicommon_dma_chan_alloc(host_id, config->dma_chan);
     if (ret != ESP_OK) {
         goto cleanup;
     }
+    host->dma_ctx = spi_bus_get_dma_ctx(host_id);
 #if SOC_GDMA_SUPPORTED
     gdma_strategy_config_t dma_strategy = {
         .auto_update_desc = true,
@@ -145,7 +144,7 @@ esp_err_t spi_slave_hd_init(spi_host_device_t host_id, const spi_bus_config_t *b
     spi_dma_ll_enable_out_auto_wrback(SPI_LL_GET_HW(host->dma_ctx->tx_dma_chan.host_id), host->dma_ctx->tx_dma_chan.chan_id, 1);
     spi_dma_ll_set_out_eof_generation(SPI_LL_GET_HW(host->dma_ctx->tx_dma_chan.host_id), host->dma_ctx->tx_dma_chan.chan_id, 1);
 #endif
-    ret = spicommon_dma_desc_alloc(host->dma_ctx, bus_config->max_transfer_sz, &host->max_transfer_sz);
+    ret = spicommon_dma_desc_alloc(host_id, bus_config->max_transfer_sz, &host->bus_attr->max_transfer_sz);
     if (ret != ESP_OK) {
         goto cleanup;
     }
@@ -171,12 +170,11 @@ esp_err_t spi_slave_hd_init(spi_host_device_t host_id, const spi_bus_config_t *b
     host->internal_mem_align_size = 4;
 #endif
 
-    ret = spicommon_bus_initialize_io(host_id, bus_config, SPICOMMON_BUSFLAG_SLAVE | bus_config->flags, NULL, NULL);
+    ret = spicommon_bus_initialize_io(host_id, bus_config, SPICOMMON_BUSFLAG_SLAVE | bus_config->flags, NULL);
     if (ret != ESP_OK) {
         goto cleanup;
     }
     spicommon_cs_initialize(host_id, config->spics_io_num, 0, !(bus_config->flags & SPICOMMON_BUSFLAG_NATIVE_PINS), NULL);
-    host->flags = host->bus_attr->flags; // This flag MUST be set after spicommon_bus_initialize_io is called
 
     spi_slave_hd_hal_config_t hal_config = {
         .host_id = host_id,
@@ -351,12 +349,10 @@ esp_err_t spi_slave_hd_deinit(spi_host_device_t host_id)
 
     spicommon_bus_free_io_cfg(host_id);
     spicommon_cs_free_io(host->cs_io_num, &host->bus_attr->gpio_reserve);
-    spicommon_bus_free(host_id);
-    free(host->dma_ctx->dmadesc_tx);
-    free(host->dma_ctx->dmadesc_rx);
     free(host->hal.dmadesc_tx);
     free(host->hal.dmadesc_rx);
-    spicommon_dma_chan_free(host->dma_ctx);
+    spicommon_dma_chan_free(host_id);
+    spicommon_bus_free(host_id);
 
     free(host);
     spihost[host_id] = NULL;
@@ -842,7 +838,7 @@ esp_err_t spi_slave_hd_queue_trans(spi_host_device_t host_id, spi_slave_chan_t c
 
     SPIHD_CHECK(host->append_mode == 0, "This API should be used for SPI Slave HD Segment Mode", ESP_ERR_INVALID_STATE);
     SPIHD_CHECK(esp_ptr_dma_capable(trans->data), "The buffer should be DMA capable.", ESP_ERR_INVALID_ARG);
-    SPIHD_CHECK(trans->len <= host->max_transfer_sz && trans->len > 0, "Invalid buffer size", ESP_ERR_INVALID_ARG);
+    SPIHD_CHECK(trans->len <= host->bus_attr->max_transfer_sz && trans->len > 0, "Invalid buffer size", ESP_ERR_INVALID_ARG);
     SPIHD_CHECK(chan == SPI_SLAVE_CHAN_TX || chan == SPI_SLAVE_CHAN_RX, "Invalid channel", ESP_ERR_INVALID_ARG);
 
     spi_slave_hd_trans_priv_t hd_priv_trans = {.trans = trans};
@@ -895,7 +891,7 @@ esp_err_t spi_slave_hd_append_trans(spi_host_device_t host_id, spi_slave_chan_t 
     SPIHD_CHECK(trans->len <= SPI_MAX_DMA_LEN, "Currently we only support transaction with data length within 4092 bytes", ESP_ERR_INVALID_ARG);
     SPIHD_CHECK(host->append_mode == 1, "This API should be used for SPI Slave HD Append Mode", ESP_ERR_INVALID_STATE);
     SPIHD_CHECK(esp_ptr_dma_capable(trans->data), "The buffer should be DMA capable.", ESP_ERR_INVALID_ARG);
-    SPIHD_CHECK(trans->len <= host->max_transfer_sz && trans->len > 0, "Invalid buffer size", ESP_ERR_INVALID_ARG);
+    SPIHD_CHECK(trans->len <= host->bus_attr->max_transfer_sz && trans->len > 0, "Invalid buffer size", ESP_ERR_INVALID_ARG);
     SPIHD_CHECK(chan == SPI_SLAVE_CHAN_TX || chan == SPI_SLAVE_CHAN_RX, "Invalid channel", ESP_ERR_INVALID_ARG);
 
     spi_slave_hd_trans_priv_t hd_priv_trans = {.trans = trans};
