@@ -99,3 +99,15 @@ bool spi_slave_hal_dma_need_reset(const spi_slave_hal_context_t *hal)
 #endif // SPI_LL_SLAVE_NEEDS_RESET_WORKAROUND
     return ret;
 }
+
+#if SOC_SPI_SUPPORT_SLAVE_HD_VER2
+bool spi_slave_hal_get_intr_status(spi_slave_hal_context_t *hal, uint32_t mask)
+{
+    return spi_ll_get_intr(hal->hw, mask);
+}
+
+void spi_slave_hal_clear_intr_status(spi_slave_hal_context_t *hal, uint32_t mask)
+{
+    spi_ll_clear_intr(hal->hw, mask);
+}
+#endif

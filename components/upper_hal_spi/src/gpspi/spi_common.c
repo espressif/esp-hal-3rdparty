@@ -13,6 +13,7 @@
 #include "esp_check.h"
 #include "esp_cache.h"
 #include "esp_heap_caps.h"
+#include "esp_memory_utils.h"
 #include "driver/spi_master.h"
 #include "driver/gpio.h"
 #include "esp_private/gpio.h"
@@ -378,6 +379,56 @@ void SPI_COMMON_ISR_ATTR spicommon_dma_desc_setup_link(spi_dma_desc_t *dmadesc, 
     }
     dmadesc[n - 1].dw0.suc_eof = 1; //Mark last DMA desc as end of stream.
     dmadesc[n - 1].next = NULL;
+}
+
+esp_err_t SPI_COMMON_ISR_ATTR spicommon_dma_setup_priv_buffer(spi_host_device_t host_id, uint32_t *buffer, uint32_t len, bool is_tx, bool psram_prefer, bool auto_malloc, uint32_t **ret_buffer)
+{
+    spi_bus_attr_t *bus_attr = spi_bus_get_attr(host_id);
+    spi_dma_ctx_t *dma_ctx = spi_bus_get_dma_ctx(host_id);
+    assert(bus_attr && dma_ctx);
+    if ((buffer == NULL) || (len == 0)) {
+        *ret_buffer = buffer;
+        return ESP_OK;
+    }
+
+    bool is_ptr_ext = esp_ptr_external_ram(buffer);
+    bool use_psram = is_ptr_ext && psram_prefer;
+#if SOC_IS(ESP32S2)
+    ESP_RETURN_ON_FALSE_ISR((host_id != SPI3_HOST) || !use_psram, ESP_ERR_NOT_SUPPORTED, SPI_TAG, "SPI3 does not support external memory");
+#endif
+    bool need_malloc = is_ptr_ext ? (!use_psram || !esp_ptr_dma_ext_capable(buffer)) : !esp_ptr_dma_capable(buffer);
+    // If psram is wanted, re-malloc also from psram.
+    uint32_t mem_cap = MALLOC_CAP_DMA | (use_psram ? MALLOC_CAP_SPIRAM : MALLOC_CAP_INTERNAL);
+    uint16_t alignment = 0;
+    if (is_tx) {
+        alignment = use_psram ? dma_ctx->dma_align_tx_ext : dma_ctx->dma_align_tx_int;
+    } else {
+        // RX cache sync still need consider the cache alignment requirement
+        if (use_psram) {
+            alignment = MAX(dma_ctx->dma_align_rx_ext, bus_attr->cache_align_ext);
+        } else {
+            alignment = MAX(dma_ctx->dma_align_rx_int, bus_attr->cache_align_int);
+        }
+    }
+    need_malloc |= (((uint32_t)buffer | len) & (alignment - 1));
+    uint32_t align_len = (len + alignment - 1) & (~(alignment - 1));   // up align alignment
+    ESP_EARLY_LOGV(SPI_TAG, "SPI%d %s %p, len %d, is_ptr_ext %d, use_psram: %d, alignment: %d, need_malloc: %d from %s", host_id + 1, is_tx ? "TX" : "RX", buffer, len, is_ptr_ext, use_psram, alignment, need_malloc, (mem_cap & MALLOC_CAP_SPIRAM) ? "psram" : "internal");
+    if (need_malloc) {
+        ESP_RETURN_ON_FALSE_ISR(auto_malloc, ESP_ERR_INVALID_STATE, SPI_TAG, "%s addr&len not align to %d, or not dma_capable, suggest use 'heap_caps_malloc' or enable auto_align", is_tx ? "TX" : "RX", alignment);
+        uint32_t *temp = heap_caps_aligned_alloc(alignment, align_len, mem_cap);
+        ESP_RETURN_ON_FALSE_ISR(temp != NULL, ESP_ERR_NO_MEM, SPI_TAG, "Failed to allocate priv %s buffer", is_tx ? "TX" : "RX");
+
+        if (is_tx) {
+            memcpy(temp, buffer, len);
+        }
+        buffer = temp;
+    }
+    *ret_buffer = buffer;
+    uint32_t sync_flags = is_tx ? (ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_UNALIGNED) : ESP_CACHE_MSYNC_FLAG_DIR_M2C;
+    esp_err_t ret = esp_cache_msync((void *)buffer, need_malloc ? align_len : len, sync_flags);
+    // ESP_ERR_NOT_SUPPORTED stands for not cache sync required, it's allowed here
+    ESP_RETURN_ON_FALSE_ISR((ret == ESP_OK) || (ret == ESP_ERR_NOT_SUPPORTED), ESP_ERR_INVALID_ARG, SPI_TAG, "sync failed for %s buffer", is_tx ? "TX" : "RX");
+    return ESP_OK;
 }
 
 //----------------------------------------------------------free dma periph-------------------------------------------------------//
@@ -943,7 +994,7 @@ void *spi_bus_dma_memory_alloc(spi_host_device_t host_id, size_t size, uint32_t 
     return heap_caps_aligned_calloc(alignment, 1, size, extra_heap_caps | MALLOC_CAP_DMA);
 }
 
-spi_bus_attr_t* spi_bus_get_attr(spi_host_device_t host_id)
+SPI_COMMON_ISR_ATTR spi_bus_attr_t* spi_bus_get_attr(spi_host_device_t host_id)
 {
     if (bus_ctx[host_id] == NULL) {
         return NULL;
@@ -952,7 +1003,7 @@ spi_bus_attr_t* spi_bus_get_attr(spi_host_device_t host_id)
     return &bus_ctx[host_id]->bus_attr;
 }
 
-spi_dma_ctx_t* spi_bus_get_dma_ctx(spi_host_device_t host_id)
+SPI_COMMON_ISR_ATTR spi_dma_ctx_t* spi_bus_get_dma_ctx(spi_host_device_t host_id)
 {
     return spi_dma_ctx[host_id];
 }

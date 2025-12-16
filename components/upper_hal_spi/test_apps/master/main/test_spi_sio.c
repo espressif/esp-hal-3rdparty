@@ -75,7 +75,7 @@ TEST_CASE("SPI Single Board Test SIO", "[spi]")
     spi_slave_interface_config_t slv_cfg = SPI_SLAVE_TEST_DEFAULT_CONFIG();
     TEST_ESP_OK(spi_slave_initialize(TEST_SLAVE_HOST, &bus_cfg, &slv_cfg, SPI_DMA_DISABLED));
 
-    same_pin_func_sel(bus_cfg, dev_cfg.spics_io_num, 0, false);
+    same_pin_func_sel(TEST_SPI_HOST, TEST_SLAVE_HOST, bus_cfg, dev_cfg.spics_io_num);
     inner_connect(bus_cfg);
 
     WORD_ALIGNED_ATTR uint8_t master_rx_buffer[320];

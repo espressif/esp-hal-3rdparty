@@ -136,6 +136,23 @@ esp_err_t spicommon_dma_desc_alloc(spi_host_device_t host_id, int cfg_max_sz, in
 void spicommon_dma_desc_setup_link(spi_dma_desc_t *dmadesc, const void *data, int len, bool is_rx);
 
 /**
+ * @brief Setup private buffer for DMA transfer
+ *
+ * @param host_id   SPI host ID to access the DMA context
+ * @param buffer    buffer to be setup
+ * @param len       length of buffer, in byte
+ * @param is_tx     if buffer is for tx/transmit direction
+ * @param psram_prefer if psram is preferred
+ * @param auto_malloc if auto malloc is enabled
+ * @param ret_buffer  return buffer, which is the buffer that is actually used for DMA transfer
+ *
+ * @return
+ *        - ESP_OK: On success
+ *        - ESP_ERR_NO_MEM: No enough memory
+ */
+esp_err_t spicommon_dma_setup_priv_buffer(spi_host_device_t host_id, uint32_t *buffer, uint32_t len, bool is_tx, bool psram_prefer, bool auto_malloc, uint32_t **ret_buffer);
+
+/**
  * @brief Free DMA for SPI
  *
  * @param host_id   SPI host ID

@@ -185,6 +185,7 @@ esp_err_t spi_slave_queue_trans(spi_host_device_t host, const spi_slave_transact
  * @return
  *         - ESP_ERR_INVALID_ARG   if parameter is invalid
  *         - ESP_ERR_NOT_SUPPORTED if flag `SPI_SLAVE_NO_RETURN_RESULT` is set
+ *         - ESP_ERR_INVALID_STATE if dma over/underflow error occurs during psram transfer
  *         - ESP_OK                on success
  */
 esp_err_t spi_slave_get_trans_result(spi_host_device_t host, spi_slave_transaction_t **trans_desc, uint32_t ticks_to_wait);
@@ -204,6 +205,7 @@ esp_err_t spi_slave_get_trans_result(spi_host_device_t host, spi_slave_transacti
  *                      out.
  * @return
  *         - ESP_ERR_INVALID_ARG   if parameter is invalid
+ *         - ESP_ERR_INVALID_STATE if dma over/underflow error occurs during psram transfer
  *         - ESP_OK                on success
  */
 esp_err_t spi_slave_transmit(spi_host_device_t host, spi_slave_transaction_t *trans_desc, uint32_t ticks_to_wait);
