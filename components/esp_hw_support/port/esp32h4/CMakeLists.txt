@@ -15,7 +15,7 @@ endif()
 if(NOT BOOTLOADER_BUILD)
     # list(APPEND srcs "sar_periph_ctrl.c") // TODO: [ESP32H4] IDF-12368
 
-    if(CONFIG_SOC_MODEM_CLOCK_IS_INDEPENDENT AND CONFIG_SOC_MODEM_CLOCK_SUPPORTED)
+    if(CONFIG_SOC_MODEM_CLOCK_SUPPORTED)
         list(APPEND srcs "modem_clock_impl.c")
     endif()
 endif()

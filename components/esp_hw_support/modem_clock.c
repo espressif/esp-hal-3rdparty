@@ -28,7 +28,7 @@ modem_clock_context_t * __attribute__((weak)) IRAM_ATTR MODEM_CLOCK_instance(voi
     static DRAM_ATTR modem_clock_context_t modem_clock_context = {
         .hal = &modem_clock_hal, .lock = SPINLOCK_INITIALIZER,
         .dev = g_modem_clock_dev,
-#if SOC_PM_SUPPORT_PMU_MODEM_STATE
+#if SOC_PM_SUPPORT_MODEM_CLOCK_DOMAIN_ICG
         .initial_gating_mode = g_initial_gating_mode,
 #endif
         .lpclk_src = { [0 ... PERIPH_MODEM_MODULE_NUM - 1] = MODEM_CLOCK_LPCLK_SRC_INVALID }
@@ -116,7 +116,7 @@ void IRAM_ATTR modem_clock_module_mac_reset(shared_periph_module_t module)
     esp_os_exit_critical_safe(&ctx->lock);
 }
 
-#if SOC_PM_SUPPORT_PMU_MODEM_STATE
+#if SOC_PM_SUPPORT_MODEM_CLOCK_DOMAIN_ICG
 static IRAM_ATTR void modem_clock_module_icg_map_init_all(void)
 {
     esp_os_enter_critical_safe(&MODEM_CLOCK_instance()->lock);
@@ -134,7 +134,7 @@ static IRAM_ATTR void modem_clock_module_icg_map_init_all(void)
 void IRAM_ATTR modem_clock_module_enable(shared_periph_module_t module)
 {
     assert(IS_MODEM_MODULE(module));
-#if SOC_PM_SUPPORT_PMU_MODEM_STATE
+#if SOC_PM_SUPPORT_MODEM_CLOCK_DOMAIN_ICG
     modem_clock_module_icg_map_init_all();
 #endif
     uint32_t deps = modem_clock_get_module_deps(module);
@@ -211,22 +211,20 @@ void modem_clock_select_lp_clock_source(shared_periph_module_t module, modem_clo
 
 #if SOC_BT_SUPPORTED
     case PERIPH_BT_MODULE:
-    {
-#if CONFIG_IDF_TARGET_ESP32H2
+#if SOC_MODEM_CLOCK_BLE_RTC_TIMER_WORKAROUND
         modem_clock_select_ble_rtc_timer_clk_workaround(MODEM_CLOCK_instance(), true, src);
 #endif
         modem_clock_hal_deselect_all_ble_rtc_timer_lpclk_source(MODEM_CLOCK_instance()->hal);
         modem_clock_hal_select_ble_rtc_timer_lpclk_source(MODEM_CLOCK_instance()->hal, src);
         modem_clock_hal_set_ble_rtc_timer_divisor_value(MODEM_CLOCK_instance()->hal, divider);
         modem_clock_hal_enable_ble_rtc_timer_clock(MODEM_CLOCK_instance()->hal, true);
-#if CONFIG_IDF_TARGET_ESP32H2
+#if SOC_MODEM_CLOCK_BLE_RTC_TIMER_WORKAROUND
         modem_clock_select_ble_rtc_timer_clk_workaround(MODEM_CLOCK_instance(), false, src);
 #endif
 #if SOC_BLE_USE_WIFI_PWR_CLK_WORKAROUND
         modem_clock_bt_wifipwr_clk_workaround(MODEM_CLOCK_instance(), true, src);
 #endif
         break;
-    }
 #endif // SOC_BT_SUPPORTED
 
     case PERIPH_COEX_MODULE:

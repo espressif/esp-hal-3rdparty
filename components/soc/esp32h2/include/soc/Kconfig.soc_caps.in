@@ -1223,6 +1223,10 @@ config SOC_MODEM_CLOCK_IS_INDEPENDENT
     bool
     default y
 
+config SOC_MODEM_CLOCK_BLE_RTC_TIMER_WORKAROUND
+    bool
+    default y
+
 config SOC_RCC_IS_INDEPENDENT
     bool
     default y

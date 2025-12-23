@@ -107,7 +107,7 @@ if(NOT non_os_build)
                          "port/regdma_link.c")
     endif()
 
-    if(CONFIG_SOC_MODEM_CLOCK_IS_INDEPENDENT AND CONFIG_SOC_MODEM_CLOCK_SUPPORTED)
+    if(CONFIG_SOC_MODEM_CLOCK_SUPPORTED)
         list(APPEND srcs "modem_clock.c")
     endif()
 

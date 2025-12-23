@@ -17,7 +17,7 @@
 #include "esp_private/esp_pmu.h"
 #include "esp_private/critical_section.h"
 
-#if SOC_MODEM_CLOCK_IS_INDEPENDENT && SOC_MODEM_CLOCK_SUPPORTED
+#if SOC_MODEM_CLOCK_SUPPORTED
 #include "hal/modem_clock_hal.h"
 #endif
 
@@ -25,7 +25,7 @@
 extern "C" {
 #endif
 
-#if SOC_MODEM_CLOCK_IS_INDEPENDENT && SOC_MODEM_CLOCK_SUPPORTED
+#if SOC_MODEM_CLOCK_SUPPORTED
 // Please define the frequently called modules in the low bit,
 // which will improve the execution efficiency
 typedef enum {
@@ -76,7 +76,7 @@ typedef struct modem_clock_context {
     modem_clock_hal_context_t *hal;
     spinlock_t                lock;
     modem_clock_device_context_t *dev;
-#if SOC_PM_SUPPORT_PMU_MODEM_STATE
+#if SOC_PM_SUPPORT_MODEM_CLOCK_DOMAIN_ICG
     const uint8_t *initial_gating_mode;
 #endif
     /* the low-power clock source for each module */
@@ -100,22 +100,20 @@ uint32_t modem_clock_get_module_deps(shared_periph_module_t module);
  */
 extern modem_clock_device_context_t g_modem_clock_dev[MODEM_CLOCK_DEVICE_MAX];
 
-#if SOC_PM_SUPPORT_PMU_MODEM_STATE
+#if SOC_PM_SUPPORT_MODEM_CLOCK_DOMAIN_ICG
 /**
  * @brief Initial gating mode for each clock domain
  * Each chip defines this array in its port file
  */
 extern const uint8_t g_initial_gating_mode[MODEM_CLOCK_DOMAIN_MAX];
-#endif
 
-#if SOC_PM_SUPPORT_PMU_MODEM_STATE
 /* the ICG code's bit 0, 1 and 2 indicates the ICG state
  * of pmu SLEEP, MODEM and ACTIVE mode respectively */
  #define ICG_NOGATING_ACTIVE (BIT(PMU_HP_ICG_MODEM_CODE_ACTIVE))
  #define ICG_NOGATING_SLEEP  (BIT(PMU_HP_ICG_MODEM_CODE_SLEEP))
  #define ICG_NOGATING_MODEM  (BIT(PMU_HP_ICG_MODEM_CODE_MODEM))
-#endif // SOC_PM_SUPPORT_PMU_MODEM_STATE
-#endif // SOC_MODEM_CLOCK_IS_INDEPENDENT && SOC_MODEM_CLOCK_SUPPORTED
+#endif // SOC_PM_SUPPORT_MODEM_CLOCK_DOMAIN_ICG
+#endif // SOC_MODEM_CLOCK_SUPPORTED
 
 /**
  * @brief Enable the clock of modem module
@@ -215,7 +213,7 @@ void modem_clock_deselect_lp_clock_source(shared_periph_module_t module);
  */
 void modem_clock_deselect_all_module_lp_clock_source(void);
 
-#if CONFIG_IDF_TARGET_ESP32H2
+#if SOC_MODEM_CLOCK_BLE_RTC_TIMER_WORKAROUND
 /**
  * @brief BLE RTC timer LPCLK workaround on ESP32H2
  *
