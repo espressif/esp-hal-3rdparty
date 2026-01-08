@@ -52,3 +52,7 @@
 #define ADC_SAR1_ENCAL_GND_ADDR                 0x8
 #define ADC_SAR1_ENCAL_GND_ADDR_MSB             0x1
 #define ADC_SAR1_ENCAL_GND_ADDR_LSB             0x1
+
+#define I2C_SARADC_TSENS_DAC                    0x6
+#define I2C_SARADC_TSENS_DAC_MSB                0x3
+#define I2C_SARADC_TSENS_DAC_LSB                0x0
