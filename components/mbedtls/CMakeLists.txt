@@ -383,14 +383,16 @@ if(CONFIG_SOC_HMAC_SUPPORTED)
 endif()
 
 if(CONFIG_SOC_DIG_SIGN_SUPPORTED)
+target_compile_definitions(tfpsacrypto PRIVATE ESP_DS_DRIVER_ENABLED)
 target_sources(tfpsacrypto PRIVATE
-                "${COMPONENT_DIR}/port/esp_ds/esp_rsa_sign_alt.c"
-                "${COMPONENT_DIR}/port/esp_ds/esp_rsa_dec_alt.c"
-                "${COMPONENT_DIR}/port/esp_ds/esp_ds_common.c")
+                "${COMPONENT_DIR}/port/psa_driver/esp_ds/psa_crypto_driver_esp_ds.c"
+                "${COMPONENT_DIR}/port/psa_driver/esp_ds/psa_crypto_driver_esp_ds_utilities.c"
+)
+target_link_libraries(tfpsacrypto PRIVATE idf::efuse)
 endif()
 # # CONFIG_ESP_TLS_USE_DS_PERIPHERAL can be enabled only for the supported targets.
 if(CONFIG_ESP_TLS_USE_DS_PERIPHERAL)
-    target_sources(tfpsacrypto PRIVATE "${COMPONENT_DIR}/port/esp_ds/esp_rsa_sign_alt.c")
+    # target_sources(tfpsacrypto PRIVATE "${COMPONENT_DIR}/port/esp_ds/esp_rsa_sign_alt.c")
 endif()
 
 if(CONFIG_SOC_HMAC_SUPPORTED)
