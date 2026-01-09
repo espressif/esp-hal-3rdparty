@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2025-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -138,9 +138,14 @@ FORCE_INLINE_ATTR void test_rv_utils_intr_set_vectored(int intr_num, bool vector
 
 FORCE_INLINE_ATTR void test_rv_utils_intr_enable_u_mode(bool enable)
 {
+#if CONFIG_IDF_TARGET_ESP32P4
+    // TODO: Need to update soc/clic_reg.h for P4 ver3 (follows the CLIC standard)
+    REG_WRITE(CLIC_INT_CONFIG_REG, ~0U);
+#else
     REG_SET_FIELD(CLIC_INT_CONFIG_REG, CLIC_INT_CONFIG_NMBITS, enable ? 0x01 : 0x00);
     REG_SET_FIELD(CLIC_INT_CONFIG_REG, CLIC_INT_CONFIG_UNLBITS, NLBITS);
     REG_SET_FIELD(CLIC_INT_CONFIG_REG, CLIC_INT_CONFIG_MNLBITS, NLBITS);
+#endif
 }
 
 #ifdef __cplusplus
