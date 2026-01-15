@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2020-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2020-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -19,7 +19,11 @@ static const char *TAG = "SSL client";
 
 static int manage_resource(mbedtls_ssl_context *ssl, bool add)
 {
-    int state = add ? ssl->MBEDTLS_PRIVATE(state) : ssl->MBEDTLS_PRIVATE(state) - 1;
+    static _Thread_local int last_state = 0;
+    int state = add ? ssl->MBEDTLS_PRIVATE(state) : last_state;
+    if (add) {
+        last_state = state;
+    }
 
     if (mbedtls_ssl_is_handshake_over(ssl) || ssl->MBEDTLS_PRIVATE(handshake) == NULL) {
         return 0;
@@ -66,14 +70,20 @@ static int manage_resource(mbedtls_ssl_context *ssl, bool add)
             if (add) {
                 CHECK_OK(esp_mbedtls_add_rx_buffer(ssl));
             } else {
-                CHECK_OK(esp_mbedtls_free_rx_buffer(ssl));
+                /* Don't free RX buffer - TLS 1.3 may have multiple messages in the same record */
+                if (!ssl->MBEDTLS_PRIVATE(keep_current_message)) {
+                    CHECK_OK(esp_mbedtls_free_rx_buffer(ssl));
+                }
             }
             break;
         case MBEDTLS_SSL_SERVER_CERTIFICATE:
             if (add) {
                 CHECK_OK(esp_mbedtls_add_rx_buffer(ssl));
             } else {
-                CHECK_OK(esp_mbedtls_free_rx_buffer(ssl));
+                /* Don't free RX buffer - TLS 1.3 may have multiple messages in the same record */
+                if (!ssl->MBEDTLS_PRIVATE(keep_current_message)) {
+                    CHECK_OK(esp_mbedtls_free_rx_buffer(ssl));
+                }
 
 #ifdef CONFIG_MBEDTLS_DYNAMIC_FREE_CA_CERT
                 esp_mbedtls_free_cacert(ssl);
@@ -149,8 +159,12 @@ static int manage_resource(mbedtls_ssl_context *ssl, bool add)
         case MBEDTLS_SSL_CERTIFICATE_VERIFY:
             if (add) {
                 size_t buffer_len = MBEDTLS_SSL_OUT_BUFFER_LEN;
-
                 CHECK_OK(esp_mbedtls_add_tx_buffer(ssl, buffer_len));
+#ifdef CONFIG_MBEDTLS_SSL_TLS1_3_COMPATIBILITY_MODE
+                if (ssl->tls_version == MBEDTLS_SSL_VERSION_TLS1_3) {
+                    CHECK_OK(esp_mbedtls_add_rx_buffer(ssl));
+                }
+#endif /* MBEDTLS_SSL_TLS1_3_COMPATIBILITY_MODE */
             } else {
 #ifdef CONFIG_MBEDTLS_DYNAMIC_FREE_CONFIG_DATA
                 esp_mbedtls_free_keycert_key(ssl);
