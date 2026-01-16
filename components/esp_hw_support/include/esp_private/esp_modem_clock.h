@@ -16,6 +16,7 @@
 #include "hal/modem_clock_types.h"
 #include "esp_private/esp_pmu.h"
 #include "esp_private/critical_section.h"
+#include "esp_macros.h"
 
 #if SOC_MODEM_CLOCK_SUPPORTED
 #include "hal/modem_clock_hal.h"
@@ -56,6 +57,28 @@ typedef enum {
     MODEM_CLOCK_DATADUMP,
     MODEM_CLOCK_DEVICE_MAX
 } modem_clock_device_t;
+
+#define MODEM_CLOCK(dev) BIT(MODEM_CLOCK_##dev)
+
+#define MODEM_CLOCKS_1(a)                  MODEM_CLOCK(a)
+#define MODEM_CLOCKS_2(a, b)               MODEM_CLOCK(a) | MODEM_CLOCK(b)
+#define MODEM_CLOCKS_3(a, b, c)            MODEM_CLOCK(a) | MODEM_CLOCKS_2(b, c)
+#define MODEM_CLOCKS_4(a, b, c, d)         MODEM_CLOCK(a) | MODEM_CLOCKS_3(b, c, d)
+#define MODEM_CLOCKS_5(a, b, c, d, ...)    MODEM_CLOCKS_4(a, b, c, d) | MODEM_CLOCKS_1(__VA_ARGS__)
+#define MODEM_CLOCKS_6(a, b, c, d, ...)    MODEM_CLOCKS_4(a, b, c, d) | MODEM_CLOCKS_2(__VA_ARGS__)
+#define MODEM_CLOCKS_7(a, b, c, d, ...)    MODEM_CLOCKS_4(a, b, c, d) | MODEM_CLOCKS_3(__VA_ARGS__)
+#define MODEM_CLOCKS_8(a, b, c, d, ...)    MODEM_CLOCKS_4(a, b, c, d) | MODEM_CLOCKS_4(__VA_ARGS__)
+#define MODEM_CLOCKS_9(a, b, c, d, ...)    MODEM_CLOCKS_4(a, b, c, d) | MODEM_CLOCKS_5(__VA_ARGS__)
+#define MODEM_CLOCKS_10(a, b, c, d, ...)   MODEM_CLOCKS_4(a, b, c, d) | MODEM_CLOCKS_6(__VA_ARGS__)
+#define MODEM_CLOCKS_11(a, b, c, d, ...)   MODEM_CLOCKS_4(a, b, c, d) | MODEM_CLOCKS_7(__VA_ARGS__)
+#define MODEM_CLOCKS_12(a, b, c, d, ...)   MODEM_CLOCKS_4(a, b, c, d) | MODEM_CLOCKS_8(__VA_ARGS__)
+#define MODEM_CLOCKS_13(a, b, c, d, ...)   MODEM_CLOCKS_4(a, b, c, d) | MODEM_CLOCKS_9(__VA_ARGS__)
+#define MODEM_CLOCKS_14(a, b, c, d, ...)   MODEM_CLOCKS_4(a, b, c, d) | MODEM_CLOCKS_10(__VA_ARGS__)
+
+#define MODEM_CLOCKS_N(n)                  MODEM_CLOCKS_##n
+#define MODEM_CLOCKS_DISPATCH(n, ...)      MODEM_CLOCKS_N(n)(__VA_ARGS__)
+#define MODEM_CLOCKS(...) \
+    MODEM_CLOCKS_DISPATCH(ESP_VA_NARG(__VA_ARGS__), __VA_ARGS__)
 
 #define MODEM_STATUS_IDLE           (0)
 #define MODEM_STATUS_WIFI_INITED    (0x1UL)
