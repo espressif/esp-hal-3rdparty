@@ -150,9 +150,9 @@ static esp_err_t esp_ds_finish_sign(void *signature, const esp_ds_data_t *data)
 }
 
 static esp_err_t esp_ds_sign(const void *message,
-                      const esp_ds_data_t *data,
-                      uint32_t key_id,
-                      void *signature)
+                             const esp_ds_data_t *data,
+                             uint32_t key_id,
+                             void *signature)
 {
     esp_err_t result = esp_ds_start_sign(message, data, key_id);
     if (result != ESP_OK) {

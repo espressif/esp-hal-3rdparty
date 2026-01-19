@@ -5,7 +5,7 @@
  */
 
 #include <string.h>
-#include "include/psa_crypto_driver_esp_ds_utilities.h"
+#include "include/psa_crypto_driver_esp_rsa_ds_utilities.h"
 #include "mbedtls/asn1.h"
 #include "mbedtls/psa_util.h"
 #include "esp_log.h"
@@ -41,7 +41,7 @@ static const oid_md_mapping_t oid_md_table[] = {
     { PSA_ALG_NONE, NULL, 0 }
 };
 
-static int esp_ds_get_oid_by_psa_alg(psa_algorithm_t md_alg, const char **oid, size_t *olen)
+static int esp_rsa_ds_get_oid_by_psa_alg(psa_algorithm_t md_alg, const char **oid, size_t *olen)
 {
     for (size_t i = 0; oid_md_table[i].md_alg != PSA_ALG_NONE; i++) {
         if (oid_md_table[i].md_alg == md_alg) {
@@ -53,7 +53,7 @@ static int esp_ds_get_oid_by_psa_alg(psa_algorithm_t md_alg, const char **oid, s
     return PSA_ERROR_NOT_SUPPORTED;
 }
 
-psa_status_t esp_ds_pad_v15_encode(psa_algorithm_t alg, unsigned int hashlen,
+psa_status_t esp_rsa_ds_pad_v15_encode(psa_algorithm_t alg, unsigned int hashlen,
                                             const unsigned char *hash,
                                             size_t dst_len,
                                             unsigned char *dst)
@@ -65,7 +65,7 @@ psa_status_t esp_ds_pad_v15_encode(psa_algorithm_t alg, unsigned int hashlen,
 
     /* Are we signing hashed or raw data? */
     if (alg != PSA_ALG_NONE) {
-        if (esp_ds_get_oid_by_psa_alg(alg, &oid, &oid_size) != PSA_SUCCESS) {
+        if (esp_rsa_ds_get_oid_by_psa_alg(alg, &oid, &oid_size) != PSA_SUCCESS) {
             return PSA_ERROR_INVALID_ARGUMENT;
         }
 
@@ -161,7 +161,7 @@ psa_status_t esp_ds_pad_v15_encode(psa_algorithm_t alg, unsigned int hashlen,
     return PSA_SUCCESS;
 }
 
-psa_status_t esp_ds_pad_v15_unpad(unsigned char *input,
+psa_status_t esp_rsa_ds_pad_v15_unpad(unsigned char *input,
     size_t ilen,
     unsigned char *output,
     size_t output_max_len,
@@ -227,7 +227,7 @@ psa_status_t esp_ds_pad_v15_unpad(unsigned char *input,
 }
 
 #if CONFIG_MBEDTLS_SSL_PROTO_TLS1_3
-static psa_status_t esp_ds_mgf_mask(unsigned char *dst, size_t dlen, unsigned char *src,
+static psa_status_t esp_rsa_ds_mgf_mask(unsigned char *dst, size_t dlen, unsigned char *src,
                     size_t slen, psa_algorithm_t hash_alg)
 {
     unsigned char counter[4];
@@ -286,7 +286,7 @@ exit:
     return status;
 }
 
-static psa_status_t esp_ds_hash_mprime(const unsigned char *hash, size_t hlen,
+static psa_status_t esp_rsa_ds_hash_mprime(const unsigned char *hash, size_t hlen,
                        const unsigned char *salt, size_t slen,
                        unsigned char *out, psa_algorithm_t hash_alg)
 {
@@ -319,7 +319,7 @@ exit:
     return status;
 }
 
-psa_status_t esp_ds_pad_v21_encode(psa_algorithm_t hash_alg,
+psa_status_t esp_rsa_ds_pad_v21_encode(psa_algorithm_t hash_alg,
                                             unsigned int hashlen,
                                             const unsigned char *hash,
                                             int saltlen,
@@ -386,7 +386,7 @@ psa_status_t esp_ds_pad_v21_encode(psa_algorithm_t hash_alg,
     p += slen;
 
     /* Generate H = Hash( M' ) */
-    ret = esp_ds_hash_mprime(hash, hashlen, salt, slen, p, hash_alg);
+    ret = esp_rsa_ds_hash_mprime(hash, hashlen, salt, slen, p, hash_alg);
     if (ret != 0) {
         return ret;
     }
@@ -397,7 +397,7 @@ psa_status_t esp_ds_pad_v21_encode(psa_algorithm_t hash_alg,
     }
 
     /* maskedDB: Apply dbMask to DB */
-    ret = esp_ds_mgf_mask(sig + offset, olen - hlen - 1 - offset, p, hlen, hash_alg);
+    ret = esp_rsa_ds_mgf_mask(sig + offset, olen - hlen - 1 - offset, p, hlen, hash_alg);
     if (ret != 0) {
         return ret;
     }
@@ -410,7 +410,7 @@ psa_status_t esp_ds_pad_v21_encode(psa_algorithm_t hash_alg,
     return ret;
 }
 
-psa_status_t esp_ds_pad_oaep_unpad(unsigned char *input,
+psa_status_t esp_rsa_ds_pad_oaep_unpad(unsigned char *input,
     size_t ilen,
     unsigned char *output,
     size_t output_max_len,
@@ -425,9 +425,9 @@ psa_status_t esp_ds_pad_oaep_unpad(unsigned char *input,
     bad |= (ilen < 2 * hlen + 2);
 
     /* Apply MGF masks */
-    bad |= esp_ds_mgf_mask(input + 1, hlen, input + hlen + 1, ilen - hlen - 1, hash_alg) != PSA_SUCCESS;
+    bad |= esp_rsa_ds_mgf_mask(input + 1, hlen, input + hlen + 1, ilen - hlen - 1, hash_alg) != PSA_SUCCESS;
 
-    bad |= esp_ds_mgf_mask(input + hlen + 1, ilen - hlen - 1, input + 1, hlen, hash_alg) != PSA_SUCCESS;
+    bad |= esp_rsa_ds_mgf_mask(input + hlen + 1, ilen - hlen - 1, input + 1, hlen, hash_alg) != PSA_SUCCESS;
 
     /* Check first byte (should be 0x00) */
     bad |= input[0];

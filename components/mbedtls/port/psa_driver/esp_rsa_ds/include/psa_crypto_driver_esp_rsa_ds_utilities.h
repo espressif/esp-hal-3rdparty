@@ -28,7 +28,7 @@ extern "C" {
  *          PSA_ERROR_INVALID_ARGUMENT if arguments are invalid
  *          PSA_SUCCESS on success
  */
-psa_status_t esp_ds_pad_v15_encode(psa_algorithm_t alg, unsigned int hashlen,
+psa_status_t esp_rsa_ds_pad_v15_encode(psa_algorithm_t alg, unsigned int hashlen,
                                             const unsigned char *hash,
                                             size_t dst_len,
                                             unsigned char *dst);
@@ -45,7 +45,7 @@ psa_status_t esp_ds_pad_v15_encode(psa_algorithm_t alg, unsigned int hashlen,
  *          PSA_ERROR_INVALID_ARGUMENT if arguments are invalid
  *          PSA_SUCCESS on success
  */
-psa_status_t esp_ds_pad_v15_unpad(unsigned char *input,
+psa_status_t esp_rsa_ds_pad_v15_unpad(unsigned char *input,
     size_t ilen,
     unsigned char *output,
     size_t output_max_len,
@@ -66,7 +66,7 @@ psa_status_t esp_ds_pad_v15_unpad(unsigned char *input,
  *        PSA_ERROR_INVALID_ARGUMENT if arguments are invalid
  *        PSA_SUCCESS on success
  */
-psa_status_t esp_ds_pad_v21_encode(psa_algorithm_t hash_alg,
+psa_status_t esp_rsa_ds_pad_v21_encode(psa_algorithm_t hash_alg,
                                             unsigned int hashlen,
                                             const unsigned char *hash,
                                             int saltlen,
@@ -86,7 +86,7 @@ psa_status_t esp_ds_pad_v21_encode(psa_algorithm_t hash_alg,
  *       PSA_ERROR_INVALID_ARGUMENT if arguments are invalid
  *        PSA_SUCCESS on success
  */
-psa_status_t esp_ds_pad_oaep_unpad(unsigned char *input,
+psa_status_t esp_rsa_ds_pad_oaep_unpad(unsigned char *input,
     size_t ilen,
     unsigned char *output,
     size_t output_max_len,

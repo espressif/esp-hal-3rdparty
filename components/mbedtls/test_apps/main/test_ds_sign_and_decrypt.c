@@ -10,16 +10,12 @@
 #include "esp_random.h"
 #include "sdkconfig.h"
 #include "soc/soc_caps.h"
-#include "esp_efuse.h"
 #include "hal/hmac_types.h"
+#include "esp_efuse.h"
 
-#ifndef ESP_EFUSE_KEY_PURPOSE_HMAC_DOWN_DIGITAL_SIGNATURE
-#define ESP_EFUSE_KEY_PURPOSE_HMAC_DOWN_DIGITAL_SIGNATURE 0
-#endif
-
-#ifdef SOC_DIG_SIGN_SUPPORTED
+#ifdef CONFIG_MBEDTLS_HARDWARE_RSA_DS_PERIPHERAL
 #include "esp_ds.h"
-#include "psa_crypto_driver_esp_ds.h"
+#include "psa_crypto_driver_esp_rsa_ds.h"
 
 esp_ds_data_ctx_t *esp_secure_cert_get_ds_ctx(void)
 {
@@ -34,7 +30,7 @@ esp_ds_data_ctx_t *esp_secure_cert_get_ds_ctx(void)
     // Mock RSA key parameters
     ds_key->rsa_length_bits = 2048;
     ds_key->efuse_key_id = 0;
-    ds_key->esp_ds_data = calloc(1, sizeof(esp_ds_data_t));
+    ds_key->esp_rsa_ds_data = calloc(1, sizeof(esp_ds_data_t));
     // Fill in other necessary fields as per esp_ds_data_ctx_t definition
     // For simplicity, we will leave them zeroed out
 
@@ -44,8 +40,8 @@ esp_ds_data_ctx_t *esp_secure_cert_get_ds_ctx(void)
 void esp_secure_cert_free_ds_ctx(esp_ds_data_ctx_t *ds_key)
 {
     if (ds_key != NULL) {
-        if (ds_key->esp_ds_data != NULL) {
-            free(ds_key->esp_ds_data);
+        if (ds_key->esp_rsa_ds_data != NULL) {
+            free(ds_key->esp_rsa_ds_data);
         }
         free(ds_key);
     }
@@ -67,7 +63,7 @@ TEST_CASE("ds sign test pkcs1_v15 PSA validation", "[ds_rsa_psa]")
     psa_set_key_bits(&attributes, ds_key->rsa_length_bits);
     psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_SIGN_HASH);
     psa_set_key_algorithm(&attributes, alg);
-    psa_set_key_lifetime(&attributes, PSA_KEY_LIFETIME_ESP_DS);
+    psa_set_key_lifetime(&attributes, PSA_KEY_LIFETIME_ESP_RSA_DS);
     status = psa_import_key(&attributes,
                             (const uint8_t *)ds_key,
                             sizeof(*ds_key),
@@ -83,15 +79,15 @@ TEST_CASE("ds sign test pkcs1_v15 PSA validation", "[ds_rsa_psa]")
     TEST_ASSERT_EQUAL(PSA_ERROR_INVALID_ARGUMENT, status);
 
     ds_key->rsa_length_bits = 2048; // Reset to valid RSA length
-    esp_ds_data_t *ds_data_backup = ds_key->esp_ds_data;
-    ds_key->esp_ds_data = NULL; // NULL esp_ds_data to trigger validation failure
+    esp_ds_data_t *ds_data_backup = ds_key->esp_rsa_ds_data;
+    ds_key->esp_rsa_ds_data = NULL; // NULL esp_rsa_ds_data to trigger validation failure
     status = psa_import_key(&attributes,
                             (const uint8_t *)ds_key,
                             sizeof(*ds_key),
                             &keyt_id);
     TEST_ASSERT_EQUAL(PSA_ERROR_INVALID_ARGUMENT, status);
 
-    ds_key->esp_ds_data = ds_data_backup; // Restore esp_ds_data
+    ds_key->esp_rsa_ds_data = ds_data_backup; // Restore esp_rsa_ds_data
 
     esp_secure_cert_free_ds_ctx(ds_key);
 }
@@ -112,7 +108,7 @@ TEST_CASE("ds sign test pkcs1_v15 PSA", "[ds_rsa_psa]")
     psa_set_key_bits(&attributes, ds_key->rsa_length_bits);
     psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_SIGN_HASH);
     psa_set_key_algorithm(&attributes, alg);
-    psa_set_key_lifetime(&attributes, PSA_KEY_LIFETIME_ESP_DS);
+    psa_set_key_lifetime(&attributes, PSA_KEY_LIFETIME_ESP_RSA_DS);
     status = psa_import_key(&attributes,
                             (const uint8_t *)ds_key,
                             sizeof(*ds_key),
@@ -139,6 +135,23 @@ TEST_CASE("ds sign test pkcs1_v15 PSA", "[ds_rsa_psa]")
 
     // Free the DS context to prevent memory leak
     esp_secure_cert_free_ds_ctx(ds_key);
+
+    // Because we have wrapped around the ds_start_sign and ds_finish_sign functions,
+    // we are not actually performing the real signing operation. That test is done in the
+    // crypto test_apps, so here we just check that the surrounding code works as expected.
+    // In this test, we have used v15 padding, so we expect the signature to be non-null
+    // and the hash to be part of the signature.
+    TEST_ASSERT_EQUAL(0, memcmp(hash, signature + (256 - hash_length), hash_length));
+
+    // Let's also ensure that signature has correct encoding
+    // Just before the hash start, it should have size of hash
+    TEST_ASSERT_EQUAL(hash_length, signature[256 - hash_length - 1]);
+
+    // One byte before should be MBEDTLS_ASN1_OCTET_STRING
+    TEST_ASSERT_EQUAL(0x04, signature[256 - hash_length - 2]);
+
+    // And the first byte should be 0x00, indicating that this is a valid PKCS#1 v1.5 signature
+    TEST_ASSERT_EQUAL(0x00, signature[0]);
 }
 
 const unsigned char message[] = {
@@ -162,7 +175,7 @@ TEST_CASE("ds sign test pkcs1_v21 PSA", "[ds_rsa_psa]")
     psa_set_key_bits(&attributes, ds_key->rsa_length_bits);
     psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_SIGN_HASH);
     psa_set_key_algorithm(&attributes, alg);
-    psa_set_key_lifetime(&attributes, PSA_KEY_LIFETIME_ESP_DS);
+    psa_set_key_lifetime(&attributes, PSA_KEY_LIFETIME_ESP_RSA_DS);
     status = psa_import_key(&attributes,
                             (const uint8_t *)ds_key,
                             sizeof(*ds_key),
@@ -227,7 +240,7 @@ TEST_CASE("ds decrypt test pkcs1_v21 PSA", "[ds_rsa]")
     psa_set_key_bits(&attributes, ds_key->rsa_length_bits);
     psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_DECRYPT);
     psa_set_key_algorithm(&attributes, alg);
-    psa_set_key_lifetime(&attributes, PSA_KEY_LIFETIME_ESP_DS);
+    psa_set_key_lifetime(&attributes, PSA_KEY_LIFETIME_ESP_RSA_DS);
     status = psa_import_key(&attributes,
                             (const uint8_t *)ds_key,
                             sizeof(*ds_key),
@@ -289,7 +302,7 @@ TEST_CASE("ds decrypt test pkcs1_v15 PSA", "[ds_rsa]")
     psa_set_key_bits(&attributes, ds_key->rsa_length_bits);
     psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_DECRYPT);
     psa_set_key_algorithm(&attributes, alg);
-    psa_set_key_lifetime(&attributes, PSA_KEY_LIFETIME_ESP_DS);
+    psa_set_key_lifetime(&attributes, PSA_KEY_LIFETIME_ESP_RSA_DS);
     status = psa_import_key(&attributes,
                             (const uint8_t *)ds_key,
                             sizeof(*ds_key),
@@ -342,17 +355,20 @@ int __wrap_esp_ds_finish_sign(void *sig, esp_ds_context_t *ctx)
     // return __real_esp_ds_finish_sign(sig, ctx);
 }
 
-#endif /* SOC_DIG_SIGN_SUPPORTED */
+#endif /* CONFIG_MBEDTLS_HARDWARE_RSA_DS_PERIPHERAL */
 
 // Forward declaration for linker-wrapped function
 extern esp_efuse_purpose_t __real_esp_efuse_get_key_purpose(esp_efuse_block_t block);
 
 esp_efuse_purpose_t __wrap_esp_efuse_get_key_purpose(esp_efuse_block_t block)
 {
+#if CONFIG_MBEDTLS_HARDWARE_RSA_DS_PERIPHERAL
     if (block == EFUSE_BLK_KEY0 + 0) {
         printf("Mocked esp_efuse_get_key_purpose called for block %d\n", block);
         return ESP_EFUSE_KEY_PURPOSE_HMAC_DOWN_DIGITAL_SIGNATURE;
-    } else {
+    } else
+#endif /* CONFIG_MBEDTLS_HARDWARE_RSA_DS_PERIPHERAL */
+    {
         printf("Mocked esp_efuse_get_key_purpose forwarding to real for block %d\n", block);
         return __real_esp_efuse_get_key_purpose(block);
     }
