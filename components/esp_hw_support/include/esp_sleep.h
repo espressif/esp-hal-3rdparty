@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2015-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -45,7 +45,7 @@ typedef enum {
 typedef enum {
     ESP_GPIO_WAKEUP_GPIO_LOW = 0,
     ESP_GPIO_WAKEUP_GPIO_HIGH = 1
-} esp_deepsleep_gpio_wake_up_mode_t;
+} esp_sleep_gpio_wake_up_mode_t;
 #endif
 
 /**
@@ -456,10 +456,11 @@ __attribute__((deprecated("please use 'esp_sleep_enable_ext1_wakeup_io' and 'esp
 /**
  * @brief Enable wakeup using specific gpio pins
  *
- * This function enables an IO pin to wake up the chip from deep sleep.
+ * This function enables an IO pin to wake up the chip from peripheral powerdowned sleep.
+ * (including deepsleep and peripheral powerdowned lightsleep).
  *
  * @note 1.This function does not modify pin configuration. The pins are configured
- *          inside `esp_deep_sleep_start`, immediately before entering sleep mode.
+ *          inside `esp_sleep_start`, immediately before entering sleep mode.
  *       2.This function is also applicable to waking up the lightsleep when the peripheral
  *         power domain is powered off, see PM_POWER_DOWN_PERIPHERAL_IN_LIGHT_SLEEP in menuconfig.
  *
@@ -479,9 +480,9 @@ __attribute__((deprecated("please use 'esp_sleep_enable_ext1_wakeup_io' and 'esp
  *            - ESP_GPIO_WAKEUP_GPIO_HIGH: wake up when the gpio turn to high.
  * @return
  *      - ESP_OK on success
- *      - ESP_ERR_INVALID_ARG if the mask contains any invalid deep sleep wakeup pin or wakeup mode is invalid
+ *      - ESP_ERR_INVALID_ARG if the mask contains any invalid wakeup pin or wakeup mode is invalid
  */
-esp_err_t esp_deep_sleep_enable_gpio_wakeup(uint64_t gpio_pin_mask, esp_deepsleep_gpio_wake_up_mode_t mode);
+esp_err_t esp_sleep_enable_gpio_wakeup_on_hp_periph_powerdown(uint64_t gpio_pin_mask, esp_sleep_gpio_wake_up_mode_t mode);
 #endif
 
 /**
@@ -499,7 +500,7 @@ esp_err_t esp_deep_sleep_enable_gpio_wakeup(uint64_t gpio_pin_mask, esp_deepslee
  * @note 1. On ESP32, GPIO wakeup source can not be used together with touch or ULP wakeup sources.
  *       2. If PM_POWER_DOWN_PERIPHERAL_IN_LIGHT_SLEEP is enabled (if target supported),
  *          this API is unavailable since the GPIO module is powered down during sleep.
- *          You can use `esp_deep_sleep_enable_gpio_wakeup` instead, or use EXT1 wakeup source
+ *          You can use `esp_sleep_enable_gpio_wakeup_on_hp_periph_powerdown` instead, or use EXT1 wakeup source
  *          by `esp_sleep_enable_ext1_wakeup_io` to achieve the same function.
  *          (Only GPIOs which have RTC functionality can be used)
  *

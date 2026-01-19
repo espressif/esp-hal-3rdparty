@@ -189,7 +189,7 @@ static int process_rtcio_wakeup(int argc, char **argv)
         ESP_ERROR_CHECK(gpio_config(&config));
 
         /* Enable wake up from GPIO */
-        ESP_ERROR_CHECK(esp_deep_sleep_enable_gpio_wakeup(BIT64(io_wakeup_num), io_wakeup_level));
+        ESP_ERROR_CHECK(esp_sleep_enable_gpio_wakeup_on_hp_periph_powerdown(BIT64(io_wakeup_num), io_wakeup_level));
     }
 
     return 0;
