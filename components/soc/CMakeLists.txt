@@ -2,6 +2,8 @@ idf_build_get_property(target IDF_TARGET)
 
 set(target_folder "${target}")
 
+set(srcs)
+
 # On Linux the soc component is a simple wrapper, without much functionality
 if(NOT ${target} STREQUAL "linux")
     if(CONFIG_IDF_TARGET_ESP32H4 AND NOT CONFIG_ESP32H4_SELECTS_REV_MP) # TODO: ESP32H4 IDF-13835
