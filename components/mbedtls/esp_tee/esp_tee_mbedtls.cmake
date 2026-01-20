@@ -28,6 +28,9 @@ set(GEN_FILES OFF CACHE BOOL "mbedtls: use pre-generated source files")
 # Needed to for include_next includes to work from within mbedtls
 include_directories("${COMPONENT_DIR}/port/include")
 
+# Add PSA driver include directory globally for mbedtls targets
+include_directories("${COMPONENT_DIR}/port/psa_driver/include")
+
 # Import mbedtls library targets
 add_subdirectory(mbedtls)
 
@@ -82,9 +85,10 @@ if(CONFIG_SOC_AES_SUPPORTED)
                 "${COMPONENT_DIR}/port/psa_driver/esp_aes/psa_crypto_driver_esp_aes.c"
                 "${COMPONENT_DIR}/port/psa_driver/esp_aes/psa_crypto_driver_esp_aes_gcm.c"
         )
-        if(CONFIG_MBEDTLS_HARDWARE_SHA)
+        if(CONFIG_MBEDTLS_CMAC_C)
+            target_compile_definitions(tfpsacrypto PRIVATE ESP_CMAC_DRIVER_ENABLED)
             target_sources(tfpsacrypto PRIVATE
-                "${COMPONENT_DIR}/port/psa_driver/esp_aes/psa_crypto_driver_esp_cmac.c"
+                "${COMPONENT_DIR}/port/psa_driver/esp_mac/psa_crypto_driver_esp_cmac.c"
             )
         endif()
     endif()
@@ -99,7 +103,9 @@ if(CONFIG_SOC_SHA_SUPPORTED)
         "${COMPONENT_DIR}/port/psa_driver/esp_sha/core/psa_crypto_driver_esp_sha256.c"
         "${COMPONENT_DIR}/port/psa_driver/esp_sha/core/psa_crypto_driver_esp_sha512.c"
         "${COMPONENT_DIR}/port/sha/core/sha.c"
-        "${COMPONENT_DIR}/port/sha/esp_sha.c")
+        "${COMPONENT_DIR}/port/sha/esp_sha.c"
+        "${COMPONENT_DIR}/port/psa_driver/esp_mac/psa_crypto_driver_esp_hmac.c"
+        )
 endif()
 
 if(CONFIG_MBEDTLS_ROM_MD5)

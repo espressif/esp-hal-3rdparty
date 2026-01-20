@@ -188,10 +188,6 @@ set(mbedtls_targets mbedtls mbedx509 tfpsacrypto builtin)
 
 target_include_directories(tfpsacrypto PUBLIC "port/include")
 
-if(CONFIG_MBEDTLS_HARDWARE_SHA OR CONFIG_MBEDTLS_HARDWARE_AES)
-    target_include_directories(tfpsacrypto PUBLIC "${COMPONENT_DIR}/port/psa_driver/include")
-endif()
-
 message(STATUS "Setting up mbedtls configuration")
 foreach(target ${mbedtls_targets})
     target_compile_definitions(${target} PUBLIC -DMBEDTLS_CONFIG_FILE="mbedtls/esp_config.h")
@@ -361,8 +357,9 @@ if(CONFIG_SOC_SHA_SUPPORTED)
             "${COMPONENT_DIR}/port/psa_driver/esp_sha/psa_crypto_driver_esp_sha.c"
             "${COMPONENT_DIR}/port/psa_driver/esp_sha/${SHA_PERIPHERAL_TYPE}/psa_crypto_driver_esp_sha256.c"
             "${COMPONENT_DIR}/port/psa_driver/esp_sha/${SHA_PERIPHERAL_TYPE}/psa_crypto_driver_esp_sha512.c"
-
-            "${COMPONENT_DIR}/port/sha/esp_sha.c")
+            "${COMPONENT_DIR}/port/sha/esp_sha.c"
+            "${COMPONENT_DIR}/port/psa_driver/esp_mac/psa_crypto_driver_esp_hmac.c"
+        )
     endif()
     target_sources(tfpsacrypto PRIVATE
             "${COMPONENT_DIR}/port/psa_driver/esp_sha/${SHA_PERIPHERAL_TYPE}/psa_crypto_driver_esp_sha1.c"
@@ -411,9 +408,10 @@ if(CONFIG_MBEDTLS_HARDWARE_GCM OR CONFIG_MBEDTLS_HARDWARE_AES)
         "${COMPONENT_DIR}/port/psa_driver/esp_aes/psa_crypto_driver_esp_aes.c"
         "${COMPONENT_DIR}/port/psa_driver/esp_aes/psa_crypto_driver_esp_aes_gcm.c"
     )
-    if(CONFIG_MBEDTLS_HARDWARE_SHA)
+    if(CONFIG_MBEDTLS_CMAC_C)
+        target_compile_definitions(tfpsacrypto PRIVATE ESP_CMAC_DRIVER_ENABLED)
         target_sources(tfpsacrypto PRIVATE
-            "${COMPONENT_DIR}/port/psa_driver/esp_aes/psa_crypto_driver_esp_cmac.c"
+            "${COMPONENT_DIR}/port/psa_driver/esp_mac/psa_crypto_driver_esp_cmac.c"
         )
     endif()
 endif()

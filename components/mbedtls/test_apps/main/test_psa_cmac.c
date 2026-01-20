@@ -85,10 +85,9 @@ TEST_CASE("PSA CMAC AES-128 test", "[psa_cmac]")
                            test_data, sizeof(test_data),
                            cmac, PSA_MAC_LENGTH(PSA_KEY_TYPE_AES, 128, PSA_ALG_CMAC),
                            &cmac_length);
-    ESP_LOGI("PSA CMAC AES-128", "Status: %ld", status);
+
     TEST_ASSERT_EQUAL(PSA_SUCCESS, status);
     TEST_ASSERT_EQUAL(16, cmac_length);
-    ESP_LOG_BUFFER_HEXDUMP("CMAC AES-128", cmac, cmac_length, ESP_LOG_INFO);
     TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_cmac_128, cmac, 16);
 
     // Verify CMAC

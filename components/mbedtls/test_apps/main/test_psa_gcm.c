@@ -11,6 +11,9 @@
 
 #include "psa/crypto.h"
 #include "unity.h"
+#include "sdkconfig.h"
+
+#if CONFIG_MBEDTLS_GCM_SUPPORT_NON_AES_CIPHER
 
 static const uint8_t key_256[] = {
     0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
@@ -206,3 +209,4 @@ TEST_CASE("PSA ARIA-GCM one-shot", "[psa-gcm]")
     /* Destroy the key */
     psa_destroy_key(key_id);
 }
+#endif /* CONFIG_MBEDTLS_GCM_SUPPORT_NON_AES_CIPHER */

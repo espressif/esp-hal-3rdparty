@@ -1,0 +1,250 @@
+/*
+ * SPDX-FileCopyrightText: 2026 Espressif Systems (Shanghai) CO LTD
+*
+* SPDX-License-Identifier: Apache-2.0
+*/
+
+#include <string.h>
+#include "psa/crypto.h"
+#include "psa_crypto_driver_esp_hmac.h"
+#include "psa_crypto_driver_esp_hmac_contexts.h"
+
+
+psa_status_t esp_hmac_abort(esp_hmac_operation_t *esp_hmac_ctx)
+{
+    psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
+
+    status = esp_sha_hash_abort(&esp_hmac_ctx->esp_sha_ctx);
+    if (status != PSA_SUCCESS) {
+        return status;
+    }
+
+    mbedtls_platform_zeroize(esp_hmac_ctx, sizeof(esp_hmac_operation_t));
+    return status;
+}
+
+psa_status_t esp_hmac_setup(esp_hmac_operation_t *esp_hmac_ctx,
+                            const psa_key_attributes_t *attributes,
+                            const uint8_t *key_buffer,
+                            size_t key_buffer_size,
+                            psa_algorithm_t alg)
+{
+    psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
+    psa_algorithm_t hash_alg = PSA_ALG_GET_HASH(alg);
+    uint8_t ipad[PSA_HMAC_MAX_HASH_BLOCK_SIZE];
+    size_t i;
+    size_t hash_size = PSA_HASH_LENGTH(hash_alg);
+    size_t block_size = PSA_HASH_BLOCK_LENGTH(hash_alg);
+
+    if (esp_hmac_ctx == NULL) {
+        return PSA_ERROR_INVALID_ARGUMENT;
+    }
+
+    memset(esp_hmac_ctx, 0, sizeof(esp_hmac_operation_t));
+
+    /* Sanity checks on block_size, to guarantee that there won't be a buffer
+    * overflow below. This should never trigger if the hash algorithm
+    * is implemented correctly. */
+    /* The size check against the ipad buffer also covers opad since both
+    * have the same size (PSA_HMAC_MAX_HASH_BLOCK_SIZE). */
+    if ((block_size > sizeof(ipad)) || (block_size < hash_size)) {
+        return PSA_ERROR_NOT_SUPPORTED;
+    }
+
+    if (key_buffer_size > block_size) {
+        status = esp_sha_hash_compute(hash_alg, key_buffer, key_buffer_size,
+                                ipad, sizeof(ipad), &key_buffer_size);
+        if (status != PSA_SUCCESS) {
+            return status;
+        }
+        /* After hashing, key_buffer_size is set to the hash size, which
+        * should be <= block_size. Verify this for static analysis. */
+        if (key_buffer_size > block_size) {
+            return PSA_ERROR_CORRUPTION_DETECTED;
+        }
+    }
+    /* A 0-length key is not commonly used in HMAC when used as a MAC,
+    * but it is permitted. It is common when HMAC is used in HKDF, for
+    * example. Don't call `memcpy` in the 0-length because `key` could be
+    * an invalid pointer which would make the behavior undefined. */
+    else if (key_buffer_size != 0) {
+        /* Additional safety check: ensure key fits in ipad buffer */
+        if (key_buffer_size > sizeof(ipad)) {
+            return PSA_ERROR_INVALID_ARGUMENT;
+        }
+        memcpy(ipad, key_buffer, key_buffer_size);
+    }
+
+    /* ipad contains the key followed by garbage. Xor and fill with 0x36
+    * to create the ipad value. */
+    for (i = 0; i < key_buffer_size; i++) {
+        ipad[i] ^= 0x36;
+    }
+
+    /* Only fill remaining bytes if key_buffer_size < block_size.
+    * When key_buffer_size == block_size, the entire buffer is already
+    * processed, so no padding is needed. This check also prevents
+    * out-of-bounds pointer arithmetic (ipad + key_buffer_size would be
+    * out of bounds when key_buffer_size == block_size == sizeof(ipad)). */
+    if (key_buffer_size < block_size) {
+        /* At this point: key_buffer_size < block_size <= sizeof(ipad),
+        * so ipad + key_buffer_size is guaranteed to be within bounds. */
+        size_t fill_size = block_size - key_buffer_size;
+        memset(ipad + key_buffer_size, 0x36, fill_size);
+    }
+
+    /* Copy the key material from ipad to opad, flipping the requisite bits,
+    * and filling the rest of opad with the requisite constant. */
+    for (i = 0; i < key_buffer_size; i++) {
+        esp_hmac_ctx->opad[i] = ipad[i] ^ 0x36 ^ 0x5C;
+    }
+    /* Only fill remaining bytes if key_buffer_size < block_size.
+    * When key_buffer_size == block_size, the entire buffer is already
+    * processed, so no padding is needed. This check also prevents
+    * out-of-bounds pointer arithmetic (esp_hmac_ctx->opad + key_buffer_size
+    * would be out of bounds when key_buffer_size == block_size == sizeof(esp_hmac_ctx->opad)). */
+    if (key_buffer_size < block_size) {
+        /* At this point: key_buffer_size < block_size <= sizeof(esp_hmac_ctx->opad),
+        * so esp_hmac_ctx->opad + key_buffer_size is guaranteed to be within bounds. */
+        size_t fill_size = block_size - key_buffer_size;
+        memset(esp_hmac_ctx->opad + key_buffer_size, 0x5C, fill_size);
+    }
+
+    status = esp_sha_hash_setup(&esp_hmac_ctx->esp_sha_ctx, hash_alg);
+    if (status != PSA_SUCCESS) {
+        return status;
+    }
+
+    status = esp_sha_hash_update(&esp_hmac_ctx->esp_sha_ctx, ipad, block_size);
+    if (status != PSA_SUCCESS) {
+        return status;
+    }
+
+    esp_hmac_ctx->alg = alg;
+
+    return status;
+}
+
+psa_status_t esp_hmac_update(esp_hmac_operation_t *esp_hmac_ctx, const uint8_t *data, size_t data_length)
+{
+    return esp_sha_hash_update(&esp_hmac_ctx->esp_sha_ctx, data, data_length);
+}
+
+psa_status_t esp_hmac_finish(
+    esp_hmac_operation_t *esp_hmac_ctx,
+    uint8_t *mac,
+    size_t mac_size,
+    size_t *mac_length)
+{
+    psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
+    psa_algorithm_t hash_alg = PSA_ALG_GET_HASH(esp_hmac_ctx->alg);
+
+    uint8_t tmp[PSA_HASH_MAX_SIZE];
+    size_t hash_size = 0;
+    size_t block_size = PSA_HASH_BLOCK_LENGTH(hash_alg);
+
+    status = esp_sha_hash_finish(&esp_hmac_ctx->esp_sha_ctx, tmp, sizeof(tmp), &hash_size);
+    if (status != PSA_SUCCESS) {
+        return status;
+    }
+    /* From here on, tmp needs to be wiped. */
+
+    status = esp_sha_hash_setup(&esp_hmac_ctx->esp_sha_ctx, hash_alg);
+    if (status != PSA_SUCCESS) {
+        goto exit;
+    }
+
+    status = esp_sha_hash_update(&esp_hmac_ctx->esp_sha_ctx, esp_hmac_ctx->opad, block_size);
+    if (status != PSA_SUCCESS) {
+        goto exit;
+    }
+
+    status = esp_sha_hash_update(&esp_hmac_ctx->esp_sha_ctx, tmp, hash_size);
+    if (status != PSA_SUCCESS) {
+        goto exit;
+    }
+
+    status = esp_sha_hash_finish(&esp_hmac_ctx->esp_sha_ctx, tmp, sizeof(tmp), &hash_size);
+    if (status != PSA_SUCCESS) {
+        goto exit;
+    }
+
+    memcpy(mac, tmp, mac_size);
+
+    *mac_length = mac_size;
+
+exit:
+    mbedtls_platform_zeroize(tmp, hash_size);
+    return status;
+}
+
+psa_status_t esp_hmac_compute(
+    const psa_key_attributes_t *attributes,
+    const uint8_t *key_buffer,
+    size_t key_buffer_size,
+    psa_algorithm_t alg,
+    const uint8_t *input,
+    size_t input_length,
+    uint8_t *mac,
+    size_t mac_size,
+    size_t *mac_length)
+{
+    psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
+    esp_hmac_operation_t esp_hmac_ctx = {0};
+
+    status = esp_hmac_setup(&esp_hmac_ctx,
+                        attributes, key_buffer, key_buffer_size,
+                        alg);
+    if (status != PSA_SUCCESS) {
+        goto exit;
+    }
+
+    if (input_length > 0) {
+        status = esp_hmac_update(&esp_hmac_ctx, input, input_length);
+        if (status != PSA_SUCCESS) {
+            goto exit;
+        }
+    }
+
+    size_t actual_mac_length = 0;
+    status = esp_hmac_finish(&esp_hmac_ctx, mac, mac_size, &actual_mac_length);
+    if (status == PSA_SUCCESS) {
+        *mac_length = actual_mac_length;
+    }
+
+exit:
+    esp_hmac_abort(&esp_hmac_ctx);
+
+    return status;
+
+}
+
+psa_status_t esp_hmac_verify_finish(
+    esp_hmac_operation_t *esp_hmac_ctx,
+    const uint8_t *mac,
+    size_t mac_length)
+{
+    uint8_t actual_mac[PSA_MAC_MAX_SIZE];
+    psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
+
+    if (esp_hmac_ctx == NULL || mac == NULL) {
+        return PSA_ERROR_INVALID_ARGUMENT;
+    }
+
+    if (mac_length > sizeof(actual_mac)) {
+        return PSA_ERROR_INVALID_ARGUMENT;
+    }
+
+    size_t actual_mac_length = 0;
+
+    status = esp_hmac_finish(esp_hmac_ctx, actual_mac, sizeof(actual_mac), &actual_mac_length);
+    if (status == PSA_SUCCESS) {
+        if (memcmp(actual_mac, mac, mac_length) == 0) {
+            return PSA_SUCCESS;
+        } else {
+            return PSA_ERROR_INVALID_SIGNATURE;
+        }
+    }
+
+    return status;
+}
