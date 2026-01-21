@@ -8,7 +8,7 @@
 #include "esp_attr.h"
 #include "soc/soc_caps.h"
 #include "hal/clk_tree_ll.h"
-#include "esp_private/esp_modem_clock.h"
+#include "modem/modem_clock_impl.h"
 #include "esp_private/regi2c_ctrl.h"
 #include "soc/rtc.h"
 
