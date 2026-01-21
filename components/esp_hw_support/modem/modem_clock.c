@@ -27,16 +27,23 @@ modem_clock_context_t * __attribute__((weak)) IRAM_ATTR MODEM_CLOCK_instance(voi
     static DRAM_ATTR modem_clock_hal_context_t modem_clock_hal = { .syscon_dev = NULL, .lpcon_dev = NULL };
     static DRAM_ATTR modem_clock_context_t modem_clock_context = {
         .hal = &modem_clock_hal, .lock = SPINLOCK_INITIALIZER,
-        .dev = g_modem_clock_dev,
+        .dev = NULL,
 #if SOC_PM_SUPPORT_MODEM_CLOCK_DOMAIN_ICG
-        .initial_gating_mode = g_initial_gating_mode,
+        .icg_config = NULL,
+#endif
+#if SOC_WIFI_SUPPORTED
+        .modem_status = MODEM_STATUS_IDLE,
 #endif
         .lpclk_src = { [0 ... PERIPH_MODEM_MODULE_NUM - 1] = MODEM_CLOCK_LPCLK_SRC_INVALID }
-#if SOC_WIFI_SUPPORTED
-        ,
-        .modem_status = MODEM_STATUS_IDLE
-#endif
     };
+    if (modem_clock_context.dev == NULL) {
+        modem_clock_context.dev = modem_clock_device_context();
+    }
+#if SOC_PM_SUPPORT_MODEM_CLOCK_DOMAIN_ICG
+    if (modem_clock_context.icg_config == NULL) {
+        modem_clock_context.icg_config = modem_clock_domain_icg_config();
+    }
+#endif
     if (modem_clock_hal.syscon_dev == NULL || modem_clock_hal.lpcon_dev == NULL) {
         modem_clock_hal.syscon_dev = &MODEM_SYSCON;
         modem_clock_hal.lpcon_dev = &MODEM_LPCON;
@@ -47,39 +54,33 @@ modem_clock_context_t * __attribute__((weak)) IRAM_ATTR MODEM_CLOCK_instance(voi
     return &modem_clock_context;
 }
 
-static void IRAM_ATTR modem_clock_device_enable(modem_clock_context_t *ctx, uint32_t dev_map)
+static IRAM_ATTR void config_wrapper(struct modem_clock_context *ctx, bool enable, void (*action)(struct modem_clock_context *, bool),
+                                    int16_t *refcnt, uint16_t *flags)
 {
     int16_t refs = 0;
-    esp_os_enter_critical_safe(&ctx->lock);
-    for (int i = 0; dev_map; dev_map >>= 1, i++) {
-        if (dev_map & BIT(0)) {
-            refs = ctx->dev[i].with_refcnt ? ctx->dev[i].refs++ : refs;
-            if (refs == 0 || !ctx->dev[i].with_refcnt) {
-                (*ctx->dev[i].configure)(ctx, true);
-            }
-#if CONFIG_ESP_MODEM_CLOCK_ENABLE_CHECKING
-            if (ctx->dev[i].check_enable) {
-                ESP_ERROR_CHECK((*ctx->dev[i].check_enable)(ctx));
-            }
-#endif
-        }
+    bool with_refcnt = (*flags) & REFS_FL_WITH_REFCNT;
+    if (enable) {
+        refs = with_refcnt ? (*refcnt)++ : refs;
+    } else {
+        refs = with_refcnt ? --(*refcnt) : refs;
     }
-    esp_os_exit_critical_safe(&ctx->lock);
+    if (refs == 0 || !with_refcnt) {
+        (*action)(ctx, enable);
+    }
+    assert(refs >= 0);
 }
 
-static void IRAM_ATTR modem_clock_device_disable(modem_clock_context_t *ctx, uint32_t dev_map)
+static IRAM_ATTR void modem_clock_device_control(modem_clock_context_t *ctx, uint32_t dev_map, bool enable)
 {
-    int16_t refs = 0;
     esp_os_enter_critical_safe(&ctx->lock);
     for (int i = 0; dev_map; dev_map >>= 1, i++) {
         if (dev_map & BIT(0)) {
-            refs = ctx->dev[i].with_refcnt ? --ctx->dev[i].refs : refs;
-            if (refs == 0 || !ctx->dev[i].with_refcnt) {
-                (*ctx->dev[i].configure)(ctx, false);
+            ctx->dev->configure(ctx, i, enable, config_wrapper);
+#if CONFIG_ESP_MODEM_CLOCK_ENABLE_CHECKING
+            if (enable && ctx->dev->check) {
+                ESP_ERROR_CHECK((*ctx->dev->check)(ctx, i));
             }
-            if (ctx->dev[i].with_refcnt) {
-                assert(refs >= 0);
-            }
+#endif
         }
     }
     esp_os_exit_critical_safe(&ctx->lock);
@@ -122,7 +123,7 @@ static IRAM_ATTR void modem_clock_module_icg_map_init_all(void)
     esp_os_enter_critical_safe(&MODEM_CLOCK_instance()->lock);
     for (int domain = 0; domain < MODEM_CLOCK_DOMAIN_MAX; domain++) {
         uint32_t code = modem_clock_hal_get_clock_domain_icg_bitmap(MODEM_CLOCK_instance()->hal, domain);
-        modem_clock_hal_set_clock_domain_icg_bitmap(MODEM_CLOCK_instance()->hal, domain, MODEM_CLOCK_instance()->initial_gating_mode[domain] | code);
+        modem_clock_hal_set_clock_domain_icg_bitmap(MODEM_CLOCK_instance()->hal, domain, MODEM_CLOCK_instance()->icg_config[domain] | code);
 #if CONFIG_ESP_MODEM_CLOCK_ENABLE_CHECKING
         assert((modem_clock_hal_get_clock_domain_icg_bitmap(MODEM_CLOCK_instance()->hal, domain) & code) == code);
 #endif
@@ -138,14 +139,14 @@ void IRAM_ATTR modem_clock_module_enable(shared_periph_module_t module)
     modem_clock_module_icg_map_init_all();
 #endif
     uint32_t deps = modem_clock_get_module_deps(module);
-    modem_clock_device_enable(MODEM_CLOCK_instance(), deps);
+    modem_clock_device_control(MODEM_CLOCK_instance(), deps, true);
 }
 
 void IRAM_ATTR modem_clock_module_disable(shared_periph_module_t module)
 {
     assert(IS_MODEM_MODULE(module));
     uint32_t deps = modem_clock_get_module_deps(module);
-    modem_clock_device_disable(MODEM_CLOCK_instance(), deps);
+    modem_clock_device_control(MODEM_CLOCK_instance(), deps, false);
 }
 
 uint32_t IRAM_ATTR modem_clock_module_bits_get(shared_periph_module_t module)

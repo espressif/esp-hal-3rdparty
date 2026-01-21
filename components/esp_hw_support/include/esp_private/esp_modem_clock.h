@@ -17,6 +17,7 @@
 #include "esp_private/esp_pmu.h"
 #include "esp_private/critical_section.h"
 #include "esp_macros.h"
+#include "hal/regi2c_ctrl_ll.h"
 
 #if SOC_MODEM_CLOCK_SUPPORTED
 #include "hal/modem_clock_hal.h"
@@ -30,7 +31,8 @@ extern "C" {
 // Please define the frequently called modules in the low bit,
 // which will improve the execution efficiency
 typedef enum {
-    MODEM_CLOCK_MODEM_ADC_COMMON_FE,
+    MODEM_CLOCK_DEVICE_MIN = 0,
+    MODEM_CLOCK_MODEM_ADC_COMMON_FE = MODEM_CLOCK_DEVICE_MIN,
     MODEM_CLOCK_MODEM_PRIVATE_FE,
     MODEM_CLOCK_COEXIST,
 #if ANA_I2C_MST_CLK_HAS_ROOT_GATING
@@ -83,24 +85,31 @@ typedef enum {
 #define MODEM_STATUS_IDLE           (0)
 #define MODEM_STATUS_WIFI_INITED    (0x1UL)
 
-struct modem_clock_context;
-
-typedef struct {
-    int16_t     refs;               /* Reference count for this device, if with_refcnt is enabled */
-    uint16_t    with_refcnt : 1;    /* Enable reference count management (true=use refs, false=ignore refs) */
-    uint16_t    reserved    : 15;   /* reserved for 15 bits aligned */
-    void        (*configure)(struct modem_clock_context *, bool);
+typedef struct modem_clock_context modem_clock_context_t;
+typedef void (*wrapper_t)(struct modem_clock_context *, bool, void (*action)(struct modem_clock_context *, bool), int16_t *, uint16_t *);
+typedef void (*configure_func_t)(struct modem_clock_context *, int, bool, wrapper_t);
 #if CONFIG_ESP_MODEM_CLOCK_ENABLE_CHECKING
-    esp_err_t   (*check_enable)(struct modem_clock_context *);
+typedef esp_err_t (*check_func_t)(struct modem_clock_context *, int);
+#endif
+
+#define REFS_FL_WITH_REFCNT (BIT(0)) /* Enable reference count management (true=use refs, false=ignore refs) */
+typedef struct {
+    struct {
+    int16_t     count;              /* Reference count for this device, if with_refcnt is enabled */
+    uint16_t    flags;              /* Flags for this device */
+    } refs[MODEM_CLOCK_DEVICE_MAX];
+    configure_func_t configure;
+#if CONFIG_ESP_MODEM_CLOCK_ENABLE_CHECKING
+    check_func_t check;
 #endif
 } modem_clock_device_context_t;
 
 typedef struct modem_clock_context {
-    modem_clock_hal_context_t *hal;
-    spinlock_t                lock;
-    modem_clock_device_context_t *dev;
+    modem_clock_hal_context_t     *hal;
+    spinlock_t                    lock;
+    modem_clock_device_context_t  *dev;
 #if SOC_PM_SUPPORT_MODEM_CLOCK_DOMAIN_ICG
-    const uint8_t *initial_gating_mode;
+    uint8_t *icg_config;
 #endif
     /* the low-power clock source for each module */
     modem_clock_lpclk_src_t lpclk_src[PERIPH_MODEM_MODULE_NUM];
@@ -118,23 +127,24 @@ typedef struct modem_clock_context {
 uint32_t modem_clock_get_module_deps(shared_periph_module_t module);
 
 /**
- * @brief Modem clock device context array
- * Each chip defines this array in its port file
+ * @brief Get modem clock device context
+ * Each chip implements this function in its port file
+ * @return Pointer to the modem clock device context
  */
-extern modem_clock_device_context_t g_modem_clock_dev[MODEM_CLOCK_DEVICE_MAX];
+modem_clock_device_context_t *modem_clock_device_context(void);
 
 #if SOC_PM_SUPPORT_MODEM_CLOCK_DOMAIN_ICG
 /**
- * @brief Initial gating mode for each clock domain
- * Each chip defines this array in its port file
+ * @brief Get initial gating configuration for each clock domain
+ * @return Pointer to the initial gating configuration array
  */
-extern const uint8_t g_initial_gating_mode[MODEM_CLOCK_DOMAIN_MAX];
+uint8_t *modem_clock_domain_icg_config(void);
 
 /* the ICG code's bit 0, 1 and 2 indicates the ICG state
  * of pmu SLEEP, MODEM and ACTIVE mode respectively */
- #define ICG_NOGATING_ACTIVE (BIT(PMU_HP_ICG_MODEM_CODE_ACTIVE))
- #define ICG_NOGATING_SLEEP  (BIT(PMU_HP_ICG_MODEM_CODE_SLEEP))
- #define ICG_NOGATING_MODEM  (BIT(PMU_HP_ICG_MODEM_CODE_MODEM))
+#define ICG_NOGATING_ACTIVE (BIT(PMU_HP_ICG_MODEM_CODE_ACTIVE))
+#define ICG_NOGATING_SLEEP  (BIT(PMU_HP_ICG_MODEM_CODE_SLEEP))
+#define ICG_NOGATING_MODEM  (BIT(PMU_HP_ICG_MODEM_CODE_MODEM))
 #endif // SOC_PM_SUPPORT_MODEM_CLOCK_DOMAIN_ICG
 #endif // SOC_MODEM_CLOCK_SUPPORTED
 

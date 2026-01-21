@@ -14,26 +14,12 @@
 #define BLE_CLOCK_DEPS                      ( MODEM_CLOCKS( BLE_MAC, BT_I154_COMMON_BB, ETM, COEXIST ) )
 #define IEEE802154_CLOCK_DEPS               ( MODEM_CLOCKS( 802154_MAC, BT_I154_COMMON_BB, ETM, COEXIST ) )
 #define COEXIST_CLOCK_DEPS                  ( MODEM_CLOCKS( COEXIST ) )
-#if ANA_I2C_MST_CLK_HAS_ROOT_GATING
 #define I2C_ANA_MST_CLOCK_DEPS              ( MODEM_CLOCKS( I2C_MASTER ) )
-#else
-#define I2C_ANA_MST_CLOCK_DEPS              (0)
-#endif
 #define PHY_CLOCK_DEPS                      ( MODEM_CLOCKS( MODEM_ADC_COMMON_FE, MODEM_PRIVATE_FE ) | I2C_ANA_MST_CLOCK_DEPS )
 #define MODEM_ETM_CLOCK_DEPS                ( MODEM_CLOCKS( ETM ) )
 #define MODEM_ADC_COMMON_FE_CLOCK_DEPS      ( MODEM_CLOCKS( MODEM_ADC_COMMON_FE ) )
-#if SOC_PHY_CALIBRATION_CLOCK_IS_INDEPENDENT
-#define PHY_CALIBRATION_CLOCK_DEPS          ( MODEM_CLOCKS( WIFI_APB, WIFI_BB_44M ) )
-#define PHY_CALIBRATION_WIFI_CLOCK_DEPS     ( MODEM_CLOCKS( WIFI_APB, WIFI_BB, WIFI_BB_44M ) )
-#define PHY_CALIBRATION_BT_I154_CLOCK_DEPS  ( MODEM_CLOCKS( WIFI_APB, WIFI_BB_44M, BT_I154_COMMON_BB ) )
-#else
-#define PHY_CALIBRATION_WIFI_CLOCK_DEPS     ( MODEM_CLOCKS( WIFI_BB ) )
 #define PHY_CALIBRATION_BT_I154_CLOCK_DEPS  ( MODEM_CLOCKS( BT_I154_COMMON_BB ) )
-#endif
-#ifndef SOC_WIFI_SUPPORTED
-#undef  PHY_CALIBRATION_WIFI_CLOCK_DEPS
 #define PHY_CALIBRATION_WIFI_CLOCK_DEPS     ( 0 )
-#endif
 #if !defined(SOC_BT_SUPPORTED) && !defined(SOC_IEEE802154_SUPPORTED)
 #undef  PHY_CALIBRATION_BT_I154_CLOCK_DEPS
 #define PHY_CALIBRATION_BT_I154_CLOCK_DEPS  ( 0 )
@@ -47,80 +33,66 @@ uint32_t IRAM_ATTR modem_clock_get_module_deps(shared_periph_module_t module)
         case PERIPH_ANA_I2C_MASTER_MODULE:      deps = I2C_ANA_MST_CLOCK_DEPS;          break;
         case PERIPH_PHY_MODULE:                 deps = PHY_CLOCK_DEPS;                  break;
         case PERIPH_MODEM_ADC_COMMON_FE_MODULE: deps = MODEM_ADC_COMMON_FE_CLOCK_DEPS;  break;
-#if SOC_BT_SUPPORTED || SOC_IEEE802154_SUPPORTED
-        case PERIPH_COEX_MODULE:                deps = COEXIST_CLOCK_DEPS;              break;
-#endif
-#if SOC_BT_SUPPORTED
-        case PERIPH_BT_MODULE:                  deps = BLE_CLOCK_DEPS;                  break;
-#endif
+        // case PERIPH_COEX_MODULE:                deps = COEXIST_CLOCK_DEPS;              break;
+        // case PERIPH_BT_MODULE:                  deps = BLE_CLOCK_DEPS;                  break;
         case PERIPH_PHY_CALIBRATION_MODULE:     deps = PHY_CALIBRATION_CLOCK_DEPS;      break;
-#if SOC_IEEE802154_SUPPORTED
-        case PERIPH_IEEE802154_MODULE:          deps = IEEE802154_CLOCK_DEPS;           break;
-#endif
-#if SOC_BT_SUPPORTED || SOC_IEEE802154_SUPPORTED
-        case PERIPH_MODEM_ETM_MODULE:           deps = MODEM_ETM_CLOCK_DEPS;            break;
-#endif
+        // case PERIPH_IEEE802154_MODULE:          deps = IEEE802154_CLOCK_DEPS;           break;
+        // case PERIPH_MODEM_ETM_MODULE:           deps = MODEM_ETM_CLOCK_DEPS;            break;
         default:
             assert(0);
     }
     return deps;
 }
 
-#if SOC_BT_SUPPORTED
-static void IRAM_ATTR modem_clock_ble_mac_configure(modem_clock_context_t *ctx, bool enable)
-{
-    modem_syscon_ll_enable_bt_mac_clock(ctx->hal->syscon_dev, enable);
-    modem_syscon_ll_enable_modem_sec_clock(ctx->hal->syscon_dev, enable);
-    modem_syscon_ll_enable_ble_timer_clock(ctx->hal->syscon_dev, enable);
-}
+// static void IRAM_ATTR modem_clock_ble_mac_configure(modem_clock_context_t *ctx, bool enable)
+// {
+//     modem_syscon_ll_enable_bt_mac_clock(ctx->hal->syscon_dev, enable);
+//     modem_syscon_ll_enable_modem_sec_clock(ctx->hal->syscon_dev, enable);
+//     modem_syscon_ll_enable_ble_timer_clock(ctx->hal->syscon_dev, enable);
+// }
 
-#if CONFIG_ESP_MODEM_CLOCK_ENABLE_CHECKING
-static esp_err_t IRAM_ATTR modem_clock_ble_mac_check_enable(modem_clock_context_t *ctx)
-{
-    bool all_clock_enabled = true;
-    all_clock_enabled &= modem_syscon_ll_bt_mac_clock_is_enabled(ctx->hal->syscon_dev);
-    all_clock_enabled &= modem_syscon_ll_modem_sec_clock_is_enabled(ctx->hal->syscon_dev);
-    all_clock_enabled &= modem_syscon_ll_ble_timer_clock_is_enabled(ctx->hal->syscon_dev);
-    return all_clock_enabled ? ESP_OK : ESP_FAIL;
-}
-#endif
-#endif // SOC_BT_SUPPORTED
+// #if CONFIG_ESP_MODEM_CLOCK_ENABLE_CHECKING
+// static esp_err_t IRAM_ATTR modem_clock_ble_mac_check_enable(modem_clock_context_t *ctx)
+// {
+//     bool all_clock_enabled = true;
+//     all_clock_enabled &= modem_syscon_ll_bt_mac_clock_is_enabled(ctx->hal->syscon_dev);
+//     all_clock_enabled &= modem_syscon_ll_modem_sec_clock_is_enabled(ctx->hal->syscon_dev);
+//     all_clock_enabled &= modem_syscon_ll_ble_timer_clock_is_enabled(ctx->hal->syscon_dev);
+//     return all_clock_enabled ? ESP_OK : ESP_FAIL;
+// }
+// #endif
 
-#if SOC_BT_SUPPORTED || SOC_IEEE802154_SUPPORTED
-static void IRAM_ATTR modem_clock_ble_i154_bb_configure(modem_clock_context_t *ctx, bool enable)
-{
-    modem_syscon_ll_enable_bt_apb_clock(ctx->hal->syscon_dev, enable);
-    modem_syscon_ll_enable_bt_clock(ctx->hal->syscon_dev, enable);
-}
+// static void IRAM_ATTR modem_clock_ble_i154_bb_configure(modem_clock_context_t *ctx, bool enable)
+// {
+    // modem_syscon_ll_enable_bt_apb_clock(ctx->hal->syscon_dev, enable);
+    // modem_syscon_ll_enable_bt_clock(ctx->hal->syscon_dev, enable);
+// }
 
-#if CONFIG_ESP_MODEM_CLOCK_ENABLE_CHECKING
-static esp_err_t IRAM_ATTR modem_clock_ble_i154_bb_check_enable(modem_clock_context_t *ctx)
-{
-    bool all_clock_enabled = true;
-    all_clock_enabled &= modem_syscon_ll_bt_apb_clock_is_enabled(ctx->hal->syscon_dev);
-    all_clock_enabled &= modem_syscon_ll_bt_clock_is_enabled(ctx->hal->syscon_dev);
-    return all_clock_enabled ? ESP_OK : ESP_FAIL;
-}
-#endif
-#endif // SOC_BT_SUPPORTED || SOC_IEEE802154_SUPPORTED
+// #if CONFIG_ESP_MODEM_CLOCK_ENABLE_CHECKING
+// static esp_err_t IRAM_ATTR modem_clock_ble_i154_bb_check_enable(modem_clock_context_t *ctx)
+// {
+//     bool all_clock_enabled = true;
+//     all_clock_enabled &= modem_syscon_ll_bt_apb_clock_is_enabled(ctx->hal->syscon_dev);
+//     all_clock_enabled &= modem_syscon_ll_bt_clock_is_enabled(ctx->hal->syscon_dev);
+//     return all_clock_enabled ? ESP_OK : ESP_FAIL;
+// }
+// #endif
 
-#if SOC_IEEE802154_SUPPORTED
-static void IRAM_ATTR modem_clock_ieee802154_mac_configure(modem_clock_context_t *ctx, bool enable)
-{
-    modem_syscon_ll_enable_ieee802154_apb_clock(ctx->hal->syscon_dev, enable);
-    modem_syscon_ll_enable_ieee802154_mac_clock(ctx->hal->syscon_dev, enable);
-}
+// static void IRAM_ATTR modem_clock_ieee802154_mac_configure(modem_clock_context_t *ctx, bool enable)
+// {
+//     modem_syscon_ll_enable_ieee802154_apb_clock(ctx->hal->syscon_dev, enable);
+//     modem_syscon_ll_enable_ieee802154_mac_clock(ctx->hal->syscon_dev, enable);
+// }
 
-#if CONFIG_ESP_MODEM_CLOCK_ENABLE_CHECKING
-static esp_err_t IRAM_ATTR modem_clock_ieee802154_mac_check_enable(modem_clock_context_t *ctx)
-{
-    bool all_clock_enabled = true;
-    all_clock_enabled &= modem_syscon_ll_ieee802154_apb_clock_is_enabled(ctx->hal->syscon_dev);
-    all_clock_enabled &= modem_syscon_ll_ieee802154_mac_clock_is_enabled(ctx->hal->syscon_dev);
-    return all_clock_enabled ? ESP_OK : ESP_FAIL;
-}
-#endif
-#endif // SOC_IEEE802154_SUPPORTED
+// #if CONFIG_ESP_MODEM_CLOCK_ENABLE_CHECKING
+// static esp_err_t IRAM_ATTR modem_clock_ieee802154_mac_check_enable(modem_clock_context_t *ctx)
+// {
+//     bool all_clock_enabled = true;
+//     all_clock_enabled &= modem_syscon_ll_ieee802154_apb_clock_is_enabled(ctx->hal->syscon_dev);
+//     all_clock_enabled &= modem_syscon_ll_ieee802154_mac_clock_is_enabled(ctx->hal->syscon_dev);
+//     return all_clock_enabled ? ESP_OK : ESP_FAIL;
+// }
+// #endif
 
 static void IRAM_ATTR modem_clock_coex_configure(modem_clock_context_t *ctx, bool enable)
 {
@@ -137,7 +109,6 @@ static void IRAM_ATTR modem_clock_modem_private_fe_configure(modem_clock_context
     modem_clock_hal_enable_modem_private_fe_clock(ctx->hal, enable);
 }
 
-#if ANA_I2C_MST_CLK_HAS_ROOT_GATING
 static void IRAM_ATTR modem_clock_i2c_master_configure(modem_clock_context_t *ctx, bool enable)
 {
     if (enable) {
@@ -146,7 +117,6 @@ static void IRAM_ATTR modem_clock_i2c_master_configure(modem_clock_context_t *ct
         ANALOG_CLOCK_DISABLE();
     }
 }
-#endif
 
 static void IRAM_ATTR modem_clock_etm_configure(modem_clock_context_t *ctx, bool enable)
 {
@@ -196,59 +166,56 @@ static esp_err_t IRAM_ATTR modem_clock_data_dump_check_enable(modem_clock_contex
 }
 #endif
 
-DRAM_ATTR modem_clock_device_context_t g_modem_clock_dev[MODEM_CLOCK_DEVICE_MAX] = {
-    [MODEM_CLOCK_MODEM_ADC_COMMON_FE]   = { .refs = 0, .with_refcnt = true,     .configure = modem_clock_modem_adc_common_fe_configure
+static void IRAM_ATTR modem_clock_configure_impl(modem_clock_context_t *ctx, int dev_id, bool enable, wrapper_t wrapper)
+{
+    assert(MODEM_CLOCK_DEVICE_MIN <= dev_id && dev_id < MODEM_CLOCK_DEVICE_MAX);
+
+    void (*action)(struct modem_clock_context *, bool) =
+        ( (dev_id == MODEM_CLOCK_MODEM_ADC_COMMON_FE)   ? modem_clock_modem_adc_common_fe_configure
+        : (dev_id == MODEM_CLOCK_MODEM_PRIVATE_FE)      ? modem_clock_modem_private_fe_configure
+        : (dev_id == MODEM_CLOCK_COEXIST)               ? modem_clock_coex_configure
+        : (dev_id == MODEM_CLOCK_I2C_MASTER)            ? modem_clock_i2c_master_configure
+        : (dev_id == MODEM_CLOCK_ETM)                   ? modem_clock_etm_configure
+        // : (dev_id == MODEM_CLOCK_BLE_MAC)               ? modem_clock_ble_mac_configure */
+        // : (dev_id == MODEM_CLOCK_BT_I154_COMMON_BB)     ? modem_clock_ble_i154_bb_configure */
+        // : (dev_id == MODEM_CLOCK_802154_MAC)            ? modem_clock_ieee802154_mac_configure */
+        : (dev_id == MODEM_CLOCK_DATADUMP)              ? modem_clock_data_dump_configure
+        : NULL);
+    assert(action != NULL);
+    (*wrapper)(ctx, enable, action, &ctx->dev->refs[dev_id].count, &ctx->dev->refs[dev_id].flags);
+}
+
 #if CONFIG_ESP_MODEM_CLOCK_ENABLE_CHECKING
-        , .check_enable = modem_clock_modem_adc_common_fe_check_enable
+static esp_err_t IRAM_ATTR modem_clock_check_impl(modem_clock_context_t *ctx, int dev_id)
+{
+    assert(MODEM_CLOCK_DEVICE_MIN <= dev_id && dev_id < MODEM_CLOCK_DEVICE_MAX);
+
+    esp_err_t (*check_action)(struct modem_clock_context *) =
+        ( (dev_id == MODEM_CLOCK_MODEM_ADC_COMMON_FE)   ? modem_clock_modem_adc_common_fe_check_enable
+        : (dev_id == MODEM_CLOCK_MODEM_PRIVATE_FE)      ? modem_clock_modem_private_fe_check_enable
+        : (dev_id == MODEM_CLOCK_COEXIST)               ? modem_clock_coex_check_enable
+        : (dev_id == MODEM_CLOCK_I2C_MASTER)            ? modem_clock_i2c_master_check_enable
+        : (dev_id == MODEM_CLOCK_ETM)                   ? modem_clock_etm_check_enable
+        // : (dev_id == MODEM_CLOCK_BLE_MAC)               ? modem_clock_ble_mac_check_enable
+        // : (dev_id == MODEM_CLOCK_BT_I154_COMMON_BB)     ? modem_clock_ble_i154_bb_check_enable
+        // : (dev_id == MODEM_CLOCK_802154_MAC)            ? modem_clock_ieee802154_mac_check_enable
+        : (dev_id == MODEM_CLOCK_DATADUMP)              ? modem_clock_data_dump_check_enable
+        : NULL);
+    assert(check_action != NULL);
+    return (*check_action)(ctx);
+}
 #endif
-    },
-    [MODEM_CLOCK_MODEM_PRIVATE_FE]      = { .refs = 0, .with_refcnt = true,     .configure = modem_clock_modem_private_fe_configure
+
+IRAM_ATTR modem_clock_device_context_t *modem_clock_device_context(void)
+{
+    static DRAM_ATTR modem_clock_device_context_t dev = {
+        .refs = { [0 ... MODEM_CLOCK_DEVICE_MAX - 1] = { .count = 0, .flags = 0 | REFS_FL_WITH_REFCNT } },
+        .configure = modem_clock_configure_impl,
 #if CONFIG_ESP_MODEM_CLOCK_ENABLE_CHECKING
-        , .check_enable = modem_clock_modem_private_fe_check_enable
+        .check = modem_clock_check_impl,
 #endif
-    },
-    [MODEM_CLOCK_COEXIST]               = { .refs = 0, .with_refcnt = true,     .configure = modem_clock_coex_configure
-#if CONFIG_ESP_MODEM_CLOCK_ENABLE_CHECKING
-        , .check_enable = modem_clock_coex_check_enable
-#endif
-    },
-#if ANA_I2C_MST_CLK_HAS_ROOT_GATING
-// ANALOG_CLOCK_ENABLE/DISABLE has its own ref_cnt management.
-    [MODEM_CLOCK_I2C_MASTER]            = { .refs = 0, .with_refcnt = false,    .configure = modem_clock_i2c_master_configure
-#if CONFIG_ESP_MODEM_CLOCK_ENABLE_CHECKING
-        , .check_enable = modem_clock_i2c_master_check_enable
-#endif
-    },
-#endif
-    [MODEM_CLOCK_ETM]                   = { .refs = 0, .with_refcnt = true,     .configure = modem_clock_etm_configure
-#if CONFIG_ESP_MODEM_CLOCK_ENABLE_CHECKING
-        , .check_enable = modem_clock_etm_check_enable
-#endif
-    },
-#if SOC_BT_SUPPORTED
-    [MODEM_CLOCK_BLE_MAC]               = { .refs = 0, .with_refcnt = true,     .configure = modem_clock_ble_mac_configure
-#if CONFIG_ESP_MODEM_CLOCK_ENABLE_CHECKING
-        , .check_enable = modem_clock_ble_mac_check_enable
-#endif
-    },
-#endif
-#if SOC_IEEE802154_SUPPORTED || SOC_BT_SUPPORTED
-    [MODEM_CLOCK_BT_I154_COMMON_BB]     = { .refs = 0, .with_refcnt = true,     .configure = modem_clock_ble_i154_bb_configure
-#if CONFIG_ESP_MODEM_CLOCK_ENABLE_CHECKING
-        , .check_enable = modem_clock_ble_i154_bb_check_enable
-#endif
-    },
-#endif
-#if SOC_IEEE802154_SUPPORTED
-    [MODEM_CLOCK_802154_MAC]            = { .refs = 0, .with_refcnt = true,     .configure = modem_clock_ieee802154_mac_configure
-#if CONFIG_ESP_MODEM_CLOCK_ENABLE_CHECKING
-        , .check_enable = modem_clock_ieee802154_mac_check_enable
-#endif
-    },
-#endif
-    [MODEM_CLOCK_DATADUMP]              = { .refs = 0, .with_refcnt = true,     .configure = modem_clock_data_dump_configure
-#if CONFIG_ESP_MODEM_CLOCK_ENABLE_CHECKING
-        , .check_enable = modem_clock_data_dump_check_enable
-#endif
-    }
-};
+    };
+    // ANALOG_CLOCK_ENABLE/DISABLE has its own ref_cnt management.
+    dev.refs[MODEM_CLOCK_I2C_MASTER].flags &= ~REFS_FL_WITH_REFCNT;
+    return &dev;
+}
