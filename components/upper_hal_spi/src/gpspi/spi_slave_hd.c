@@ -40,6 +40,7 @@
 typedef struct {
     spi_slave_hd_data_t  *trans;    //original trans
     void *aligned_buffer;           //actually trans buffer (re-malloced if needed)
+    bool dma_hw_error;              //true if DMA hardware over/underflow occurred
 } spi_slave_hd_trans_priv_t;
 
 typedef struct {
@@ -48,7 +49,6 @@ typedef struct {
     spi_bus_attr_t* bus_attr;
     _Atomic spi_bus_fsm_t fsm;
     spi_dma_ctx_t   *dma_ctx;
-    uint16_t internal_mem_align_size;
     portMUX_TYPE int_spinlock;
     intr_handle_t intr;
     intr_handle_t intr_dma;
@@ -161,14 +161,6 @@ esp_err_t spi_slave_hd_init(spi_host_device_t host_id, const spi_bus_config_t *b
         host->hal.dmadesc_tx[i].desc = &host->dma_ctx->dmadesc_tx[i];
         host->hal.dmadesc_rx[i].desc = &host->dma_ctx->dmadesc_rx[i];
     }
-
-#if SOC_CACHE_INTERNAL_MEM_VIA_L1CACHE
-    size_t alignment;
-    esp_cache_get_alignment(MALLOC_CAP_DMA, &alignment);
-    host->internal_mem_align_size = alignment;
-#else
-    host->internal_mem_align_size = 4;
-#endif
 
     ret = spicommon_bus_initialize_io(host_id, bus_config, SPICOMMON_BUSFLAG_SLAVE | bus_config->flags, NULL);
     if (ret != ESP_OK) {
@@ -422,6 +414,25 @@ static inline SPI_SLAVE_ISR_ATTR BaseType_t intr_check_clear_callback(spi_slave_
     }
     return cb_awoken;
 }
+static void SPI_SLAVE_ISR_ATTR spi_slave_hd_tx_dma_error_check(spi_slave_hd_slot_t *host, spi_slave_hd_trans_priv_t priv_trans)
+{
+#if SOC_PSRAM_DMA_CAPABLE && CONFIG_SPIRAM   //error checks only for psram dma
+    if (esp_ptr_external_ram(priv_trans.aligned_buffer) && spi_slave_hd_hal_check_clear_intr(&host->hal, SPI_LL_INTR_OUT_EMPTY)) {
+        priv_trans.dma_hw_error = true;
+        ESP_DRAM_LOGE(TAG, "DMA TX underflow detected");
+    }
+#endif
+}
+static void SPI_SLAVE_ISR_ATTR spi_slave_hd_rx_dma_error_check(spi_slave_hd_slot_t *host, spi_slave_hd_trans_priv_t priv_trans)
+{
+#if SOC_PSRAM_DMA_CAPABLE && CONFIG_SPIRAM   //error checks only for psram dma
+    if (esp_ptr_external_ram(priv_trans.aligned_buffer) && spi_slave_hd_hal_check_clear_intr(&host->hal, SPI_LL_INTR_IN_FULL)) {
+        priv_trans.dma_hw_error = true;
+        ESP_DRAM_LOGE(TAG, "DMA RX overflow detected");
+    }
+#endif
+}
+
 static SPI_SLAVE_ISR_ATTR void s_spi_slave_hd_segment_isr(void *arg)
 {
     spi_slave_hd_slot_t *host = (spi_slave_hd_slot_t *)arg;
@@ -446,6 +457,7 @@ static SPI_SLAVE_ISR_ATTR void s_spi_slave_hd_segment_isr(void *arg)
     portEXIT_CRITICAL_ISR(&host->int_spinlock);
 
     if (tx_done) {
+        spi_slave_hd_tx_dma_error_check(host, host->tx_curr_trans);
         bool ret_queue = true;
         if (callback->cb_sent) {
             spi_slave_hd_event_t ev = {
@@ -464,15 +476,9 @@ static SPI_SLAVE_ISR_ATTR void s_spi_slave_hd_segment_isr(void *arg)
         host->tx_curr_trans.trans = NULL;
     }
     if (rx_done) {
+        spi_slave_hd_rx_dma_error_check(host, host->rx_curr_trans);
         bool ret_queue = true;
         host->rx_curr_trans.trans->trans_len = spi_slave_hd_hal_rxdma_seg_get_len(hal);
-#if SOC_CACHE_INTERNAL_MEM_VIA_L1CACHE   //invalidate here to let user access rx data in post_cb if possible
-        uint16_t alignment = host->internal_mem_align_size;
-        uint32_t buff_len = (host->rx_curr_trans.trans->len + alignment - 1) & (~(alignment - 1));
-        esp_err_t ret = esp_cache_msync((void *)host->rx_curr_trans.aligned_buffer, buff_len, ESP_CACHE_MSYNC_FLAG_DIR_M2C);
-        assert(ret == ESP_OK);
-        (void)ret;
-#endif
         if (callback->cb_recv) {
             spi_slave_hd_event_t ev = {
                 .event = SPI_EV_RECV,
@@ -553,7 +559,7 @@ static SPI_SLAVE_ISR_ATTR void spi_slave_hd_append_tx_isr(void *arg)
     BaseType_t awoken = pdFALSE;
     BaseType_t ret __attribute__((unused));
 
-    spi_slave_hd_trans_priv_t ret_priv_trans;
+    spi_slave_hd_trans_priv_t ret_priv_trans = {};
     while (1) {
         bool trans_finish = false;
         trans_finish = spi_slave_hd_hal_get_tx_finished_trans(hal, (void **)&ret_priv_trans.trans, &ret_priv_trans.aligned_buffer);
@@ -565,6 +571,7 @@ static SPI_SLAVE_ISR_ATTR void spi_slave_hd_append_tx_isr(void *arg)
         portEXIT_CRITICAL_ISR(&host->int_spinlock);
 
         bool ret_queue = true;
+        spi_slave_hd_tx_dma_error_check(host, ret_priv_trans);
         if (callback->cb_sent) {
             spi_slave_hd_event_t ev = {
                 .event = SPI_EV_SEND,
@@ -596,7 +603,7 @@ static SPI_SLAVE_ISR_ATTR void spi_slave_hd_append_rx_isr(void *arg)
     BaseType_t awoken = pdFALSE;
     BaseType_t ret __attribute__((unused));
 
-    spi_slave_hd_trans_priv_t ret_priv_trans;
+    spi_slave_hd_trans_priv_t ret_priv_trans = {};
     size_t trans_len;
     while (1) {
         bool trans_finish = false;
@@ -609,14 +616,8 @@ static SPI_SLAVE_ISR_ATTR void spi_slave_hd_append_rx_isr(void *arg)
         portEXIT_CRITICAL_ISR(&host->int_spinlock);
         ret_priv_trans.trans->trans_len = trans_len;
 
-#if SOC_CACHE_INTERNAL_MEM_VIA_L1CACHE   //invalidate here to let user access rx data in post_cb if possible
-        uint16_t alignment = host->internal_mem_align_size;
-        uint32_t buff_len = (ret_priv_trans.trans->len + alignment - 1) & (~(alignment - 1));
-        esp_err_t ret = esp_cache_msync((void *)ret_priv_trans.aligned_buffer, buff_len, ESP_CACHE_MSYNC_FLAG_DIR_M2C);
-        assert(ret == ESP_OK);
-        (void)ret;
-#endif
         bool ret_queue = true;
+        spi_slave_hd_rx_dma_error_check(host, ret_priv_trans);
         if (callback->cb_recv) {
             spi_slave_hd_event_t ev = {
                 .event = SPI_EV_RECV,
@@ -685,7 +686,6 @@ static SPI_SLAVE_ISR_ATTR void s_spi_slave_hd_append_legacy_isr(void *arg)
 
 static void s_spi_slave_hd_destroy_priv_trans(spi_host_device_t host, spi_slave_hd_trans_priv_t *priv_trans, spi_slave_chan_t chan)
 {
-#if SOC_CACHE_INTERNAL_MEM_VIA_L1CACHE
     spi_slave_hd_data_t *orig_trans = priv_trans->trans;
     if (priv_trans->aligned_buffer != orig_trans->data) {
         if (chan == SPI_SLAVE_CHAN_RX) {
@@ -693,39 +693,19 @@ static void s_spi_slave_hd_destroy_priv_trans(spi_host_device_t host, spi_slave_
         }
         free(priv_trans->aligned_buffer);
     }
-#endif  //SOC_CACHE_INTERNAL_MEM_VIA_L1CACHE
 }
 
 static esp_err_t s_spi_slave_hd_setup_priv_trans(spi_host_device_t host, spi_slave_hd_trans_priv_t *priv_trans, spi_slave_chan_t chan)
 {
     spi_slave_hd_data_t *orig_trans = priv_trans->trans;
 
-    priv_trans->aligned_buffer = orig_trans->data;
-
-#if SOC_CACHE_INTERNAL_MEM_VIA_L1CACHE
-    uint16_t alignment = spihost[host]->internal_mem_align_size;
-    uint32_t byte_len = orig_trans->len;
-
-    if (((uint32_t)orig_trans->data | byte_len) & (alignment - 1)) {
-        ESP_RETURN_ON_FALSE(orig_trans->flags & SPI_SLAVE_HD_TRANS_DMA_BUFFER_ALIGN_AUTO, ESP_ERR_INVALID_ARG, TAG, "data buffer addr&len not align to %d byte, or not dma_capable", alignment);
-        byte_len = (byte_len + alignment - 1) & (~(alignment - 1));  // up align to alignment
-        ESP_LOGD(TAG, "Re-allocate %s buffer of len %" PRIu32 " for DMA", (chan == SPI_SLAVE_CHAN_TX) ? "TX" : "RX", byte_len);
-        priv_trans->aligned_buffer = heap_caps_aligned_alloc(64, byte_len, MALLOC_CAP_DMA);
-        if (priv_trans->aligned_buffer == NULL) {
-            return ESP_ERR_NO_MEM;
-        }
+    bool auto_malloc = (orig_trans->flags & SPI_SLAVE_HD_TRANS_DMA_BUFFER_ALIGN_AUTO);
+    bool is_tx = (chan == SPI_SLAVE_CHAN_TX);
+    esp_err_t ret = spicommon_dma_setup_priv_buffer(host, (uint32_t *)orig_trans->data, orig_trans->len, is_tx, true, auto_malloc, (uint32_t **)&priv_trans->aligned_buffer);
+    if (ret != ESP_OK) {
+        s_spi_slave_hd_destroy_priv_trans(host, priv_trans, chan);
+        return ret;
     }
-    if (chan == SPI_SLAVE_CHAN_TX) {
-        ESP_COMPILER_DIAGNOSTIC_PUSH_IGNORE("-Wanalyzer-overlapping-buffers") // TODO IDF-11086
-        memcpy(priv_trans->aligned_buffer, orig_trans->data, orig_trans->len);
-        ESP_COMPILER_DIAGNOSTIC_POP("-Wanalyzer-overlapping-buffers")
-        esp_err_t ret = esp_cache_msync((void *)priv_trans->aligned_buffer, byte_len, ESP_CACHE_MSYNC_FLAG_DIR_C2M);
-        ESP_RETURN_ON_FALSE(ESP_OK == ret, ESP_ERR_INVALID_STATE, TAG, "mem sync c2m(writeback) fail");
-    } else {
-        esp_err_t ret = esp_cache_msync((void *)priv_trans->aligned_buffer, byte_len, ESP_CACHE_MSYNC_FLAG_DIR_M2C);
-        ESP_RETURN_ON_FALSE(ESP_OK == ret, ESP_ERR_INVALID_STATE, TAG, "mem sync m2c(invalid) fail");
-    }
-#endif  //SOC_CACHE_INTERNAL_MEM_VIA_L1CACHE
     return ESP_OK;
 }
 
@@ -746,7 +726,7 @@ static esp_err_t get_ret_queue_result(spi_host_device_t host_id, spi_slave_chan_
 
     s_spi_slave_hd_destroy_priv_trans(host_id, &hd_priv_trans, chan);
     *out_trans = hd_priv_trans.trans;
-    return ESP_OK;
+    return hd_priv_trans.dma_hw_error ? ESP_ERR_INVALID_STATE : ESP_OK;
 }
 
 esp_err_t s_spi_slave_hd_append_txdma(spi_slave_hd_slot_t *host, uint8_t *data, size_t len, void *arg)
@@ -837,12 +817,11 @@ esp_err_t spi_slave_hd_queue_trans(spi_host_device_t host_id, spi_slave_chan_t c
     spi_slave_hd_slot_t *host = spihost[host_id];
 
     SPIHD_CHECK(host->append_mode == 0, "This API should be used for SPI Slave HD Segment Mode", ESP_ERR_INVALID_STATE);
-    SPIHD_CHECK(esp_ptr_dma_capable(trans->data), "The buffer should be DMA capable.", ESP_ERR_INVALID_ARG);
     SPIHD_CHECK(trans->len <= host->bus_attr->max_transfer_sz && trans->len > 0, "Invalid buffer size", ESP_ERR_INVALID_ARG);
     SPIHD_CHECK(chan == SPI_SLAVE_CHAN_TX || chan == SPI_SLAVE_CHAN_RX, "Invalid channel", ESP_ERR_INVALID_ARG);
 
     spi_slave_hd_trans_priv_t hd_priv_trans = {.trans = trans};
-    SPIHD_CHECK(ESP_OK == s_spi_slave_hd_setup_priv_trans(host_id, &hd_priv_trans, chan), "No mem to allocate new cache buffer", ESP_ERR_NO_MEM);
+    ESP_RETURN_ON_ERROR(s_spi_slave_hd_setup_priv_trans(host_id, &hd_priv_trans, chan), TAG, "Setup dma buffer failed");
 
     if (chan == SPI_SLAVE_CHAN_TX) {
         BaseType_t ret = xQueueSend(host->tx_trans_queue, &hd_priv_trans, timeout);
@@ -890,12 +869,11 @@ esp_err_t spi_slave_hd_append_trans(spi_host_device_t host_id, spi_slave_chan_t 
 
     SPIHD_CHECK(trans->len <= SPI_MAX_DMA_LEN, "Currently we only support transaction with data length within 4092 bytes", ESP_ERR_INVALID_ARG);
     SPIHD_CHECK(host->append_mode == 1, "This API should be used for SPI Slave HD Append Mode", ESP_ERR_INVALID_STATE);
-    SPIHD_CHECK(esp_ptr_dma_capable(trans->data), "The buffer should be DMA capable.", ESP_ERR_INVALID_ARG);
     SPIHD_CHECK(trans->len <= host->bus_attr->max_transfer_sz && trans->len > 0, "Invalid buffer size", ESP_ERR_INVALID_ARG);
     SPIHD_CHECK(chan == SPI_SLAVE_CHAN_TX || chan == SPI_SLAVE_CHAN_RX, "Invalid channel", ESP_ERR_INVALID_ARG);
 
     spi_slave_hd_trans_priv_t hd_priv_trans = {.trans = trans};
-    SPIHD_CHECK(ESP_OK == s_spi_slave_hd_setup_priv_trans(host_id, &hd_priv_trans, chan), "No mem to allocate new cache buffer", ESP_ERR_NO_MEM);
+    ESP_RETURN_ON_ERROR(s_spi_slave_hd_setup_priv_trans(host_id, &hd_priv_trans, chan), TAG, "Setup dma buffer failed");
 
     if (chan == SPI_SLAVE_CHAN_TX) {
         BaseType_t ret = xSemaphoreTake(host->tx_cnting_sem, timeout);

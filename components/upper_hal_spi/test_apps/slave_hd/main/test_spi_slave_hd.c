@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2021-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2021-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -1085,3 +1085,66 @@ TEST_CASE("test_spi_slave_hd_append_sleep_retention", "[spi]")
 #endif
 }
 #endif  //SOC_LIGHT_SLEEP_SUPPORTED
+
+#if CONFIG_SPIRAM && SOC_PSRAM_DMA_CAPABLE
+// function pointers for segment and append mode
+static esp_err_t (*hd_trans[2])(spi_host_device_t host_id, spi_slave_chan_t chan, spi_slave_hd_data_t *trans, uint32_t timeout) = {
+    spi_slave_hd_queue_trans, spi_slave_hd_append_trans
+};
+static esp_err_t (*hd_get_trans_res[2])(spi_host_device_t host_id, spi_slave_chan_t chan, spi_slave_hd_data_t **out_trans, uint32_t timeout) = {
+    spi_slave_hd_get_trans_res, spi_slave_hd_get_append_trans_res
+};
+
+#define TEST_PSRAM_TRANS_LEN 1000
+TEST_CASE("test slave hd edma segment and append mode", "[spi]")
+{
+    uint8_t *mst_tx = heap_caps_malloc(TEST_PSRAM_TRANS_LEN, MALLOC_CAP_DEFAULT);
+    uint8_t *mst_rx = heap_caps_malloc(TEST_PSRAM_TRANS_LEN, MALLOC_CAP_DEFAULT);
+    uint8_t *slv_tx = heap_caps_malloc(TEST_PSRAM_TRANS_LEN, MALLOC_CAP_SPIRAM);
+    uint8_t *slv_rx = heap_caps_malloc(TEST_PSRAM_TRANS_LEN, MALLOC_CAP_SPIRAM);
+    spi_slave_hd_data_t *ret_trans, tx_data = {
+        .data = slv_tx,
+        .len = TEST_PSRAM_TRANS_LEN,
+    }, rx_data = {
+        .data = slv_rx,
+        .len = TEST_PSRAM_TRANS_LEN,
+        .flags = SPI_SLAVE_HD_TRANS_DMA_BUFFER_ALIGN_AUTO,
+    };
+
+    for (int i = 0; i < 2; i++) {
+        printf("\ntest slave hd edma %s mode\n", i ? "append" : "segment");
+        test_fill_random_to_buffers_dualboard(i + 1, mst_tx, slv_tx, TEST_PSRAM_TRANS_LEN);
+
+        spi_bus_config_t bus_cfg = SPI_BUS_TEST_DEFAULT_CONFIG();
+        bus_cfg.max_transfer_sz = 4092 * 4; // append mode require at least 2 for tx and 2 for rx dma descs
+        bus_cfg.flags |= SPICOMMON_BUSFLAG_GPIO_PINS;
+        spi_slave_hd_slot_config_t slave_hd_cfg = SPI_SLOT_TEST_DEFAULT_CONFIG();
+        slave_hd_cfg.flags |= i ? SPI_SLAVE_HD_APPEND_MODE : 0;
+        TEST_ESP_OK(spi_slave_hd_init(TEST_SLAVE_HOST, &bus_cfg, &slave_hd_cfg));
+        same_pin_func_sel(0, TEST_SLAVE_HOST, bus_cfg, slave_hd_cfg.spics_io_num);
+        vTaskDelay(1);
+
+        TEST_ESP_OK(hd_trans[i](TEST_SLAVE_HOST, SPI_SLAVE_CHAN_TX, &tx_data, portMAX_DELAY));
+        TEST_ESP_OK(hd_trans[i](TEST_SLAVE_HOST, SPI_SLAVE_CHAN_RX, &rx_data, portMAX_DELAY));
+
+        // tx append transaction
+        printf("tx %d bytes\n", TEST_PSRAM_TRANS_LEN);
+        essl_sspi_hd_dma_trans_seg(bus_cfg, slave_hd_cfg.spics_io_num, 0, false, mst_tx, TEST_PSRAM_TRANS_LEN, -1);
+        TEST_ESP_OK(hd_get_trans_res[i](TEST_SLAVE_HOST, SPI_SLAVE_CHAN_RX, &ret_trans, portMAX_DELAY));
+
+        // rx append transaction
+        printf("rx %d bytes\n", TEST_PSRAM_TRANS_LEN);
+        essl_sspi_hd_dma_trans_seg(bus_cfg, slave_hd_cfg.spics_io_num, 0, true, mst_rx, TEST_PSRAM_TRANS_LEN, -1);
+        TEST_ESP_OK(hd_get_trans_res[i](TEST_SLAVE_HOST, SPI_SLAVE_CHAN_TX, &ret_trans, portMAX_DELAY));
+
+        spitest_cmp_or_dump(slv_rx, mst_tx, TEST_PSRAM_TRANS_LEN);
+        spitest_cmp_or_dump(mst_rx, slv_tx, TEST_PSRAM_TRANS_LEN);
+        spi_slave_hd_deinit(TEST_SLAVE_HOST);
+        printf("test done\n");
+    }
+    free(mst_tx);
+    free(mst_rx);
+    free(slv_tx);
+    free(slv_rx);
+}
+#endif //CONFIG_SPIRAM && SOC_PSRAM_DMA_CAPABLE

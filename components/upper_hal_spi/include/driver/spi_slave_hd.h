@@ -166,7 +166,7 @@ esp_err_t spi_slave_hd_queue_trans(spi_host_device_t host_id, spi_slave_chan_t c
  *  - ESP_OK: on success
  *  - ESP_ERR_INVALID_ARG: Function is not valid
  *  - ESP_ERR_TIMEOUT: There's no transaction done before timeout
- *  - ESP_ERR_INVALID_STATE: Function called in invalid state. This API should be called under segment mode.
+ *  - ESP_ERR_INVALID_STATE: Function called in invalid state. This API should be called under segment mode. Or DMA hardware over/underflow occurred.
  */
 esp_err_t spi_slave_hd_get_trans_res(spi_host_device_t host_id, spi_slave_chan_t chan, spi_slave_hd_data_t **out_trans, uint32_t timeout);
 
@@ -223,7 +223,7 @@ esp_err_t spi_slave_hd_append_trans(spi_host_device_t host_id, spi_slave_chan_t 
  *  - ESP_OK: on success
  *  - ESP_ERR_INVALID_ARG: Function is not valid
  *  - ESP_ERR_TIMEOUT: There's no transaction done before timeout
- *  - ESP_ERR_INVALID_STATE: Function called in invalid state. This API should be called under append mode.
+ *  - ESP_ERR_INVALID_STATE: Function called in invalid state. This API should be called under append mode. Or DMA hardware over/underflow occurred.
  */
 esp_err_t spi_slave_hd_get_append_trans_res(spi_host_device_t host_id, spi_slave_chan_t chan, spi_slave_hd_data_t **out_trans, uint32_t timeout);
 
