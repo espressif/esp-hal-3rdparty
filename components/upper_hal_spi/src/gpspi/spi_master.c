@@ -992,6 +992,7 @@ static void SPI_MASTER_ISR_ATTR spi_intr(void *arg)
             //This workaround is only for esp32, where tx_dma_chan and rx_dma_chan are always same
             spicommon_dmaworkaround_idle(dma_ctx->tx_dma_chan.chan_id);
 #endif  //#if CONFIG_IDF_TARGET_ESP32
+            spicommon_dma_rx_mb(host->id, host->cur_trans_buf.buffer_to_rcv);
             spi_trans_dma_error_check(host);
         }
 
@@ -1424,6 +1425,7 @@ esp_err_t SPI_MASTER_ISR_ATTR spi_device_polling_end(spi_device_handle_t handle,
             return ESP_ERR_TIMEOUT;
         }
     }
+    spicommon_dma_rx_mb(host->id, host->cur_trans_buf.buffer_to_rcv);
     spi_trans_dma_error_check(host);
     uint32_t trans_flags = host->cur_trans_buf.trans->flags;  // save the flags before bus_lock release
 

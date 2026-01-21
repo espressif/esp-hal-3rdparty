@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2015-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -654,6 +654,7 @@ static void SPI_SLAVE_ISR_ATTR spi_intr(void *arg)
         // When DMA is enabled, the slave rx dma suffers from unexpected transactions. Forbid reading until transaction ready.
         if (use_dma) {
             freeze_cs(host);
+            spicommon_dma_rx_mb(host->id, host->cur_trans.rx_buffer);
             spi_slave_trans_dma_error_check(host);
         }
 

@@ -153,6 +153,14 @@ void spicommon_dma_desc_setup_link(spi_dma_desc_t *dmadesc, const void *data, in
 esp_err_t spicommon_dma_setup_priv_buffer(spi_host_device_t host_id, uint32_t *buffer, uint32_t len, bool is_tx, bool psram_prefer, bool auto_malloc, uint32_t **ret_buffer);
 
 /**
+ * @brief Memory barrier for DMA RX buffer
+ *
+ * @param host_id   SPI host ID
+ * @param rx_buffer RX buffer
+ */
+void spicommon_dma_rx_mb(spi_host_device_t host_id, void *rx_buffer);
+
+/**
  * @brief Free DMA for SPI
  *
  * @param host_id   SPI host ID

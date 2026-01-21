@@ -8,6 +8,7 @@
 #include "esp_compiler.h"
 #include "esp_log.h"
 #include "esp_check.h"
+#include "esp_cache.h"
 #include "esp_memory_utils.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
@@ -19,9 +20,6 @@
 #include "esp_private/esp_cache_private.h"
 #include "driver/spi_slave_hd.h"
 #include "hal/spi_slave_hd_hal.h"
-#if SOC_CACHE_INTERNAL_MEM_VIA_L1CACHE
-#include "esp_cache.h"
-#endif
 
 #ifdef CONFIG_SPI_SLAVE_ISR_IN_IRAM
 #define SPI_SLAVE_ISR_ATTR IRAM_ATTR
@@ -476,6 +474,7 @@ static SPI_SLAVE_ISR_ATTR void s_spi_slave_hd_segment_isr(void *arg)
         host->tx_curr_trans.trans = NULL;
     }
     if (rx_done) {
+        spicommon_dma_rx_mb(host->host_id, host->rx_curr_trans.aligned_buffer);
         spi_slave_hd_rx_dma_error_check(host, host->rx_curr_trans);
         bool ret_queue = true;
         host->rx_curr_trans.trans->trans_len = spi_slave_hd_hal_rxdma_seg_get_len(hal);
@@ -617,6 +616,7 @@ static SPI_SLAVE_ISR_ATTR void spi_slave_hd_append_rx_isr(void *arg)
         ret_priv_trans.trans->trans_len = trans_len;
 
         bool ret_queue = true;
+        spicommon_dma_rx_mb(host->host_id, ret_priv_trans.aligned_buffer);
         spi_slave_hd_rx_dma_error_check(host, ret_priv_trans);
         if (callback->cb_recv) {
             spi_slave_hd_event_t ev = {

@@ -29,6 +29,9 @@
 #if CONFIG_IDF_TARGET_ESP32
 #include "soc/dport_reg.h"
 #endif
+#if CONFIG_SPIRAM
+#include "esp_private/esp_psram_mspi.h"
+#endif
 
 #if CONFIG_SPI_MASTER_ISR_IN_IRAM || CONFIG_SPI_SLAVE_ISR_IN_IRAM
 #define SPI_COMMON_ISR_ATTR IRAM_ATTR
@@ -429,6 +432,17 @@ esp_err_t SPI_COMMON_ISR_ATTR spicommon_dma_setup_priv_buffer(spi_host_device_t 
     // ESP_ERR_NOT_SUPPORTED stands for not cache sync required, it's allowed here
     ESP_RETURN_ON_FALSE_ISR((ret == ESP_OK) || (ret == ESP_ERR_NOT_SUPPORTED), ESP_ERR_INVALID_ARG, SPI_TAG, "sync failed for %s buffer", is_tx ? "TX" : "RX");
     return ESP_OK;
+}
+
+void SPI_COMMON_ISR_ATTR spicommon_dma_rx_mb(spi_host_device_t host_id, void *rx_buffer)
+{
+    (void)host_id;
+#if SOC_PSRAM_DMA_CAPABLE && CONFIG_SPIRAM
+    if (esp_ptr_external_ram(rx_buffer)) {
+        // dma rx data to psram need memory barrier fix
+        esp_psram_mspi_mb();
+    }
+#endif
 }
 
 //----------------------------------------------------------free dma periph-------------------------------------------------------//
