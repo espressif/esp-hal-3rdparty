@@ -36,7 +36,7 @@
 #include "esp_private/periph_ctrl.h"
 #include "esp_private/critical_section.h"
 #include "esp_private/sleep_retention.h"
-#include "esp_flash_encrypt.h"
+#include "esp_efuse.h"
 
 #if CONFIG_GDMA_OBJ_DRAM_SAFE
 #define GDMA_MEM_ALLOC_CAPS    (MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)

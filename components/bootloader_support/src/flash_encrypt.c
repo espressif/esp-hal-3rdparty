@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2015-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -36,7 +36,7 @@ void esp_flash_encryption_init_checks()
     esp_flash_enc_mode_t mode;
 
 #ifdef CONFIG_SECURE_FLASH_CHECK_ENC_EN_IN_APP
-    if (!esp_flash_encryption_enabled()) {
+    if (!esp_efuse_is_flash_encryption_enabled()) {
         ESP_LOGE(TAG, "Flash encryption eFuse bit was not enabled in bootloader but CONFIG_SECURE_FLASH_ENC_ENABLED is on");
         abort();
     }
@@ -47,7 +47,7 @@ void esp_flash_encryption_init_checks()
     // if bootloader is IDF V4.0 or newer but may not have happened for previous ESP-IDF bootloaders.
 #ifdef CONFIG_SECURE_FLASH_ENCRYPTION_MODE_RELEASE
 #ifdef CONFIG_SECURE_BOOT
-    if (esp_secure_boot_enabled() && esp_flash_encryption_enabled()) {
+    if (esp_secure_boot_enabled() && esp_efuse_is_flash_encryption_enabled()) {
         bool flash_crypt_cnt_wr_dis = esp_efuse_read_field_bit(WR_DIS_CRYPT_CNT);
         if (!flash_crypt_cnt_wr_dis) {
             uint8_t flash_crypt_cnt = 0;
@@ -80,35 +80,6 @@ void esp_flash_encryption_init_checks()
 }
 #endif // BOOTLOADER_BUILD
 
-/**
- * This former inlined function must not be defined in the header file anymore.
- * As it depends on efuse component, any use of it outside of `bootloader_support`,
- * would require the caller component to include `efuse` as part of its `REQUIRES` or
- * `PRIV_REQUIRES` entries.
- * Attribute IRAM_ATTR must be specified for the app build.
- */
-bool IRAM_ATTR esp_flash_encryption_enabled(void)
-{
-#ifndef CONFIG_EFUSE_VIRTUAL_KEEP_IN_FLASH
-    return efuse_hal_flash_encryption_enabled();
-#else
-    uint32_t flash_crypt_cnt = 0;
-#if CONFIG_IDF_TARGET_ESP32
-    esp_efuse_read_field_blob(ESP_EFUSE_FLASH_CRYPT_CNT, &flash_crypt_cnt, ESP_EFUSE_FLASH_CRYPT_CNT[0]->bit_count);
-#else
-    esp_efuse_read_field_blob(ESP_EFUSE_SPI_BOOT_CRYPT_CNT, &flash_crypt_cnt, ESP_EFUSE_SPI_BOOT_CRYPT_CNT[0]->bit_count);
-#endif
-    /* __builtin_parity is in flash, so we calculate parity inline */
-    bool enabled = false;
-    while (flash_crypt_cnt) {
-        if (flash_crypt_cnt & 1) {
-            enabled = !enabled;
-        }
-        flash_crypt_cnt >>= 1;
-    }
-    return enabled;
-#endif // CONFIG_EFUSE_VIRTUAL_KEEP_IN_FLASH
-}
 
 void esp_flash_write_protect_crypt_cnt(void)
 {
@@ -120,7 +91,7 @@ esp_flash_enc_mode_t esp_get_flash_encryption_mode(void)
     bool flash_crypt_cnt_wr_dis = false;
     esp_flash_enc_mode_t mode = ESP_FLASH_ENC_MODE_DEVELOPMENT;
 
-    if (esp_flash_encryption_enabled()) {
+    if (esp_efuse_is_flash_encryption_enabled()) {
         /* Check if FLASH CRYPT CNT is write protected */
 
         flash_crypt_cnt_wr_dis = esp_efuse_read_field_bit(WR_DIS_CRYPT_CNT);
@@ -253,7 +224,7 @@ bool esp_flash_encryption_cfg_verify_release_mode(void)
     bool result = false;
     bool secure;
 
-    secure = esp_flash_encryption_enabled();
+    secure = esp_efuse_is_flash_encryption_enabled();
     result = secure;
     if (!secure) {
         ESP_LOGW(TAG, "Not enabled Flash Encryption (FLASH_CRYPT_CNT->1 or max)");
@@ -330,7 +301,7 @@ bool esp_flash_encryption_cfg_verify_release_mode(void)
     bool result = false;
     bool secure;
 
-    secure = esp_flash_encryption_enabled();
+    secure = esp_efuse_is_flash_encryption_enabled();
     result = secure;
     if (!secure) {
         ESP_LOGW(TAG, "Not enabled Flash Encryption (SPI_BOOT_CRYPT_CNT->1 or max)");
@@ -517,3 +488,9 @@ bool esp_flash_encryption_cfg_verify_release_mode(void)
     return result;
 }
 #endif // not CONFIG_IDF_TARGET_ESP32
+
+// Deprecated function
+bool IRAM_ATTR esp_flash_encryption_enabled(void)
+{
+    return esp_efuse_is_flash_encryption_enabled();
+}

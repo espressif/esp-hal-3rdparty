@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2017-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2017-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -187,3 +187,26 @@ esp_err_t esp_efuse_set_recovery_bootloader_offset(const uint32_t offset)
     return ESP_OK;
 }
 #endif // SOC_RECOVERY_BOOTLOADER_SUPPORTED
+
+bool IRAM_ATTR esp_efuse_is_flash_encryption_enabled(void)
+{
+#ifndef CONFIG_EFUSE_VIRTUAL_KEEP_IN_FLASH
+    return efuse_hal_flash_encryption_enabled();
+#else
+    uint32_t flash_crypt_cnt = 0;
+#if CONFIG_IDF_TARGET_ESP32
+    esp_efuse_read_field_blob(ESP_EFUSE_FLASH_CRYPT_CNT, &flash_crypt_cnt, ESP_EFUSE_FLASH_CRYPT_CNT[0]->bit_count);
+#else
+    esp_efuse_read_field_blob(ESP_EFUSE_SPI_BOOT_CRYPT_CNT, &flash_crypt_cnt, ESP_EFUSE_SPI_BOOT_CRYPT_CNT[0]->bit_count);
+#endif
+    /* __builtin_parity is in flash, so we calculate parity inline */
+    bool enabled = false;
+    while (flash_crypt_cnt) {
+        if (flash_crypt_cnt & 1) {
+            enabled = !enabled;
+        }
+        flash_crypt_cnt >>= 1;
+    }
+    return enabled;
+#endif // CONFIG_EFUSE_VIRTUAL_KEEP_IN_FLASH
+}

@@ -7,7 +7,7 @@
 
 #include <bootloader_flash_priv.h>
 #include <esp_log.h>
-#include <esp_flash_encrypt.h>
+#include "esp_efuse.h"
 #include "sdkconfig.h"
 #include "soc/soc_caps.h"
 #include "hal/efuse_ll.h"
@@ -84,7 +84,7 @@ void bootloader_munmap(const void *mapping)
 
 esp_err_t bootloader_flash_read(size_t src, void *dest, size_t size, bool allow_decrypt)
 {
-    if (allow_decrypt && esp_flash_encryption_enabled()) {
+    if (allow_decrypt && esp_efuse_is_flash_encryption_enabled()) {
         return esp_flash_read_encrypted(NULL, src, dest, size);
     } else {
         return esp_flash_read(NULL, dest, src, size);
