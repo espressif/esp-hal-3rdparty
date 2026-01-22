@@ -186,6 +186,9 @@ endif()
 # Core libraries from the mbedTLS project
 set(mbedtls_targets mbedtls mbedx509 tfpsacrypto builtin)
 
+add_library(mbed-builtin ALIAS builtin)
+set_target_properties(builtin PROPERTIES OUTPUT_NAME "mbed-builtin")
+
 target_include_directories(tfpsacrypto PUBLIC "port/include")
 
 message(STATUS "Setting up mbedtls configuration")
