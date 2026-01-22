@@ -216,10 +216,10 @@ IRAM_ATTR modem_clock_device_context_t *modem_clock_device_context(void)
     return &dev;
 }
 
-/* rc32k clock enable status before selecting BLE RTC timer clock source */
-static bool rc_clk_en = true;
+/* rc32k clock enable status before selecting BLE RTC timer clock source, which is used for workaround on esp32h2 */
 void modem_clock_select_ble_rtc_timer_clk_workaround(modem_clock_context_t *ctx, bool enable, modem_clock_lpclk_src_t src)
 {
+    static bool rc_clk_en = true;
     if (enable) {
         bool selected = (src == MODEM_CLOCK_LPCLK_SRC_MAIN_XTAL) ||
                         (src == MODEM_CLOCK_LPCLK_SRC_RC_SLOW);

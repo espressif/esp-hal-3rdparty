@@ -268,6 +268,7 @@ IRAM_ATTR uint8_t *modem_clock_domain_icg_config(void)
     return icg_config_default;
 }
 
+/* enable clock domain clk gate */
 static esp_err_t modem_clock_domain_clk_gate_enable(modem_clock_context_t *ctx, modem_clock_domain_t domain, pmu_hp_icg_modem_mode_t mode)
 {
     if (domain >= MODEM_CLOCK_DOMAIN_MAX || domain < MODEM_CLOCK_DOMAIN_MODEM_APB) {
@@ -284,6 +285,7 @@ static esp_err_t modem_clock_domain_clk_gate_enable(modem_clock_context_t *ctx, 
     return ESP_OK;
 }
 
+/* disable clock domain clk gate */
 static esp_err_t modem_clock_domain_clk_gate_disable(modem_clock_context_t *ctx, modem_clock_domain_t domain, pmu_hp_icg_modem_mode_t mode)
 {
     if (domain >= MODEM_CLOCK_DOMAIN_MAX || domain < MODEM_CLOCK_DOMAIN_MODEM_APB) {
@@ -300,6 +302,7 @@ static esp_err_t modem_clock_domain_clk_gate_disable(modem_clock_context_t *ctx,
     return ESP_OK;
 }
 
+/* workaround for BT using WiFi power clock source workaround on esp32c6 */
 void modem_clock_bt_wifipwr_clk_workaround(modem_clock_context_t *ctx, bool select, modem_clock_lpclk_src_t src)
 {
     if (efuse_hal_chip_revision() != 0 && src == MODEM_CLOCK_LPCLK_SRC_MAIN_XTAL) {

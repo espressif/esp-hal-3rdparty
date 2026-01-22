@@ -74,6 +74,18 @@ typedef enum {
     MODEM_CLOCK_DEVICE_MAX
 } modem_clock_device_t;
 
+/* Low-power clock source index for modules that support LP clock */
+typedef enum {
+#if SOC_WIFI_SUPPORTED
+    MODEM_LPCLK_SRC_MODULE_WIFI,
+#endif
+#if SOC_BT_SUPPORTED
+    MODEM_LPCLK_SRC_MODULE_BT,
+#endif
+    MODEM_LPCLK_SRC_MODULE_COEX,
+    MODEM_LPCLK_SRC_MODULE_MAX
+} modem_lpclk_src_module_t;
+
 typedef struct modem_clock_context modem_clock_context_t;
 typedef void (*wrapper_t)(struct modem_clock_context *, bool, void (*action)(struct modem_clock_context *, bool), int16_t *, uint16_t *);
 typedef void (*configure_func_t)(struct modem_clock_context *, int, bool, wrapper_t);
@@ -81,11 +93,11 @@ typedef void (*configure_func_t)(struct modem_clock_context *, int, bool, wrappe
 typedef esp_err_t (*check_func_t)(struct modem_clock_context *, int);
 #endif
 
-#define REFS_STATUS_WITH_REFCNT (BIT(0)) /* Enable reference count management (true=use refs, false=ignore refs) */
+#define REFS_FL_WITH_REFCNT (BIT(0)) /* Enable reference count management (true=use refs, false=ignore refs) */
 typedef struct {
     struct {
     int16_t     count;   /* Reference count for this device, if with_refcnt is enabled */
-    uint16_t    status;  /* status flags for this device */
+    uint16_t    flags;   /* flags for this device */
     } refs[MODEM_CLOCK_DEVICE_MAX];
     configure_func_t configure;
 #if CONFIG_ESP_MODEM_CLOCK_ENABLE_CHECKING
@@ -101,7 +113,7 @@ typedef struct modem_clock_context {
     uint8_t *icg_config;
 #endif
     /* the low-power clock source for each module */
-    modem_clock_lpclk_src_t lpclk_src[PERIPH_MODEM_MODULE_NUM];
+    modem_clock_lpclk_src_t lpclk_src[MODEM_LPCLK_SRC_MODULE_MAX];
 #if SOC_WIFI_SUPPORTED
     uint32_t modem_status;
 #endif
