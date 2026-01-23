@@ -16,7 +16,7 @@
 #include "esp_memory_utils.h"
 #include "soc/chip_revision.h"
 #include "soc/sdmmc_pins.h"
-#include "soc/sdmmc_periph.h"
+#include "hal/sdmmc_periph.h"
 #include "soc/soc_caps.h"
 #include "hal/efuse_hal.h"
 #include "hal/sd_types.h"

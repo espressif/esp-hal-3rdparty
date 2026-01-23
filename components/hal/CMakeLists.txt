@@ -40,20 +40,12 @@ if(NOT esp_tee_build AND NOT BOOTLOADER_BUILD)
         list(APPEND srcs "systimer_hal.c")
     endif()
 
-    if(CONFIG_SOC_SDMMC_HOST_SUPPORTED)
-        list(APPEND srcs "sdmmc_hal.c")
-    endif()
-
     if(CONFIG_SOC_ETM_SUPPORTED)
         list(APPEND srcs "etm_hal.c" "${target}/etm_periph.c")
     endif()
 
     if(CONFIG_SOC_MODEM_CLOCK_IS_INDEPENDENT AND CONFIG_SOC_MODEM_CLOCK_SUPPORTED)
         list(APPEND srcs "${target}/modem_clock_hal.c")
-    endif()
-
-    if(CONFIG_SOC_SDIO_SLAVE_SUPPORTED)
-        list(APPEND srcs "sdio_slave_hal.c")
     endif()
 endif()
 

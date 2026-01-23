@@ -79,7 +79,7 @@ The driver of FIFOs works as below:
 
 #include "soc/soc_memory_layout.h"
 #include "soc/soc_caps.h"
-#include "soc/sdio_slave_periph.h"
+#include "hal/sdio_slave_periph.h"
 #include "esp_cpu.h"
 #include "esp_intr_alloc.h"
 #include "esp_log.h"
