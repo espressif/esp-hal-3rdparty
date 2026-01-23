@@ -1,7 +1,7 @@
 /*
- * SPDX-FileCopyrightText: 2015-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
  *
- * SPDX-License-Identifier: Apache-2.0 OR MIT
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 #pragma once
@@ -45,7 +45,6 @@ typedef enum {
     GPIO_NUM_27 = 27,   /*!< GPIO27, input and output */
     GPIO_NUM_28 = 28,   /*!< GPIO28, input and output */
     GPIO_NUM_29 = 29,   /*!< GPIO29, input and output */
-    GPIO_NUM_30 = 30,   /*!< GPIO30, input and output */
     GPIO_NUM_MAX,
 } gpio_num_t;
 

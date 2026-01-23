@@ -1,7 +1,7 @@
 /*
  * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO LTD
  *
- * SPDX-License-Identifier: Apache-2.0 OR MIT
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 #pragma once
@@ -55,21 +55,6 @@ typedef enum {
     GPIO_NUM_37 = 37,   /*!< GPIO37, input and output */
     GPIO_NUM_38 = 38,   /*!< GPIO38, input and output */
     GPIO_NUM_39 = 39,   /*!< GPIO39, input and output */
-    GPIO_NUM_40 = 40,   /*!< GPIO40, input and output */
-    GPIO_NUM_41 = 41,   /*!< GPIO41, input and output */
-    GPIO_NUM_42 = 42,   /*!< GPIO42, input and output */
-    GPIO_NUM_43 = 43,   /*!< GPIO43, input and output */
-    GPIO_NUM_44 = 44,   /*!< GPIO44, input and output */
-    GPIO_NUM_45 = 45,   /*!< GPIO45, input and output */
-    GPIO_NUM_46 = 46,   /*!< GPIO46, input and output */
-    GPIO_NUM_47 = 47,   /*!< GPIO47, input and output */
-    GPIO_NUM_48 = 48,   /*!< GPIO48, input and output */
-    GPIO_NUM_49 = 49,   /*!< GPIO49, input and output */
-    GPIO_NUM_50 = 50,   /*!< GPIO50, input and output */
-    GPIO_NUM_51 = 51,   /*!< GPIO51, input and output */
-    GPIO_NUM_52 = 52,   /*!< GPIO52, input and output */
-    GPIO_NUM_53 = 53,   /*!< GPIO53, input and output */
-    GPIO_NUM_54 = 54,   /*!< GPIO54, input and output */
     GPIO_NUM_MAX,
 } gpio_num_t;
 

@@ -1,7 +1,13 @@
 /*
- * SPDX-FileCopyrightText: 2015-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO LTD
  *
- * SPDX-License-Identifier: Apache-2.0 OR MIT
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
+ * NOTE: This file provides definitions for mocking the gpio driver on Linux only!
+ *       It DOES NOT imply any functionality on Linux. In other words: you HAVE to
+ *       use CMock to mock the gpio driver on Linux.
  */
 
 #pragma once
@@ -37,6 +43,23 @@ typedef enum {
     GPIO_NUM_19 = 19,   /*!< GPIO19, input and output */
     GPIO_NUM_20 = 20,   /*!< GPIO20, input and output */
     GPIO_NUM_21 = 21,   /*!< GPIO21, input and output */
+    GPIO_NUM_22 = 22,   /*!< GPIO22, input and output */
+    GPIO_NUM_23 = 23,   /*!< GPIO23, input and output */
+    GPIO_NUM_25 = 25,   /*!< GPIO25, input and output */
+    GPIO_NUM_26 = 26,   /*!< GPIO26, input and output */
+    GPIO_NUM_27 = 27,   /*!< GPIO27, input and output */
+    GPIO_NUM_28 = 28,   /*!< GPIO28, input and output */
+    GPIO_NUM_29 = 29,   /*!< GPIO29, input and output */
+    GPIO_NUM_30 = 30,   /*!< GPIO30, input and output */
+    GPIO_NUM_31 = 31,   /*!< GPIO31, input and output */
+    GPIO_NUM_32 = 32,   /*!< GPIO32, input and output */
+    GPIO_NUM_33 = 33,   /*!< GPIO33, input and output */
+    GPIO_NUM_34 = 34,   /*!< GPIO34, input mode only */
+    GPIO_NUM_35 = 35,   /*!< GPIO35, input mode only */
+    GPIO_NUM_36 = 36,   /*!< GPIO36, input mode only */
+    GPIO_NUM_37 = 37,   /*!< GPIO37, input mode only */
+    GPIO_NUM_38 = 38,   /*!< GPIO38, input mode only */
+    GPIO_NUM_39 = 39,   /*!< GPIO39, input mode only */
     GPIO_NUM_MAX,
 } gpio_num_t;
 

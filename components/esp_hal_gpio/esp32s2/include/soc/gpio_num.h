@@ -1,7 +1,7 @@
 /*
- * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2025 Espressif Systems (Shanghai) CO LTD
  *
- * SPDX-License-Identifier: Apache-2.0 OR MIT
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 #pragma once
@@ -14,7 +14,7 @@ extern "C" {
  * @brief GPIO number
  */
 typedef enum {
-    GPIO_NUM_NC = -1,   /*!< Use to signal not connected to S/W */
+    GPIO_NUM_NC = -1,    /*!< Use to signal not connected to S/W */
     GPIO_NUM_0 = 0,     /*!< GPIO0, input and output */
     GPIO_NUM_1 = 1,     /*!< GPIO1, input and output */
     GPIO_NUM_2 = 2,     /*!< GPIO2, input and output */
@@ -37,10 +37,27 @@ typedef enum {
     GPIO_NUM_19 = 19,   /*!< GPIO19, input and output */
     GPIO_NUM_20 = 20,   /*!< GPIO20, input and output */
     GPIO_NUM_21 = 21,   /*!< GPIO21, input and output */
-    GPIO_NUM_22 = 22,   /*!< GPIO22, input and output */
-    GPIO_NUM_23 = 23,   /*!< GPIO23, input and output */
-    GPIO_NUM_24 = 24,   /*!< GPIO24, input and output */
-    GPIO_NUM_25 = 25,   /*!< GPIO25, input and output */
+    GPIO_NUM_26 = 26,   /*!< GPIO26, input and output */
+    GPIO_NUM_27 = 27,   /*!< GPIO27, input and output */
+    GPIO_NUM_28 = 28,   /*!< GPIO28, input and output */
+    GPIO_NUM_29 = 29,   /*!< GPIO29, input and output */
+    GPIO_NUM_30 = 30,   /*!< GPIO30, input and output */
+    GPIO_NUM_31 = 31,   /*!< GPIO31, input and output */
+    GPIO_NUM_32 = 32,   /*!< GPIO32, input and output */
+    GPIO_NUM_33 = 33,   /*!< GPIO33, input and output */
+    GPIO_NUM_34 = 34,   /*!< GPIO34, input and output */
+    GPIO_NUM_35 = 35,   /*!< GPIO35, input and output */
+    GPIO_NUM_36 = 36,   /*!< GPIO36, input and output */
+    GPIO_NUM_37 = 37,   /*!< GPIO37, input and output */
+    GPIO_NUM_38 = 38,   /*!< GPIO38, input and output */
+    GPIO_NUM_39 = 39,   /*!< GPIO39, input and output */
+    GPIO_NUM_40 = 40,   /*!< GPIO40, input and output */
+    GPIO_NUM_41 = 41,   /*!< GPIO41, input and output */
+    GPIO_NUM_42 = 42,   /*!< GPIO42, input and output */
+    GPIO_NUM_43 = 43,   /*!< GPIO43, input and output */
+    GPIO_NUM_44 = 44,   /*!< GPIO44, input and output */
+    GPIO_NUM_45 = 45,   /*!< GPIO45, input and output */
+    GPIO_NUM_46 = 46,   /*!< GPIO46, input mode only */
     GPIO_NUM_MAX,
 } gpio_num_t;
 
