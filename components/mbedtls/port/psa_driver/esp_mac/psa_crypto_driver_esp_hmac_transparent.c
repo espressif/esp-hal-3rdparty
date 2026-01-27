@@ -6,11 +6,10 @@
 
 #include <string.h>
 #include "psa/crypto.h"
-#include "psa_crypto_driver_esp_hmac.h"
-#include "psa_crypto_driver_esp_hmac_contexts.h"
+#include "psa_crypto_driver_esp_hmac_transparent.h"
+#include "psa_crypto_driver_esp_sha.h"
 
-
-psa_status_t esp_hmac_abort(esp_hmac_operation_t *esp_hmac_ctx)
+psa_status_t esp_hmac_abort_transparent(esp_hmac_transparent_operation_t *esp_hmac_ctx)
 {
     psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
 
@@ -19,11 +18,11 @@ psa_status_t esp_hmac_abort(esp_hmac_operation_t *esp_hmac_ctx)
         return status;
     }
 
-    mbedtls_platform_zeroize(esp_hmac_ctx, sizeof(esp_hmac_operation_t));
+    mbedtls_platform_zeroize(esp_hmac_ctx, sizeof(esp_hmac_transparent_operation_t));
     return status;
 }
 
-psa_status_t esp_hmac_setup(esp_hmac_operation_t *esp_hmac_ctx,
+psa_status_t esp_hmac_setup_transparent(esp_hmac_transparent_operation_t *esp_hmac_ctx,
                             const psa_key_attributes_t *attributes,
                             const uint8_t *key_buffer,
                             size_t key_buffer_size,
@@ -40,7 +39,12 @@ psa_status_t esp_hmac_setup(esp_hmac_operation_t *esp_hmac_ctx,
         return PSA_ERROR_INVALID_ARGUMENT;
     }
 
-    memset(esp_hmac_ctx, 0, sizeof(esp_hmac_operation_t));
+    memset(esp_hmac_ctx, 0, sizeof(esp_hmac_transparent_operation_t));
+
+    status = esp_sha_hash_setup(&esp_hmac_ctx->esp_sha_ctx, hash_alg);
+    if (status != PSA_SUCCESS) {
+        goto error;
+    }
 
     /* Sanity checks on block_size, to guarantee that there won't be a buffer
     * overflow below. This should never trigger if the hash algorithm
@@ -48,19 +52,21 @@ psa_status_t esp_hmac_setup(esp_hmac_operation_t *esp_hmac_ctx,
     /* The size check against the ipad buffer also covers opad since both
     * have the same size (PSA_HMAC_MAX_HASH_BLOCK_SIZE). */
     if ((block_size > sizeof(ipad)) || (block_size < hash_size)) {
-        return PSA_ERROR_NOT_SUPPORTED;
+        status = PSA_ERROR_NOT_SUPPORTED;
+        goto error;
     }
 
     if (key_buffer_size > block_size) {
         status = esp_sha_hash_compute(hash_alg, key_buffer, key_buffer_size,
                                 ipad, sizeof(ipad), &key_buffer_size);
         if (status != PSA_SUCCESS) {
-            return status;
+            goto error;
         }
         /* After hashing, key_buffer_size is set to the hash size, which
         * should be <= block_size. Verify this for static analysis. */
         if (key_buffer_size > block_size) {
-            return PSA_ERROR_CORRUPTION_DETECTED;
+            status = PSA_ERROR_CORRUPTION_DETECTED;
+            goto error;
         }
     }
     /* A 0-length key is not commonly used in HMAC when used as a MAC,
@@ -70,7 +76,8 @@ psa_status_t esp_hmac_setup(esp_hmac_operation_t *esp_hmac_ctx,
     else if (key_buffer_size != 0) {
         /* Additional safety check: ensure key fits in ipad buffer */
         if (key_buffer_size > sizeof(ipad)) {
-            return PSA_ERROR_INVALID_ARGUMENT;
+            status = PSA_ERROR_INVALID_ARGUMENT;
+            goto error;
         }
         memcpy(ipad, key_buffer, key_buffer_size);
     }
@@ -110,28 +117,29 @@ psa_status_t esp_hmac_setup(esp_hmac_operation_t *esp_hmac_ctx,
         memset(esp_hmac_ctx->opad + key_buffer_size, 0x5C, fill_size);
     }
 
-    status = esp_sha_hash_setup(&esp_hmac_ctx->esp_sha_ctx, hash_alg);
-    if (status != PSA_SUCCESS) {
-        return status;
-    }
-
     status = esp_sha_hash_update(&esp_hmac_ctx->esp_sha_ctx, ipad, block_size);
     if (status != PSA_SUCCESS) {
-        return status;
+        goto error;
     }
 
     esp_hmac_ctx->alg = alg;
+    return status;
 
+error:
+    esp_hmac_abort_transparent(esp_hmac_ctx);
     return status;
 }
 
-psa_status_t esp_hmac_update(esp_hmac_operation_t *esp_hmac_ctx, const uint8_t *data, size_t data_length)
+psa_status_t esp_hmac_update_transparent(esp_hmac_transparent_operation_t *esp_hmac_ctx, const uint8_t *data, size_t data_length)
 {
+    if (esp_hmac_ctx == NULL || data == NULL) {
+        return PSA_ERROR_INVALID_ARGUMENT;
+    }
     return esp_sha_hash_update(&esp_hmac_ctx->esp_sha_ctx, data, data_length);
 }
 
-psa_status_t esp_hmac_finish(
-    esp_hmac_operation_t *esp_hmac_ctx,
+psa_status_t esp_hmac_finish_transparent(
+    esp_hmac_transparent_operation_t *esp_hmac_ctx,
     uint8_t *mac,
     size_t mac_size,
     size_t *mac_length)
@@ -142,6 +150,10 @@ psa_status_t esp_hmac_finish(
     uint8_t tmp[PSA_HASH_MAX_SIZE];
     size_t hash_size = 0;
     size_t block_size = PSA_HASH_BLOCK_LENGTH(hash_alg);
+
+    if (esp_hmac_ctx == NULL || mac == NULL || mac_length == NULL) {
+        return PSA_ERROR_INVALID_ARGUMENT;
+    }
 
     status = esp_sha_hash_finish(&esp_hmac_ctx->esp_sha_ctx, tmp, sizeof(tmp), &hash_size);
     if (status != PSA_SUCCESS) {
@@ -169,16 +181,19 @@ psa_status_t esp_hmac_finish(
         goto exit;
     }
 
-    memcpy(mac, tmp, mac_size);
-
-    *mac_length = mac_size;
+    if (mac_size < hash_size) {
+        status = PSA_ERROR_BUFFER_TOO_SMALL;
+        goto exit;
+    }
+    memcpy(mac, tmp, hash_size);
+    *mac_length = hash_size;
 
 exit:
     mbedtls_platform_zeroize(tmp, hash_size);
     return status;
 }
 
-psa_status_t esp_hmac_compute(
+psa_status_t esp_hmac_compute_transparent(
     const psa_key_attributes_t *attributes,
     const uint8_t *key_buffer,
     size_t key_buffer_size,
@@ -190,9 +205,9 @@ psa_status_t esp_hmac_compute(
     size_t *mac_length)
 {
     psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
-    esp_hmac_operation_t esp_hmac_ctx = {0};
+    esp_hmac_transparent_operation_t esp_hmac_ctx = {0};
 
-    status = esp_hmac_setup(&esp_hmac_ctx,
+    status = esp_hmac_setup_transparent(&esp_hmac_ctx,
                         attributes, key_buffer, key_buffer_size,
                         alg);
     if (status != PSA_SUCCESS) {
@@ -200,27 +215,27 @@ psa_status_t esp_hmac_compute(
     }
 
     if (input_length > 0) {
-        status = esp_hmac_update(&esp_hmac_ctx, input, input_length);
+        status = esp_hmac_update_transparent(&esp_hmac_ctx, input, input_length);
         if (status != PSA_SUCCESS) {
             goto exit;
         }
     }
 
     size_t actual_mac_length = 0;
-    status = esp_hmac_finish(&esp_hmac_ctx, mac, mac_size, &actual_mac_length);
+    status = esp_hmac_finish_transparent(&esp_hmac_ctx, mac, mac_size, &actual_mac_length);
     if (status == PSA_SUCCESS) {
         *mac_length = actual_mac_length;
     }
 
 exit:
-    esp_hmac_abort(&esp_hmac_ctx);
+    esp_hmac_abort_transparent(&esp_hmac_ctx);
 
     return status;
 
 }
 
-psa_status_t esp_hmac_verify_finish(
-    esp_hmac_operation_t *esp_hmac_ctx,
+psa_status_t esp_hmac_verify_finish_transparent(
+    esp_hmac_transparent_operation_t *esp_hmac_ctx,
     const uint8_t *mac,
     size_t mac_length)
 {
@@ -237,14 +252,13 @@ psa_status_t esp_hmac_verify_finish(
 
     size_t actual_mac_length = 0;
 
-    status = esp_hmac_finish(esp_hmac_ctx, actual_mac, sizeof(actual_mac), &actual_mac_length);
+    status = esp_hmac_finish_transparent(esp_hmac_ctx, actual_mac, sizeof(actual_mac), &actual_mac_length);
     if (status == PSA_SUCCESS) {
-        if (memcmp(actual_mac, mac, mac_length) == 0) {
-            return PSA_SUCCESS;
-        } else {
-            return PSA_ERROR_INVALID_SIGNATURE;
+        if (memcmp(actual_mac, mac, mac_length) != 0) {
+            status = PSA_ERROR_INVALID_SIGNATURE;
         }
     }
 
+    mbedtls_platform_zeroize(actual_mac, sizeof(actual_mac));
     return status;
 }

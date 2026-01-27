@@ -353,12 +353,13 @@ endif()
 if(CONFIG_SOC_SHA_SUPPORTED)
     if(CONFIG_MBEDTLS_HARDWARE_SHA)
         target_compile_definitions(tfpsacrypto PRIVATE ESP_SHA_DRIVER_ENABLED)
+        target_compile_definitions(tfpsacrypto PRIVATE ESP_HMAC_TRANSPARENT_DRIVER_ENABLED)
         target_sources(tfpsacrypto PRIVATE
             "${COMPONENT_DIR}/port/psa_driver/esp_sha/psa_crypto_driver_esp_sha.c"
             "${COMPONENT_DIR}/port/psa_driver/esp_sha/${SHA_PERIPHERAL_TYPE}/psa_crypto_driver_esp_sha256.c"
             "${COMPONENT_DIR}/port/psa_driver/esp_sha/${SHA_PERIPHERAL_TYPE}/psa_crypto_driver_esp_sha512.c"
             "${COMPONENT_DIR}/port/sha/esp_sha.c"
-            "${COMPONENT_DIR}/port/psa_driver/esp_mac/psa_crypto_driver_esp_hmac.c"
+            "${COMPONENT_DIR}/port/psa_driver/esp_mac/psa_crypto_driver_esp_hmac_transparent.c"
         )
     endif()
     target_sources(tfpsacrypto PRIVATE
@@ -372,6 +373,14 @@ if(CONFIG_MBEDTLS_ROM_MD5)
     target_sources(tfpsacrypto PRIVATE
         "${COMPONENT_DIR}/port/psa_driver/esp_md/psa_crypto_driver_esp_md5.c"
     )
+endif()
+
+if(CONFIG_SOC_HMAC_SUPPORTED)
+    target_compile_definitions(tfpsacrypto PRIVATE ESP_HMAC_OPAQUE_DRIVER_ENABLED)
+    target_sources(tfpsacrypto PRIVATE
+        "${COMPONENT_DIR}/port/psa_driver/esp_mac/psa_crypto_driver_esp_hmac_opaque.c"
+    )
+    target_link_libraries(tfpsacrypto PRIVATE idf::efuse)
 endif()
 
 if(CONFIG_SOC_DIG_SIGN_SUPPORTED)

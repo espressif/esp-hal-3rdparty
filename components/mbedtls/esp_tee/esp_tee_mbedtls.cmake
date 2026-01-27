@@ -97,6 +97,7 @@ endif()
 # SHA implementation
 if(CONFIG_SOC_SHA_SUPPORTED)
     target_compile_definitions(tfpsacrypto PRIVATE ESP_SHA_DRIVER_ENABLED)
+    target_compile_definitions(tfpsacrypto PRIVATE ESP_HMAC_TRANSPARENT_DRIVER_ENABLED)
     target_sources(tfpsacrypto PRIVATE
         "${COMPONENT_DIR}/port/psa_driver/esp_sha/psa_crypto_driver_esp_sha.c"
         "${COMPONENT_DIR}/port/psa_driver/esp_sha/core/psa_crypto_driver_esp_sha1.c"
@@ -104,7 +105,7 @@ if(CONFIG_SOC_SHA_SUPPORTED)
         "${COMPONENT_DIR}/port/psa_driver/esp_sha/core/psa_crypto_driver_esp_sha512.c"
         "${COMPONENT_DIR}/port/sha/core/sha.c"
         "${COMPONENT_DIR}/port/sha/esp_sha.c"
-        "${COMPONENT_DIR}/port/psa_driver/esp_mac/psa_crypto_driver_esp_hmac.c"
+        "${COMPONENT_DIR}/port/psa_driver/esp_mac/psa_crypto_driver_esp_hmac_transparent.c"
         )
 endif()
 
