@@ -4,5 +4,8 @@ components/esp_driver_jpeg/test_apps/jpeg_test_apps:
   disable:
     - if: SOC_JPEG_CODEC_SUPPORTED != 1
   depends_components:
-    - *common_components
     - esp_driver_jpeg
+    - esp_driver_dma
+    - esp_hal_jpeg
+    - esp_hw_support
+    - soc
