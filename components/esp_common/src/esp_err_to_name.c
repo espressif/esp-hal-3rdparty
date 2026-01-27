@@ -290,6 +290,11 @@ static const esp_err_msg_t esp_err_msg_table[] = {
                                                                                 post upgrade and hence firmware upgrade
                                                                                 is not possible */
 #   endif
+#   ifdef      ESP_ERR_OTA_ALREADY_IN_PROGRESS
+    ERR_TBL_IT(ESP_ERR_OTA_ALREADY_IN_PROGRESS),                /*  5383 0x1507 Error if another OTA operation is
+                                                                                already in progress on the same
+                                                                                partition */
+#   endif
     // components/efuse/include/esp_efuse.h
 #   ifdef      ESP_ERR_EFUSE
     ERR_TBL_IT(ESP_ERR_EFUSE),                                  /*  5632 0x1600 Base error code for efuse api. */
