@@ -36,10 +36,6 @@ endif()
 if(NOT esp_tee_build AND NOT BOOTLOADER_BUILD)
     list(APPEND srcs "color_hal.c")
 
-    if(CONFIG_SOC_SYSTIMER_SUPPORTED AND NOT CONFIG_HAL_SYSTIMER_USE_ROM_IMPL)
-        list(APPEND srcs "systimer_hal.c")
-    endif()
-
     if(CONFIG_SOC_ETM_SUPPORTED)
         list(APPEND srcs "etm_hal.c" "${target}/etm_periph.c")
     endif()

@@ -603,7 +603,7 @@ static SLEEP_FN_ATTR void suspend_timers(uint32_t sleep_flags) {
         }
 #endif
 #if SOC_SLEEP_SYSTIMER_STALL_WORKAROUND
-        for (uint32_t counter_id = 0; counter_id < SOC_SYSTIMER_COUNTER_NUM; ++counter_id) {
+        for (uint32_t counter_id = 0; counter_id < SYSTIMER_LL_COUNTER_NUM; ++counter_id) {
             systimer_ll_enable_counter(&SYSTIMER, counter_id, false);
         }
 #endif
@@ -614,7 +614,7 @@ static SLEEP_FN_ATTR void suspend_timers(uint32_t sleep_flags) {
 static SLEEP_FN_ATTR void resume_timers(uint32_t sleep_flags) {
     if (!(sleep_flags & RTC_SLEEP_PD_XTAL)) {
 #if SOC_SLEEP_SYSTIMER_STALL_WORKAROUND
-        for (uint32_t counter_id = 0; counter_id < SOC_SYSTIMER_COUNTER_NUM; ++counter_id) {
+        for (uint32_t counter_id = 0; counter_id < SYSTIMER_LL_COUNTER_NUM; ++counter_id) {
             systimer_ll_enable_counter(&SYSTIMER, counter_id, true);
         }
 #endif
