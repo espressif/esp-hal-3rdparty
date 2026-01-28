@@ -31,6 +31,10 @@ esp_ds_data_ctx_t *esp_secure_cert_get_ds_ctx(void)
     ds_key->rsa_length_bits = 2048;
     ds_key->efuse_key_id = 0;
     ds_key->esp_rsa_ds_data = calloc(1, sizeof(esp_ds_data_t));
+    if (ds_key->esp_rsa_ds_data != NULL) {
+        /* rsa_length must match rsa_length_bits for driver validation */
+        ds_key->esp_rsa_ds_data->rsa_length = (ds_key->rsa_length_bits / 32) - 1;
+    }
     // Fill in other necessary fields as per esp_ds_data_ctx_t definition
     // For simplicity, we will leave them zeroed out
 
@@ -100,8 +104,6 @@ TEST_CASE("ds sign test pkcs1_v15 PSA", "[ds_rsa_psa]")
 
     esp_ds_data_ctx_t *ds_key = esp_secure_cert_get_ds_ctx();
     TEST_ASSERT_NOT_NULL(ds_key);
-
-    printf("DS key efuse_key_id: %d\n", ds_key->efuse_key_id);
 
     psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
     psa_set_key_type(&attributes, PSA_KEY_TYPE_RSA_KEY_PAIR);

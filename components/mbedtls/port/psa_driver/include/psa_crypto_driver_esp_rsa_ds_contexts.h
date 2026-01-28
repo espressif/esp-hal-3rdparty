@@ -6,10 +6,9 @@
 #pragma once
 
 #include "sdkconfig.h"
-#include "soc/soc_caps.h"
 
-#if defined(SOC_DIG_SIGN_SUPPORTED) && defined(CONFIG_MBEDTLS_HARDWARE_RSA_DS_PERIPHERAL)
-#include "psa/crypto.h"
+#if defined(ESP_RSA_DS_DRIVER_ENABLED)
+#include "psa/crypto_driver_common.h"
 #include "esp_ds.h"
 
 #ifdef __cplusplus
@@ -29,6 +28,10 @@ typedef enum {
 /**
  * @brief ESP DS data context
  * This context is used to store the ESP DS data.
+ *
+ * When passed to psa_import_key() for PSA_KEY_LIFETIME_ESP_RSA_DS, the key material
+ * (this struct and the esp_ds_data_t pointed to by esp_rsa_ds_data) must remain valid
+ * until psa_destroy_key() is called on the imported key.
  */
 typedef struct {
     esp_ds_data_t *esp_rsa_ds_data; /**< Pointer to the esp ds data */
@@ -44,7 +47,6 @@ typedef struct {
     uint32_t *sig_buffer;                           /**< Buffer to hold the signature */
     size_t sig_buffer_size;                         /**< Size of the signature buffer */
     esp_ds_context_t *esp_rsa_ds_ctx;               /**< Pointer to the esp ds context */
-    esp_ds_data_t esp_rsa_ds_data;                  /**< RSA DS data */
 } esp_rsa_ds_opaque_sign_hash_operation_t;
 #endif /* !(__DOXYGEN__) */
 
@@ -52,4 +54,4 @@ typedef struct {
 }
 #endif
 
-#endif /* SOC_DIG_SIGN_SUPPORTED && CONFIG_MBEDTLS_HARDWARE_RSA_DS_PERIPHERAL */
+#endif /* ESP_RSA_DS_DRIVER_ENABLED */

@@ -20,13 +20,13 @@ extern "C" {
 #endif /* PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT */
 #endif /* ESP_RSA_DS_DRIVER_ENABLED */
 
-#define PSA_CRYPTO_ESP_RSA_DS_DRIVER_LOCATION ((psa_key_location_t) 0x800002)
+#define PSA_KEY_LOCATION_ESP_RSA_DS ((psa_key_location_t) 0x800003)
 
 
 #define PSA_KEY_LIFETIME_ESP_RSA_DS \
     PSA_KEY_LIFETIME_FROM_PERSISTENCE_AND_LOCATION( \
         PSA_KEY_PERSISTENCE_VOLATILE, \
-        PSA_CRYPTO_ESP_RSA_DS_DRIVER_LOCATION)
+        PSA_KEY_LOCATION_ESP_RSA_DS)
 
 /**
  * @brief Start the RSA DS opaque sign hash operation
@@ -174,7 +174,7 @@ psa_status_t esp_rsa_ds_opaque_asymmetric_decrypt(
     size_t key_length, psa_algorithm_t alg, const uint8_t *input,
     size_t input_length, const uint8_t *salt, size_t salt_length,
     uint8_t *output, size_t output_size, size_t *output_length);
-#endif /* SOC_DIG_SIGN_SUPPORTED && CONFIG_MBEDTLS_HARDWARE_RSA_DS_PERIPHERAL */
 #ifdef __cplusplus
 }
 #endif
+#endif /* SOC_DIG_SIGN_SUPPORTED && CONFIG_MBEDTLS_HARDWARE_RSA_DS_PERIPHERAL */

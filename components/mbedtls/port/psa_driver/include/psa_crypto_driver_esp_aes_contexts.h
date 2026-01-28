@@ -6,25 +6,13 @@
 
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/**
- * \file psa_crypto_driver_esp_sha_contexts.h
- *
- * \brief Context structure definitions for ESP SHA hardware driver.
- *
- * This file contains the context structures used by the ESP SHA driver
- * for PSA Crypto API. These definitions are completely standalone and
- * do not include any PSA Crypto headers to avoid circular dependencies.
- *
- * \note This file may not be included directly. It is included by
- * crypto_driver_contexts_primitives.h.
- */
 
 #include "esp_types.h"
 #include "psa/crypto_driver_common.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #if defined(ESP_AES_DRIVER_ENABLED)
 #define ESP_MBEDTLS_AES_MAX_BLOCK_LENGTH 16

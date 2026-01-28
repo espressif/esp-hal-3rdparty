@@ -86,6 +86,11 @@ static int esp_rsa_ds_validate_opaque_key(const esp_ds_data_ctx_t *opaque_key)
         return PSA_ERROR_INVALID_ARGUMENT;
     }
 
+    /* DS data rsa_length must match rsa_length_bits so we can use the key's data directly in sign operations */
+    if (opaque_key->esp_rsa_ds_data->rsa_length != (opaque_key->rsa_length_bits / 32) - 1) {
+        return PSA_ERROR_INVALID_ARGUMENT;
+    }
+
     esp_efuse_purpose_t purpose = esp_efuse_get_key_purpose(EFUSE_BLK_KEY0 + opaque_key->efuse_key_id);
     if (purpose != ESP_EFUSE_KEY_PURPOSE_HMAC_DOWN_DIGITAL_SIGNATURE) {
         return PSA_ERROR_NOT_PERMITTED;
@@ -165,11 +170,8 @@ psa_status_t esp_rsa_ds_opaque_sign_hash_start(
         sig_words[i] = SWAP_INT32(em_words[words_len - (i + 1)]);
     }
 
-    memcpy(&operation->esp_rsa_ds_data, opaque_key->esp_rsa_ds_data, sizeof(esp_ds_data_t));
-    operation->esp_rsa_ds_data.rsa_length = (opaque_key->rsa_length_bits / 32) - 1;
-
     esp_err_t err = esp_ds_start_sign((const void *)operation->sig_buffer,
-                            &operation->esp_rsa_ds_data,
+                            opaque_key->esp_rsa_ds_data,
                             (hmac_key_id_t) opaque_key->efuse_key_id,
                             &operation->esp_rsa_ds_ctx);
     if (err != ESP_OK) {
@@ -228,6 +230,7 @@ psa_status_t esp_rsa_ds_opaque_sign_hash_complete(
     *signature_length = expected_signature_size;
     memset(operation->sig_buffer, 0, operation->sig_buffer_size);
     heap_caps_free(operation->sig_buffer);
+    operation->sig_buffer = NULL;
     esp_rsa_ds_release_ds_lock();
     return PSA_SUCCESS;
 }
@@ -315,6 +318,10 @@ psa_status_t esp_rsa_ds_opaque_import_key(
     if (ret != PSA_SUCCESS) {
         return ret;
     }
+
+    /* Shallow copy: key buffer holds the context; esp_rsa_ds_data points to the caller's data.
+     * The key material (esp_ds_data_ctx_t and the esp_ds_data_t it points to) must remain
+     * valid until psa_destroy_key() is called on this key. */
     memcpy(key_buffer, opaque_key, sizeof(esp_ds_data_ctx_t));
     *key_buffer_length = sizeof(esp_ds_data_ctx_t);
     *bits = opaque_key->rsa_length_bits;
@@ -328,7 +335,6 @@ size_t esp_rsa_ds_opaque_size_function(
     (void)key_type;
     (void)key_bits;
 
-    // Opaque keys always use the same size structure
     return sizeof(esp_ds_data_ctx_t);
 }
 

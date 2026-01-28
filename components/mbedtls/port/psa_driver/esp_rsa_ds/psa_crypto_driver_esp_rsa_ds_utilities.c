@@ -236,7 +236,7 @@ static psa_status_t esp_rsa_ds_mgf_mask(unsigned char *dst, size_t dlen, unsigne
     size_t i, use_len;
     unsigned char mask[PSA_HASH_MAX_SIZE];
     psa_hash_operation_t hash_op = PSA_HASH_OPERATION_INIT;
-    psa_status_t status;
+    psa_status_t status = PSA_SUCCESS;
 
     hlen = PSA_HASH_LENGTH(hash_alg);
 
