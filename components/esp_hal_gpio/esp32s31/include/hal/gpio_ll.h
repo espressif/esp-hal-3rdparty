@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2025-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -636,8 +636,8 @@ static inline int gpio_ll_get_in_signal_connected_io(gpio_dev_t *hw, uint32_t in
 static inline void gpio_ll_force_hold_all(void)
 {
     // WT flag, it gets self-cleared after the configuration is done
-    PMU.imm_pad_hold_all.tie_high_hp_pad_hold_all = 1;
-    PMU.imm_pad_hold_all.tie_high_lp_pad_hold_all = 1;
+    PMU.imm.pad_hold_all.tie_high_hp_pad_hold_all = 1;
+    PMU.imm.pad_hold_all.tie_high_lp_pad_hold_all = 1;
 }
 
 /**
@@ -647,8 +647,8 @@ static inline void gpio_ll_force_hold_all(void)
 static inline void gpio_ll_force_unhold_all(void)
 {
     // WT flag, it gets self-cleared after the configuration is done
-    PMU.imm_pad_hold_all.tie_low_hp_pad_hold_all = 1;
-    PMU.imm_pad_hold_all.tie_low_lp_pad_hold_all = 1;
+    PMU.imm.pad_hold_all.tie_low_hp_pad_hold_all = 1;
+    PMU.imm.pad_hold_all.tie_low_lp_pad_hold_all = 1;
 }
 
 /**
