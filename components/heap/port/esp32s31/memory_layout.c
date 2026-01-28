@@ -12,8 +12,6 @@
 #include "heap_memory_layout.h"
 #include "esp_heap_caps.h"
 
-/* TODO: ["ESP32S31"] IDF-14840 */
-
 /**
  * @brief Memory type descriptors. These describe the capabilities of a type of memory in the SoC.
  * Each type of memory map consists of one or more regions in the address space.
@@ -86,7 +84,6 @@ const size_t soc_memory_region_count = sizeof(soc_memory_regions) / sizeof(soc_m
 
 extern int _data_start, _heap_start, _iram_start, _iram_end, _rtc_force_slow_end;
 extern int _rtc_reserved_start, _rtc_reserved_end;
-extern int _rtc_ulp_memory_start;
 
 /**
  * Reserved memory regions.
