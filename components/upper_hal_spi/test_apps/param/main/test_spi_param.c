@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2021-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2021-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -1276,7 +1276,7 @@ static void test_master_fd_dma(void)
                     .spics_io_num = PIN_NUM_CS,
                     .queue_size = 16,
                     .clock_speed_hz = s_spi_bus_freq[speed_level],
-                    .cs_ena_pretrans = 2,
+                    .cs_ena_pretrans = 5,
                 };
 #if CONFIG_IDF_TARGET_ESP32
                 if (is_gpio && (s_spi_bus_freq[speed_level] >= 10 * 1000 * 1000)) {
@@ -1391,7 +1391,7 @@ static void test_master_fd_no_dma(void)
                     .spics_io_num = PIN_NUM_CS,
                     .queue_size = 16,
                     .clock_speed_hz = s_spi_bus_freq[speed_level],
-                    .cs_ena_pretrans = 2,
+                    .cs_ena_pretrans = 5,
                 };
 #if CONFIG_IDF_TARGET_ESP32
                 if (is_gpio && (s_spi_bus_freq[speed_level] >= 10 * 1000 * 1000)) {
@@ -1506,7 +1506,7 @@ static void test_master_hd_dma(void)
                 spi_device_interface_config_t devcfg = {
                     .spics_io_num = PIN_NUM_CS,
                     .clock_speed_hz = s_spi_bus_freq[speed_level],
-                    .cs_ena_pretrans = 2,
+                    .cs_ena_pretrans = 5,
                     .mode = mode,
                     .flags = SPI_DEVICE_HALFDUPLEX,
                     .command_bits = 8,
@@ -1615,7 +1615,7 @@ static void test_master_hd_no_dma(void)
                 spi_device_interface_config_t devcfg = {
                     .spics_io_num = PIN_NUM_CS,
                     .clock_speed_hz = s_spi_bus_freq[speed_level],
-                    .cs_ena_pretrans = 2,
+                    .cs_ena_pretrans = 5,
                     .mode = mode,
                     .flags = SPI_DEVICE_HALFDUPLEX,
                     .command_bits = 8,
@@ -1739,7 +1739,7 @@ static void test_master_sio_dma(void)
                     .spics_io_num = PIN_NUM_CS,
                     .queue_size = 16,
                     .clock_speed_hz = s_spi_bus_freq[speed_level],
-                    .cs_ena_pretrans = 2,
+                    .cs_ena_pretrans = 5,
                     .flags = SPI_DEVICE_HALFDUPLEX | SPI_DEVICE_3WIRE,
                 };
 #if CONFIG_IDF_TARGET_ESP32
@@ -1869,7 +1869,7 @@ static void test_master_sio_no_dma(void)
                     .mode = mode,
                     .spics_io_num = PIN_NUM_CS,
                     .queue_size = 16,
-                    .cs_ena_pretrans = 2,
+                    .cs_ena_pretrans = 5,
                     .clock_speed_hz = s_spi_bus_freq[speed_level],
                     .flags = SPI_DEVICE_HALFDUPLEX | SPI_DEVICE_3WIRE,
                 };
