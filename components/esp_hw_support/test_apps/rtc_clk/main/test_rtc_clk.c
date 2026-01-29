@@ -50,9 +50,13 @@ TEST_CASE("RTC_SLOW_CLK sources calibration", "[rtc_clk]")
     rtc_clk_32k_enable(true);
 #endif
 
+#if SOC_CLK_RC_FAST_D256_SUPPORTED
+    rtc_clk_8m_enable(true, true);
+#endif
+
     // By default Kconfig, RTC_SLOW_CLK source is RC_SLOW
     soc_rtc_slow_clk_src_t default_rtc_slow_clk_src = rtc_clk_slow_src_get();
-    CALIBRATE_ONE(CLK_CAL_RTC_SLOW);
+    TEST_ASSERT_NOT_EQUAL(0, CALIBRATE_ONE(CLK_CAL_RTC_SLOW));
 #if SOC_CLK_RC_FAST_D256_SUPPORTED
     CALIBRATE_ONE(CLK_CAL_RC_FAST_D256);
 #endif
@@ -66,7 +70,7 @@ TEST_CASE("RTC_SLOW_CLK sources calibration", "[rtc_clk]")
         rtc_clk_slow_src_set(SOC_RTC_SLOW_CLK_SRC_XTAL32K);
         printf("done\n");
 
-        CALIBRATE_ONE(CLK_CAL_RTC_SLOW);
+        TEST_ASSERT_NOT_EQUAL(0, CALIBRATE_ONE(CLK_CAL_RTC_SLOW));
 #if SOC_CLK_RC_FAST_D256_SUPPORTED
         CALIBRATE_ONE(CLK_CAL_RC_FAST_D256);
 #endif
@@ -79,7 +83,7 @@ TEST_CASE("RTC_SLOW_CLK sources calibration", "[rtc_clk]")
     rtc_clk_slow_src_set(SOC_RTC_SLOW_CLK_SRC_RC_FAST_D256);
     printf("done\n");
 
-    CALIBRATE_ONE(CLK_CAL_RTC_SLOW);
+    TEST_ASSERT_NOT_EQUAL(0, CALIBRATE_ONE(CLK_CAL_RTC_SLOW));
     CALIBRATE_ONE(CLK_CAL_RC_FAST_D256);
 #if SOC_CLK_XTAL32K_SUPPORTED
     CALIBRATE_ONE(CLK_CAL_32K_XTAL);
@@ -96,7 +100,7 @@ TEST_CASE("RTC_SLOW_CLK sources calibration", "[rtc_clk]")
         rtc_clk_slow_src_set(SOC_RTC_SLOW_CLK_SRC_OSC_SLOW);
         printf("done\n");
 
-        CALIBRATE_ONE(CLK_CAL_RTC_SLOW);
+        TEST_ASSERT_NOT_EQUAL(0, CALIBRATE_ONE(CLK_CAL_RTC_SLOW));
 #if SOC_CLK_RC_FAST_D256_SUPPORTED
         CALIBRATE_ONE(CLK_CAL_RC_FAST_D256);
 #endif
