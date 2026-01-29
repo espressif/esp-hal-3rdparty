@@ -385,7 +385,7 @@ static psa_status_t esp_ecdsa_validate_efuse_block(esp_ecdsa_curve_t curve, int 
 {
     int low_blk = efuse_blk;
     esp_efuse_purpose_t expected_key_purpose_low;
-#if SOC_ECDSA_SUPPORT_CURVE_SPECIFIC_KEY_PURPOSES
+#if SOC_ECDSA_SUPPORT_CURVE_SPECIFIC_KEY_PURPOSES && ((!defined(CONFIG_IDF_TARGET_ESP32P4) && SOC_EFUSE_ECDSA_KEY_P192) || EFUSE_LL_HAS_ECDSA_KEY_P192)
 #if SOC_ECDSA_SUPPORT_CURVE_P384
     int high_blk;
     HAL_ECDSA_EXTRACT_KEY_BLOCKS(efuse_blk, high_blk, low_blk);
@@ -413,7 +413,7 @@ static psa_status_t esp_ecdsa_validate_efuse_block(esp_ecdsa_curve_t curve, int 
             ESP_LOGE(TAG, "Unsupported ECDSA curve: %ld", curve);
             return PSA_ERROR_INVALID_ARGUMENT;
     }
-#else /* SOC_ECDSA_SUPPORT_CURVE_SPECIFIC_KEY_PURPOSES */
+#else /* SOC_ECDSA_SUPPORT_CURVE_SPECIFIC_KEY_PURPOSES && ((!defined(CONFIG_IDF_TARGET_ESP32P4) && SOC_EFUSE_ECDSA_KEY_P192) || EFUSE_LL_HAS_ECDSA_KEY_P192) */
     expected_key_purpose_low = ESP_EFUSE_KEY_PURPOSE_ECDSA_KEY;
 #endif  /* !SOC_ECDSA_SUPPORT_CURVE_SPECIFIC_KEY_PURPOSES */
 
@@ -422,14 +422,16 @@ static psa_status_t esp_ecdsa_validate_efuse_block(esp_ecdsa_curve_t curve, int 
         return PSA_ERROR_NOT_PERMITTED;
     }
 
-#if SOC_ECDSA_SUPPORT_CURVE_SPECIFIC_KEY_PURPOSES && SOC_ECDSA_SUPPORT_CURVE_P384
+#if SOC_ECDSA_SUPPORT_CURVE_SPECIFIC_KEY_PURPOSES && ((!defined(CONFIG_IDF_TARGET_ESP32P4) && SOC_EFUSE_ECDSA_KEY_P384) || EFUSE_LL_HAS_ECDSA_KEY_P384)
+#if SOC_ECDSA_SUPPORT_CURVE_P384
     // Only check high block purpose for P384 curves that actually use it
     if (curve == ESP_ECDSA_CURVE_SECP384R1 &&
         expected_key_purpose_high != esp_efuse_get_key_purpose((esp_efuse_block_t)high_blk)) {
         ESP_LOGE(TAG, "Key burned in efuse has incorrect purpose for high block");
         return PSA_ERROR_NOT_PERMITTED;
     }
-#endif
+#endif /* SOC_ECDSA_SUPPORT_CURVE_P384 */
+#endif /* SOC_ECDSA_SUPPORT_CURVE_SPECIFIC_KEY_PURPOSES && ((!defined(CONFIG_IDF_TARGET_ESP32P4) && SOC_EFUSE_ECDSA_KEY_P384) || EFUSE_LL_HAS_ECDSA_KEY_P384) */
 
     return PSA_SUCCESS;
 }
