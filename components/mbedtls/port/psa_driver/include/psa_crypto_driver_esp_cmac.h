@@ -5,14 +5,14 @@
  */
 #pragma once
 
+#include "psa/crypto.h"
+#include "psa_crypto_driver_esp_cmac_contexts.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #if defined(ESP_CMAC_DRIVER_ENABLED)
-
-#include "psa/crypto.h"
-#include "psa_crypto_driver_esp_cmac_contexts.h"
 
 psa_status_t esp_cmac_compute(const psa_key_attributes_t *attributes,
                             const uint8_t *key_buffer,

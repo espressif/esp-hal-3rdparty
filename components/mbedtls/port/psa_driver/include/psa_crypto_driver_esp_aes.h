@@ -5,6 +5,9 @@
  */
 #pragma once
 
+#include "psa/crypto.h"
+#include "psa_crypto_driver_esp_aes_contexts.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -13,9 +16,6 @@ extern "C" {
 #ifndef PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT
 #define PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT
 #endif
-
-#include "psa/crypto.h"
-#include "psa_crypto_driver_esp_aes_contexts.h"
 
 psa_status_t esp_aes_cipher_encrypt(
     const psa_key_attributes_t *attributes,

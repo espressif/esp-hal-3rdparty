@@ -5,6 +5,9 @@
  */
 #pragma once
 
+#include "psa/crypto.h"
+#include "psa_crypto_driver_esp_hmac_opaque_contexts.h"
+
 #if defined(ESP_HMAC_OPAQUE_DRIVER_ENABLED)
 #ifndef PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT
 #define PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT
@@ -13,9 +16,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "psa/crypto.h"
-#include "psa_crypto_driver_esp_hmac_opaque_contexts.h"
 
 /**
  * @brief ESP HMAC opaque PSA driver location

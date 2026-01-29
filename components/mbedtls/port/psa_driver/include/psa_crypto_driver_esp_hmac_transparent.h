@@ -5,13 +5,13 @@
  */
 #pragma once
 
+#include "psa/crypto.h"
+#include "psa_crypto_driver_esp_hmac_transparent_contexts.h"
+
 #if defined(ESP_HMAC_TRANSPARENT_DRIVER_ENABLED)
 #ifndef PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT
 #define PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT
 #endif
-
-#include "psa/crypto.h"
-#include "psa_crypto_driver_esp_hmac_transparent_contexts.h"
 
 #ifdef __cplusplus
 extern "C" {

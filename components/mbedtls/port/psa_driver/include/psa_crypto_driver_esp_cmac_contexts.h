@@ -6,13 +6,16 @@
 
 #pragma once
 
+
+#include "esp_types.h"
+#include "psa/crypto_driver_common.h"
+#include "psa_crypto_driver_esp_aes_contexts.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #if defined(ESP_CMAC_DRIVER_ENABLED)
-
-#include "psa_crypto_driver_esp_aes_contexts.h"
 
 #define PSA_AES_BLOCK_SIZE PSA_BLOCK_CIPHER_BLOCK_LENGTH(PSA_KEY_TYPE_AES)
 #define PSA_CMAC_MAX_BLOCK_SIZE PSA_AES_BLOCK_SIZE

@@ -76,6 +76,18 @@ const uint8_t sha[] = {
     0xb2, 0x60, 0xb2, 0x38, 0x93, 0xa6, 0x27, 0x14
 };
 
+#if !defined(ESP_ECDSA_DRIVER_ENABLED)
+/**
+ * @brief ECDSA curve options
+ */
+typedef enum {
+    ESP_ECDSA_CURVE_SECP192R1,
+    ESP_ECDSA_CURVE_SECP256R1,
+    ESP_ECDSA_CURVE_SECP384R1,
+    ESP_ECDSA_CURVE_MAX,
+} esp_ecdsa_curve_t;
+#endif /* !defined(ESP_ECDSA_DRIVER_ENABLED) */
+
 #if CONFIG_MBEDTLS_HARDWARE_ECC || CONFIG_MBEDTLS_HARDWARE_ECDSA_VERIFY
 
 /* Big endian */

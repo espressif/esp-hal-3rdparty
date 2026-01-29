@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <stdint.h>
+#include "esp_types.h"
 #include "soc/soc_caps.h"
 #include "psa/crypto_driver_common.h"
 #include "psa_crypto_driver_esp_sha_contexts.h"

@@ -6,16 +6,15 @@
 
 #pragma once
 
-#include "stdint.h"
-#include "stdbool.h"
+#include "esp_types.h"
 #include "soc/soc_caps.h"
-#include "psa/crypto.h"
+#include "psa/crypto_driver_common.h"
 #include "sdkconfig.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+#if defined(ESP_ECDSA_DRIVER_ENABLED)
 #if SOC_ECDSA_SUPPORT_CURVE_P384
 #define MAX_ECDSA_COMPONENT_LEN     48
 #define MAX_ECDSA_SHA_LEN           48
@@ -75,6 +74,7 @@ typedef struct {
     size_t key_len;
 } esp_ecdsa_opaque_sign_hash_operation_t;
 #endif /* !(__DOXYGEN__) */
+#endif /* ESP_ECDSA_DRIVER_ENABLED */
 #ifdef __cplusplus
 }
 #endif

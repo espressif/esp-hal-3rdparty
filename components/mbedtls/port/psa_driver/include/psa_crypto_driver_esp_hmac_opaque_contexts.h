@@ -6,15 +6,14 @@
 
 #pragma once
 
-#include <stdbool.h>
-#include <stdint.h>
+#include "esp_types.h"
 #include "soc/soc_caps.h"
 #include "psa/crypto_driver_common.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+#if defined(ESP_HMAC_OPAQUE_DRIVER_ENABLED)
 /**
  * @brief Size of HMAC result in bytes (the opaque driver only supports SHA-256 based HMAC)
  */
@@ -36,6 +35,7 @@ typedef struct {
     uint8_t hmac[ESP_HMAC_RESULT_SIZE];         /**< Buffer to store the HMAC result */
 } esp_hmac_opaque_operation_t;
 
+#endif /* ESP_HMAC_OPAQUE_DRIVER_ENABLED */
 #ifdef __cplusplus
 }
 #endif
