@@ -1235,7 +1235,7 @@ menu "mbedTLS"
 
         config MBEDTLS_SHA3_C
             bool "Enable the SHA3 cryptographic hash algorithm"
-            default y
+            default n
             help
                 Enabling MBEDTLS_SHA3_C adds support for SHA3.
                 Enabling this configuration option increases the flash footprint
