@@ -80,24 +80,15 @@ if(CONFIG_SOC_AES_SUPPORTED)
                                         "${COMPONENT_DIR}/port/aes/esp_aes_xts.c")
     target_include_directories(tfpsacrypto PRIVATE "${COMPONENT_DIR}/port/include/aes")
     if(CONFIG_MBEDTLS_HARDWARE_AES)
-        target_compile_definitions(tfpsacrypto PRIVATE ESP_AES_DRIVER_ENABLED)
         target_sources(tfpsacrypto PRIVATE
                 "${COMPONENT_DIR}/port/psa_driver/esp_aes/psa_crypto_driver_esp_aes.c"
                 "${COMPONENT_DIR}/port/psa_driver/esp_aes/psa_crypto_driver_esp_aes_gcm.c"
         )
-        if(CONFIG_MBEDTLS_CMAC_C)
-            target_compile_definitions(tfpsacrypto PRIVATE ESP_CMAC_DRIVER_ENABLED)
-            target_sources(tfpsacrypto PRIVATE
-                "${COMPONENT_DIR}/port/psa_driver/esp_mac/psa_crypto_driver_esp_cmac.c"
-            )
-        endif()
     endif()
 
 endif()
 # SHA implementation
 if(CONFIG_SOC_SHA_SUPPORTED)
-    target_compile_definitions(tfpsacrypto PRIVATE ESP_SHA_DRIVER_ENABLED)
-    target_compile_definitions(tfpsacrypto PRIVATE ESP_HMAC_TRANSPARENT_DRIVER_ENABLED)
     target_sources(tfpsacrypto PRIVATE
         "${COMPONENT_DIR}/port/psa_driver/esp_sha/psa_crypto_driver_esp_sha.c"
         "${COMPONENT_DIR}/port/psa_driver/esp_sha/core/psa_crypto_driver_esp_sha1.c"
@@ -110,7 +101,6 @@ if(CONFIG_SOC_SHA_SUPPORTED)
 endif()
 
 if(CONFIG_MBEDTLS_ROM_MD5)
-    target_compile_definitions(tfpsacrypto PRIVATE ESP_MD5_DRIVER_ENABLED)
     target_sources(tfpsacrypto PRIVATE
         "${COMPONENT_DIR}/port/psa_driver/esp_md/psa_crypto_driver_esp_md5.c"
     )
@@ -123,7 +113,9 @@ endif()
 
 if(CONFIG_SOC_HMAC_SUPPORTED)
     # HMAC-based PBKDF2 implementation
+    target_sources(tfpsacrypto PRIVATE "${COMPONENT_DIR}/port/psa_driver/esp_mac/psa_crypto_driver_esp_hmac_opaque.c")
     target_sources(tfpsacrypto PRIVATE "${COMPONENT_DIR}/port/esp_hmac_pbkdf2.c")
+    target_link_libraries(tfpsacrypto PRIVATE idf::efuse)
 endif()
 
 # PSA Attestation
