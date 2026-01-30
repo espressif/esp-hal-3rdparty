@@ -43,6 +43,7 @@ typedef struct {
 typedef struct {
     void *esp_aes_gcm_ctx;
     psa_encrypt_or_decrypt_t mode;
+    size_t tag_length;  /* GCM authentication tag length (4, 8, 12-16 bytes) */
 } esp_aes_gcm_operation_t;
 
 #endif /* ESP_AES_DRIVER_ENABLED */
