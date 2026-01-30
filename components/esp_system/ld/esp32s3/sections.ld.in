@@ -283,7 +283,7 @@ SECTIONS
     mutable[dram0_bss]
     /* mutable libs end */
 
-    ALIGNED_SYMBOL(8, _bss_end)
+    ALIGNED_SYMBOL(16, _bss_end)
   } > dram0_0_seg
 
   ASSERT(((_bss_end - ORIGIN(dram0_0_seg)) <= LENGTH(dram0_0_seg)),
