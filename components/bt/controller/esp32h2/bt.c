@@ -54,6 +54,7 @@
 #include "esp_private/esp_clk_tree_common.h"
 #include "esp_sleep.h"
 #include "soc/rtc.h"
+#include "modem/modem_syscon_struct.h"
 
 #if CONFIG_BT_LE_CONTROLLER_LOG_MODE_BLE_LOG_V2
 #include "ble_log.h"
@@ -569,6 +570,7 @@ static void IRAM_ATTR esp_reset_modem(uint8_t mdl_opts,uint8_t start)
             coex_hw_timer_set(0x04, 0x02, 15, 0, 5000);
             coex_hw_timer_enable(0x04);
 #endif // CONFIG_SW_COEXIST_ENABLE || CONFIG_EXTERNAL_COEX_ENABLE
+            // TODO： PM-659
             MODEM_SYSCON.modem_rst_conf.val |= (BIT(16) | BIT(18));
             MODEM_SYSCON.modem_rst_conf.val &= ~(BIT(16) | BIT(18));
         } else {

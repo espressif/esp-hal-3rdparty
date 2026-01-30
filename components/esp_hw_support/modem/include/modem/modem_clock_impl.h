@@ -96,8 +96,8 @@ typedef esp_err_t (*check_func_t)(struct modem_clock_context *, int);
 #define REFS_FL_WITH_REFCNT (BIT(0)) /* Enable reference count management (true=use refs, false=ignore refs) */
 typedef struct {
     struct {
-    int16_t     count;   /* Reference count for this device, if with_refcnt is enabled */
-    uint16_t    flags;   /* flags for this device */
+        int16_t     count;   /* Reference count for this device, if with_refcnt is enabled */
+        uint16_t    flags;   /* flags for this device */
     } refs[MODEM_CLOCK_DEVICE_MAX];
     configure_func_t configure;
 #if CONFIG_ESP_MODEM_CLOCK_ENABLE_CHECKING
