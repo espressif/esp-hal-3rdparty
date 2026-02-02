@@ -38,6 +38,10 @@
 
 __attribute__((unused)) static const char TAG[] = "spi_flash";
 
+#if !CONFIG_SPI_FLASH_AUTO_SUSPEND && !CONFIG_SPI_FLASH_PLACE_FUNCTIONS_IN_IRAM
+#error "CONFIG_SPI_FLASH_PLACE_FUNCTIONS_IN_IRAM cannot be disabled when CONFIG_SPI_FLASH_AUTO_SUSPEND is disabled."
+#endif
+
 #if CONFIG_SPI_FLASH_ROM_IMPL && (CONFIG_ESPTOOLPY_FLASHSIZE_32MB || CONFIG_ESPTOOLPY_FLASHSIZE_64MB || CONFIG_ESPTOOLPY_FLASHSIZE_128MB)
 #error "Flash chip size equal or over 32MB memory cannot use driver in ROM"
 #endif
@@ -547,6 +551,10 @@ esp_err_t esp_flash_init_default_chip(void)
 
     #if CONFIG_SPI_FLASH_AUTO_CHECK_SUSPEND_STATUS
     cfg.auto_waiti_pes = true;
+    #endif
+
+    #if CONFIG_SPI_FLASH_SOFTWARE_RESUME
+    cfg.software_resume = true;
     #endif
 
     //the host is already initialized, only do init for the data and load it to the host
