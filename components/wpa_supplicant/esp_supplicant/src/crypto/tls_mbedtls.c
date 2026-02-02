@@ -61,7 +61,7 @@
 #error "SHA256 is disabled in mbedtls config"
 #endif
 
-#if !defined(MBEDTLS_AES_C)
+#if (!defined(MBEDTLS_AES_C) && !defined(PSA_WANT_KEY_TYPE_AES))
 #error "AES support is disabled in mbedtls config"
 #endif
 

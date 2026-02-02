@@ -188,10 +188,6 @@ set(mbedtls_targets mbedtls mbedx509 tfpsacrypto builtin)
 
 target_include_directories(tfpsacrypto PUBLIC "port/include")
 
-if(CONFIG_MBEDTLS_HARDWARE_SHA OR CONFIG_MBEDTLS_HARDWARE_AES)
-    target_include_directories(tfpsacrypto PUBLIC "${COMPONENT_DIR}/port/psa_driver/include")
-endif()
-
 message(STATUS "Setting up mbedtls configuration")
 foreach(target ${mbedtls_targets})
     target_compile_definitions(${target} PUBLIC -DMBEDTLS_CONFIG_FILE="mbedtls/esp_config.h")
@@ -356,13 +352,13 @@ endif()
 
 if(CONFIG_SOC_SHA_SUPPORTED)
     if(CONFIG_MBEDTLS_HARDWARE_SHA)
-        target_compile_definitions(tfpsacrypto PRIVATE ESP_SHA_DRIVER_ENABLED)
         target_sources(tfpsacrypto PRIVATE
             "${COMPONENT_DIR}/port/psa_driver/esp_sha/psa_crypto_driver_esp_sha.c"
             "${COMPONENT_DIR}/port/psa_driver/esp_sha/${SHA_PERIPHERAL_TYPE}/psa_crypto_driver_esp_sha256.c"
             "${COMPONENT_DIR}/port/psa_driver/esp_sha/${SHA_PERIPHERAL_TYPE}/psa_crypto_driver_esp_sha512.c"
-
-            "${COMPONENT_DIR}/port/sha/esp_sha.c")
+            "${COMPONENT_DIR}/port/sha/esp_sha.c"
+            "${COMPONENT_DIR}/port/psa_driver/esp_mac/psa_crypto_driver_esp_hmac_transparent.c"
+        )
     endif()
     target_sources(tfpsacrypto PRIVATE
             "${COMPONENT_DIR}/port/psa_driver/esp_sha/${SHA_PERIPHERAL_TYPE}/psa_crypto_driver_esp_sha1.c"
@@ -371,10 +367,16 @@ if(CONFIG_SOC_SHA_SUPPORTED)
 endif()
 
 if(CONFIG_MBEDTLS_ROM_MD5)
-    target_compile_definitions(tfpsacrypto PRIVATE ESP_MD5_DRIVER_ENABLED)
     target_sources(tfpsacrypto PRIVATE
         "${COMPONENT_DIR}/port/psa_driver/esp_md/psa_crypto_driver_esp_md5.c"
     )
+endif()
+
+if(CONFIG_SOC_HMAC_SUPPORTED)
+    target_sources(tfpsacrypto PRIVATE
+        "${COMPONENT_DIR}/port/psa_driver/esp_mac/psa_crypto_driver_esp_hmac_opaque.c"
+    )
+    target_link_libraries(tfpsacrypto PRIVATE idf::efuse)
 endif()
 
 if(CONFIG_SOC_DIG_SIGN_SUPPORTED)
@@ -405,15 +407,14 @@ if(CONFIG_MBEDTLS_HARDWARE_MPI)
 endif()
 
 if(CONFIG_MBEDTLS_HARDWARE_GCM OR CONFIG_MBEDTLS_HARDWARE_AES)
-    target_compile_definitions(tfpsacrypto PRIVATE ESP_AES_DRIVER_ENABLED)
     target_include_directories(tfpsacrypto PRIVATE "${COMPONENT_DIR}/port/include/aes")
     target_sources(tfpsacrypto PRIVATE
         "${COMPONENT_DIR}/port/psa_driver/esp_aes/psa_crypto_driver_esp_aes.c"
         "${COMPONENT_DIR}/port/psa_driver/esp_aes/psa_crypto_driver_esp_aes_gcm.c"
     )
-    if(CONFIG_MBEDTLS_HARDWARE_SHA)
+    if(CONFIG_MBEDTLS_CMAC_C)
         target_sources(tfpsacrypto PRIVATE
-            "${COMPONENT_DIR}/port/psa_driver/esp_aes/psa_crypto_driver_esp_cmac.c"
+            "${COMPONENT_DIR}/port/psa_driver/esp_mac/psa_crypto_driver_esp_cmac.c"
         )
     endif()
 endif()
@@ -427,14 +428,6 @@ if(CONFIG_SOC_ECC_SUPPORTED)
 endif()
 
 if(CONFIG_MBEDTLS_HARDWARE_ECDSA_SIGN OR CONFIG_MBEDTLS_HARDWARE_ECDSA_VERIFY OR CONFIG_MBEDTLS_TEE_SEC_STG_ECDSA_SIGN)
-    # ESP_ECDSA_DRIVER_ENABLED needs to be public because users would use OPAQUE key contexts in their applications.
-    target_compile_definitions(tfpsacrypto PUBLIC ESP_ECDSA_DRIVER_ENABLED)
-    if(CONFIG_MBEDTLS_HARDWARE_ECDSA_SIGN OR CONFIG_MBEDTLS_TEE_SEC_STG_ECDSA_SIGN)
-        target_compile_definitions(tfpsacrypto PRIVATE ESP_ECDSA_SIGN_DRIVER_ENABLED)
-    endif()
-    if(CONFIG_MBEDTLS_HARDWARE_ECDSA_VERIFY)
-        target_compile_definitions(tfpsacrypto PRIVATE ESP_ECDSA_VERIFY_DRIVER_ENABLED)
-    endif()
     target_sources(tfpsacrypto PRIVATE "${COMPONENT_DIR}/port/psa_driver/esp_ecdsa/psa_crypto_driver_esp_ecdsa.c")
     target_include_directories(tfpsacrypto PUBLIC "${COMPONENT_DIR}/port/psa_driver/include")
     target_link_libraries(tfpsacrypto PRIVATE idf::efuse)

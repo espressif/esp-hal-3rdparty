@@ -8,7 +8,9 @@
 #include "psa/crypto.h"
 #include "unity.h"
 #include "esp_log.h"
+#include "sdkconfig.h"
 
+#if CONFIG_MBEDTLS_ARIA_C
 /*
     ARIA-256-ECB Encrypt - RFC 5794 test vector
     Key:   000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
@@ -90,3 +92,4 @@ TEST_CASE("PSA ARIA-256-ECB encrypt test vector", "[psa][psa_cipher][aria]")
 
     psa_destroy_key(dec_key_id);
 }
+#endif /* CONFIG_MBEDTLS_ARIA_C */

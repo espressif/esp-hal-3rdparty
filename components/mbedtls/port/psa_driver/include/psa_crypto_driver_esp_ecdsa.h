@@ -6,16 +6,16 @@
 
 #pragma once
 
-#if defined(ESP_ECDSA_DRIVER_ENABLED)
-#ifndef PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT
-#define PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT
-#endif
-
 #include "psa/crypto.h"
 #include "psa/crypto_types.h"
 #include "soc/soc_caps.h"
 
 #include "psa_crypto_driver_esp_ecdsa_contexts.h"
+
+#if defined(ESP_ECDSA_DRIVER_ENABLED)
+#ifndef PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT
+#define PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT
+#endif
 
 #ifdef __cplusplus
 extern "C" {

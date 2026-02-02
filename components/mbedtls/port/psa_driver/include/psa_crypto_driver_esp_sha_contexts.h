@@ -1,10 +1,15 @@
 /*
- * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2025-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #pragma once
+
+
+#include "esp_types.h"
+#include <stdbool.h>
+#include "soc/soc_caps.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -22,10 +27,6 @@ extern "C" {
  * \note This file may not be included directly. It is included by
  * crypto_driver_contexts_primitives.h.
  */
-
-#include <stdint.h>
-#include <stdbool.h>
-#include "sdkconfig.h"
 
 typedef enum {
     ESP_SHA_OPERATION_TYPE_SHA1,
@@ -53,13 +54,13 @@ typedef enum {
     ESP_SHA512_STATE_IN_PROCESS
 } esp_sha512_state;
 
-#if CONFIG_SOC_SHA_SUPPORT_PARALLEL_ENG
+#if SOC_SHA_SUPPORT_PARALLEL_ENG
 typedef enum {
     ESP_SHA_MODE_UNUSED,
     ESP_SHA_MODE_HARDWARE,
     ESP_SHA_MODE_SOFTWARE
 } esp_sha_mode_t;
-#endif /* CONFIG_SOC_SHA_SUPPORT_PARALLEL_ENG */
+#endif /* SOC_SHA_SUPPORT_PARALLEL_ENG */
 
 /**
  * \brief ESP SHA1 context structure
@@ -70,9 +71,9 @@ typedef struct {
     unsigned char buffer[64];   /*!< The data block being processed. */
     bool first_block;           /*!< First block flag for hardware initialization */
     int sha_state;              /*!< SHA operation state */
-#if CONFIG_SOC_SHA_SUPPORT_PARALLEL_ENG
+#if SOC_SHA_SUPPORT_PARALLEL_ENG
     esp_sha_mode_t operation_mode;        /*!< Hardware or Software mode */
-#endif /* CONFIG_SOC_SHA_SUPPORT_PARALLEL_ENG */
+#endif /* SOC_SHA_SUPPORT_PARALLEL_ENG */
 } esp_sha1_context;
 
 /**
@@ -85,9 +86,9 @@ typedef struct {
     bool first_block;           /*!< First block flag for hardware initialization */
     int sha_state;              /*!< SHA operation state */
     int mode;                   /*!< SHA2_224 or SHA2_256 */
-#if CONFIG_SOC_SHA_SUPPORT_PARALLEL_ENG
+#if SOC_SHA_SUPPORT_PARALLEL_ENG
     esp_sha_mode_t operation_mode;        /*!< Hardware or Software mode */
-#endif /* CONFIG_SOC_SHA_SUPPORT_PARALLEL_ENG */
+#endif /* SOC_SHA_SUPPORT_PARALLEL_ENG */
 } esp_sha256_context;
 
 /**
@@ -102,9 +103,9 @@ typedef struct {
     int sha_state;
     int mode;
     uint32_t t_val;             /*!< t_val for 512/t mode */
-#if CONFIG_SOC_SHA_SUPPORT_PARALLEL_ENG
+#if SOC_SHA_SUPPORT_PARALLEL_ENG
     esp_sha_mode_t operation_mode;        /*!< Hardware or Software mode */
-#endif /* CONFIG_SOC_SHA_SUPPORT_PARALLEL_ENG */
+#endif /* SOC_SHA_SUPPORT_PARALLEL_ENG */
 } esp_sha512_context;
 
 typedef void *esp_sha_context_t;
