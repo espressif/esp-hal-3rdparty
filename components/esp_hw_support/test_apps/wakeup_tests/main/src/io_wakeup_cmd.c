@@ -142,7 +142,7 @@ static void register_ext1_wakeup(void)
 }
 #endif
 
-#if SOC_GPIO_SUPPORT_DEEPSLEEP_WAKEUP
+#if SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP
 static struct {
     struct arg_int *pin;
     struct arg_int *level;
@@ -177,7 +177,7 @@ static int process_rtcio_wakeup(int argc, char **argv)
     ESP_LOGI(TAG, "io_wakeup_level = %d\n", io_wakeup_level);
 
     if (rtcio_wakeup_args.disable->count) {
-        ESP_ERROR_CHECK(gpio_deep_sleep_wakeup_disable(io_wakeup_num));
+        ESP_ERROR_CHECK(gpio_wakeup_disable_on_hp_periph_powerdown_sleep(io_wakeup_num));
     } else {
         gpio_config_t config = {
             .pin_bit_mask = BIT64(io_wakeup_num),
@@ -189,7 +189,7 @@ static int process_rtcio_wakeup(int argc, char **argv)
         ESP_ERROR_CHECK(gpio_config(&config));
 
         /* Enable wake up from GPIO */
-        ESP_ERROR_CHECK(esp_deep_sleep_enable_gpio_wakeup(BIT64(io_wakeup_num), io_wakeup_level));
+        ESP_ERROR_CHECK(esp_sleep_enable_gpio_wakeup_on_hp_periph_powerdown(BIT64(io_wakeup_num), io_wakeup_level));
     }
 
     return 0;
@@ -383,7 +383,7 @@ static int process_get_wakeup_cause(int argc, char **argv)
 
     if (causes & BIT(ESP_SLEEP_WAKEUP_GPIO)) {
         if (esp_reset_reason() == ESP_RST_DEEPSLEEP) {
-#if SOC_GPIO_SUPPORT_DEEPSLEEP_WAKEUP
+#if SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP
             uint64_t wakeup_pin_mask = esp_sleep_get_gpio_wakeup_status();
             if (wakeup_pin_mask != 0) {
                 int pin = __builtin_ffsll(wakeup_pin_mask) - 1;
@@ -440,7 +440,7 @@ void register_io_wakeup_cmd(void)
 #endif
     register_gpio_control();
     register_gpio_wakeup();
-#if SOC_GPIO_SUPPORT_DEEPSLEEP_WAKEUP
+#if SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP
     register_rtcio_wakeup();
 #endif
     register_get_wakeup_cause();

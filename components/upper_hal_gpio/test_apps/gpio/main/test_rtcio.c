@@ -235,7 +235,7 @@ TEST_CASE("RTCIO_output_hold_test", "[rtcio]")
 }
 #endif //SOC_RTCIO_HOLD_SUPPORTED
 
-#if SOC_GPIO_SUPPORT_DEEPSLEEP_WAKEUP && (SOC_RTCIO_PIN_COUNT > 0)
+#if SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP && (SOC_RTCIO_PIN_COUNT > 0)
 /*
  * test interrupt functionality
  */
@@ -275,7 +275,7 @@ TEST_CASE("RTCIO_interrupt_test", "[rtcio]")
     rtcio_ll_intr_enable(test_io, GPIO_INTR_DISABLE);
     TEST_ESP_OK(rtc_gpio_deinit(test_io));
 }
-#endif //SOC_GPIO_SUPPORT_DEEPSLEEP_WAKEUP && (SOC_RTCIO_PIN_COUNT > 0)
+#endif //SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP && (SOC_RTCIO_PIN_COUNT > 0)
 #endif //SOC_RTCIO_INPUT_OUTPUT_SUPPORTED
 
 #if SOC_DEEP_SLEEP_SUPPORTED

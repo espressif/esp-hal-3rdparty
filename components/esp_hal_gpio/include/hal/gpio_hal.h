@@ -497,34 +497,34 @@ void gpio_hal_matrix_out(gpio_hal_context_t *hal, uint32_t gpio_num, uint32_t si
   */
 #define gpio_hal_sleep_output_enable(hal, gpio_num) gpio_ll_sleep_output_enable((hal)->dev, gpio_num)
 
-#if SOC_GPIO_SUPPORT_DEEPSLEEP_WAKEUP && (SOC_RTCIO_PIN_COUNT == 0) && SOC_DEEP_SLEEP_SUPPORTED
+#if SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP && (SOC_RTCIO_PIN_COUNT == 0)
 /**
- * @brief Enable GPIO deep-sleep wake-up function.
+ * @brief Enable GPIO HP periph powerdown sleep wake-up function.
  *
  * @param hal Context of the HAL layer
  * @param gpio_num GPIO number.
  * @param intr_type GPIO wake-up type. Only GPIO_INTR_LOW_LEVEL or GPIO_INTR_HIGH_LEVEL can be used.
  */
-#define gpio_hal_deepsleep_wakeup_enable(hal, gpio_num, intr_type) gpio_ll_deepsleep_wakeup_enable((hal)->dev, gpio_num, intr_type)
+#define gpio_hal_wakeup_enable_on_hp_periph_powerdown_sleep(hal, gpio_num, intr_type) gpio_ll_wakeup_enable_on_hp_periph_powerdown_sleep((hal)->dev, gpio_num, intr_type)
 
 /**
- * @brief Disable GPIO deep-sleep wake-up function.
+ * @brief Disable GPIO HP periph powerdown sleep wake-up function.
  *
  * @param hal Context of the HAL layer
  * @param gpio_num GPIO number
  */
-#define gpio_hal_deepsleep_wakeup_disable(hal, gpio_num) gpio_ll_deepsleep_wakeup_disable((hal)->dev, gpio_num)
+#define gpio_hal_wakeup_disable_on_hp_periph_powerdown_sleep(hal, gpio_num) gpio_ll_wakeup_disable_on_hp_periph_powerdown_sleep((hal)->dev, gpio_num)
 
 /**
- * @brief Get the status of whether an IO is used for deep-sleep wake-up.
+ * @brief Get the status of whether an IO is used for HP periph powerdown sleep wake-up.
  *
  * @param hal Context of the HAL layer
  * @param gpio_num GPIO number
  *
- * @return True if the pin is enabled to wake up from deep-sleep
+ * @return True if the pin is enabled to wake up from HP periph powerdown sleep
  */
-#define gpio_hal_deepsleep_wakeup_is_enabled(hal, gpio_num) gpio_ll_deepsleep_wakeup_is_enabled((hal)->dev, gpio_num)
-#endif //SOC_GPIO_SUPPORT_DEEPSLEEP_WAKEUP && (SOC_RTCIO_PIN_COUNT == 0) && SOC_DEEP_SLEEP_SUPPORTED
+#define gpio_hal_wakeup_is_enabled_on_hp_periph_powerdown_sleep(hal, gpio_num) gpio_ll_hp_periph_powerdown_sleep_wakeup_is_enabled((hal)->dev, gpio_num)
+#endif //SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP && (SOC_RTCIO_PIN_COUNT == 0)
 
 #if SOC_GPIO_SUPPORT_PIN_HYS_FILTER
 /**

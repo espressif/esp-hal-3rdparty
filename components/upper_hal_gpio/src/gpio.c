@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2015-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -1017,11 +1017,11 @@ esp_err_t gpio_sleep_sel_dis(gpio_num_t gpio_num)
     return ESP_OK;
 }
 
-#if SOC_GPIO_SUPPORT_DEEPSLEEP_WAKEUP && SOC_DEEP_SLEEP_SUPPORTED
-esp_err_t gpio_deep_sleep_wakeup_enable(gpio_num_t gpio_num, gpio_int_type_t intr_type)
+#if SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP
+esp_err_t gpio_wakeup_enable_on_hp_periph_powerdown_sleep(gpio_num_t gpio_num, gpio_int_type_t intr_type)
 {
-    if (!GPIO_IS_DEEP_SLEEP_WAKEUP_VALID_GPIO(gpio_num)) {
-        ESP_LOGE(GPIO_TAG, "GPIO %d does not support deep sleep wakeup", gpio_num);
+    if (!GPIO_IS_HP_PERIPH_PD_WAKEUP_VALID_IO(gpio_num)) {
+        ESP_LOGE(GPIO_TAG, "GPIO %d does not support wakeup on peripheral powerdown sleep", gpio_num);
         return ESP_ERR_INVALID_ARG;
     }
     if ((intr_type != GPIO_INTR_LOW_LEVEL) && (intr_type != GPIO_INTR_HIGH_LEVEL)) {
@@ -1032,7 +1032,7 @@ esp_err_t gpio_deep_sleep_wakeup_enable(gpio_num_t gpio_num, gpio_int_type_t int
 #if SOC_LP_IO_CLOCK_IS_INDEPENDENT
     io_mux_enable_lp_io_clock(gpio_num, true);
 #endif
-    gpio_hal_deepsleep_wakeup_enable(gpio_context.gpio_hal, gpio_num, intr_type);
+    gpio_hal_wakeup_enable_on_hp_periph_powerdown_sleep(gpio_context.gpio_hal, gpio_num, intr_type);
 #if CONFIG_ESP_SLEEP_GPIO_RESET_WORKAROUND || CONFIG_PM_SLP_DISABLE_GPIO
     gpio_hal_sleep_sel_dis(gpio_context.gpio_hal, gpio_num);
 #endif
@@ -1040,14 +1040,14 @@ esp_err_t gpio_deep_sleep_wakeup_enable(gpio_num_t gpio_num, gpio_int_type_t int
     return ESP_OK;
 }
 
-esp_err_t gpio_deep_sleep_wakeup_disable(gpio_num_t gpio_num)
+esp_err_t gpio_wakeup_disable_on_hp_periph_powerdown_sleep(gpio_num_t gpio_num)
 {
-    if (!GPIO_IS_DEEP_SLEEP_WAKEUP_VALID_GPIO(gpio_num)) {
-        ESP_LOGE(GPIO_TAG, "GPIO %d does not support deep sleep wakeup", gpio_num);
+    if (!GPIO_IS_HP_PERIPH_PD_WAKEUP_VALID_IO(gpio_num)) {
+        ESP_LOGE(GPIO_TAG, "GPIO %d does not support wakeup on peripheral powerdown sleep", gpio_num);
         return ESP_ERR_INVALID_ARG;
     }
     portENTER_CRITICAL(&gpio_context.gpio_spinlock);
-    gpio_hal_deepsleep_wakeup_disable(gpio_context.gpio_hal, gpio_num);
+    gpio_hal_wakeup_disable_on_hp_periph_powerdown_sleep(gpio_context.gpio_hal, gpio_num);
 #if CONFIG_ESP_SLEEP_GPIO_RESET_WORKAROUND || CONFIG_PM_SLP_DISABLE_GPIO
     gpio_hal_sleep_sel_en(gpio_context.gpio_hal, gpio_num);
 #endif
@@ -1057,7 +1057,7 @@ esp_err_t gpio_deep_sleep_wakeup_disable(gpio_num_t gpio_num)
     portEXIT_CRITICAL(&gpio_context.gpio_spinlock);
     return ESP_OK;
 }
-#endif // SOC_GPIO_SUPPORT_DEEPSLEEP_WAKEUP && SOC_DEEP_SLEEP_SUPPORTED
+#endif // SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP
 
 esp_err_t gpio_get_io_config(gpio_num_t gpio_num, gpio_io_config_t *out_io_config)
 {

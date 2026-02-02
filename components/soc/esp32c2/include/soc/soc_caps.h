@@ -127,21 +127,21 @@
 #define SOC_GPIO_PIN_COUNT                 21
 #define SOC_GPIO_SUPPORT_PIN_GLITCH_FILTER 1
 
-// Target has no full RTC IO subsystem, GPIO0~5 remain RTC function (powered by VDD3V3_RTC, and can be used as deep-sleep wakeup pins)
+// Target has no full RTC IO subsystem, GPIO0~5 remain RTC function (powered by VDD3V3_RTC, and can be used as HP peripheral powerdown-ed sleep wakeup pins)
 
 // Force hold is a new function of ESP32-C2
 #define SOC_GPIO_SUPPORT_FORCE_HOLD         (1)
-// GPIO0~5 on ESP32-C2 can support chip deep sleep wakeup
-#define SOC_GPIO_SUPPORT_DEEPSLEEP_WAKEUP   (1)
-
+// GPIO0~5 on ESP32-C2 can support chip HP peripheral powerdown-ed sleep wakeup
+#define SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP  (1)
+#define SOC_GPIO_SUPPORT_DEEPSLEEP_WAKEUP           SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP
 #define SOC_GPIO_VALID_GPIO_MASK        ((1U<<SOC_GPIO_PIN_COUNT) - 1)
 #define SOC_GPIO_VALID_OUTPUT_GPIO_MASK SOC_GPIO_VALID_GPIO_MASK
 
 #define SOC_GPIO_IN_RANGE_MAX           20
 #define SOC_GPIO_OUT_RANGE_MAX          20
 
-#define SOC_GPIO_DEEP_SLEEP_WAKE_VALID_GPIO_MASK        (0ULL | BIT0 | BIT1 | BIT2 | BIT3 | BIT4 | BIT5)
-#define SOC_GPIO_DEEP_SLEEP_WAKE_SUPPORTED_PIN_CNT      (6)
+#define SOC_GPIO_HP_PERIPH_PD_SLEEP_WAKEABLE_MASK          (0ULL | BIT0 | BIT1 | BIT2 | BIT3 | BIT4 | BIT5)
+#define SOC_GPIO_HP_PERIPH_PD_SLEEP_WAKEABLE_PIN_CNT       (6)
 
 // digital I/O pad powered by VDD3P3_CPU or VDD_SPI(GPIO_NUM_6~GPIO_NUM_20)
 #define SOC_GPIO_VALID_DIGITAL_IO_PAD_MASK 0x00000000001FFFC0ULL

@@ -992,7 +992,7 @@ esp_err_t ledc_channel_config(const ledc_channel_config_t *ledc_conf)
         // To workaround DIG-399, all LP IOs are held when LP_PERIPH is powered off to ensure EXT wakeup functionality
         // But holding LP IOs will cause LEDC signal cannot output on the pad during sleep
         // Therefore, we will force LP periph xpd in such case
-        if ((1ULL << gpio_num) & SOC_GPIO_DEEP_SLEEP_WAKE_VALID_GPIO_MASK) {
+        if (GPIO_IS_HP_PERIPH_PD_WAKEUP_VALID_IO(gpio_num)) {
             esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
         }
 #endif
