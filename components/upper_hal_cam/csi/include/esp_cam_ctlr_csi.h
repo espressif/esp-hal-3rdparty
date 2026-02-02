@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -29,8 +29,10 @@ typedef struct {
     cam_ctlr_color_t output_data_color_type;    /*!< Output color type. */
     int queue_items;                            /*!< Number of queue items. */
     struct {
-        uint32_t byte_swap_en   : 1;            /*!< Set to 1 to enable byte swap. */
-        uint32_t bk_buffer_dis  : 1;            /*!< Set to 1 to disable backup buffer. */
+        uint32_t input_8bit_swap_en    : 1;     /*!< Set to 1 to enable input 8bit bit swap. [31:24] [23:16] [15:8] [7:0] -> [7:0] [15:8] [23:16] [31:24]*/
+        uint32_t input_16bit_swap_en   : 1;     /*!< Set to 1 to enable input 16bit bit swap. [31:16] [15:0] -> [15:0] [31:16] */
+        uint32_t byte_swap_en          : 1;     /*!< Set to 1 to enable output byte swap. */
+        uint32_t bk_buffer_dis         : 1;     /*!< Set to 1 to disable backup buffer. */
     };                                          /*!< Boolean flags. */
 } esp_cam_ctlr_csi_config_t;
 

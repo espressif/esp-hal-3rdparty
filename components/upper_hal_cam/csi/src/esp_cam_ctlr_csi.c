@@ -106,6 +106,15 @@ esp_err_t esp_cam_new_csi_ctlr(const esp_cam_ctlr_csi_config_t *config, esp_cam_
     ESP_RETURN_ON_FALSE(config->input_data_color_type != 0, ESP_ERR_INVALID_ARG, TAG, "input_data_color_type must be specified");
     ESP_RETURN_ON_FALSE(config->output_data_color_type != 0, ESP_ERR_INVALID_ARG, TAG, "output_data_color_type must be specified");
 
+    bool is_less_v1 = false;  //version 1 since P4 rev3
+#if CONFIG_IDF_TARGET_ESP32P4
+    unsigned chip_version = efuse_hal_chip_revision();
+    if (!ESP_CHIP_REV_ABOVE(chip_version, 300)) {
+        is_less_v1 = true;
+    }
+#endif
+    ESP_RETURN_ON_FALSE(!(is_less_v1 && (config->input_8bit_swap_en || config->input_16bit_swap_en)), ESP_ERR_NOT_SUPPORTED, TAG, "input 8bit or 16bit swap is not supported on this chip");
+
     csi_controller_t *ctlr = heap_caps_calloc(1, sizeof(csi_controller_t), CSI_MEM_ALLOC_CAPS);
     ESP_RETURN_ON_FALSE(ctlr, ESP_ERR_NO_MEM, TAG, "no mem for csi controller context");
 
@@ -184,6 +193,19 @@ esp_err_t esp_cam_new_csi_ctlr(const esp_cam_ctlr_csi_config_t *config, esp_cam_
     mipi_csi_hal_init(&ctlr->hal, &hal_config);
     mipi_csi_brg_ll_set_burst_len(ctlr->hal.bridge_dev, 512);
 
+    cam_ctlr_format_conv_config_t format_conv_config = {
+        .src_format = config->input_data_color_type,
+        .dst_format = config->output_data_color_type,
+    };
+    ESP_GOTO_ON_ERROR(s_csi_ctlr_format_conversion(&(ctlr->base), &format_conv_config), err, TAG, "failed to configure format conversion");
+
+    if (config->input_8bit_swap_en) {
+        mipi_csi_brg_ll_set_8bit_swap(ctlr->hal.bridge_dev, true);
+    }
+    if (config->input_16bit_swap_en) {
+        mipi_csi_brg_ll_set_16bit_swap(ctlr->hal.bridge_dev, true);
+    }
+
     //---------------DWGDMA Init For CSI------------------//
     dw_gdma_channel_handle_t csi_dma_chan = NULL;
     dw_gdma_channel_alloc_config_t csi_dma_alloc_config = {
@@ -218,12 +240,6 @@ esp_err_t esp_cam_new_csi_ctlr(const esp_cam_ctlr_csi_config_t *config, esp_cam_
 #if CONFIG_PM_ENABLE
     ESP_GOTO_ON_ERROR(esp_pm_lock_create(ESP_PM_APB_FREQ_MAX, 0, "cam_csi_ctlr", &ctlr->pm_lock), err, TAG, "failed to create pm lock");
 #endif //CONFIG_PM_ENABLE
-
-    cam_ctlr_format_conv_config_t format_conv_config = {
-        .src_format = config->input_data_color_type,
-        .dst_format = config->output_data_color_type,
-    };
-    ESP_GOTO_ON_ERROR(s_csi_ctlr_format_conversion(&(ctlr->base), &format_conv_config), err, TAG, "failed to configure format conversion");
 
     ctlr->spinlock = (portMUX_TYPE)portMUX_INITIALIZER_UNLOCKED;
     ctlr->csi_fsm = CSI_FSM_INIT;
@@ -596,6 +612,8 @@ static esp_err_t s_csi_ctlr_format_conversion(esp_cam_ctlr_t *handle, const cam_
     ESP_RETURN_ON_FALSE(handle && config, ESP_ERR_INVALID_ARG, TAG, "invalid argument: null pointer");
     csi_controller_t *ctlr = __containerof(handle, csi_controller_t, base);
 
+    mipi_csi_brg_ll_enable_color_conversion(ctlr->hal.bridge_dev, true);
+
     if (config->src_format == config->dst_format) {
         mipi_csi_brg_ll_set_color_mode_bypass(ctlr->hal.bridge_dev, true);
         return ESP_OK;
@@ -614,7 +632,6 @@ static esp_err_t s_csi_ctlr_format_conversion(esp_cam_ctlr_t *handle, const cam_
             mipi_csi_brg_ll_set_input_color_format(ctlr->hal.bridge_dev, config->src_format);
             mipi_csi_brg_ll_set_output_color_format(ctlr->hal.bridge_dev, config->dst_format);
             mipi_csi_brg_ll_set_color_mode_bypass(ctlr->hal.bridge_dev, false);
-            mipi_csi_brg_ll_enable_color_conversion(ctlr->hal.bridge_dev, true);
         }
         ctlr->in_color_format = config->src_format;
         ctlr->out_color_format = config->dst_format;
