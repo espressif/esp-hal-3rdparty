@@ -226,7 +226,7 @@ static void rtc_wdt_deep_sleep_prepare_timeout(void)
 static void rtc_wdt_verify_SYSTEM_reset(void)
 {
     printf("Confirming if reset reason matches 0x9 (main system reset)\n");
-#if CONFIG_IDF_TARGET_ESP32P4
+#if CONFIG_IDF_TARGET_ESP32P4 || CONFIG_IDF_TARGET_ESP32S31
     TEST_ASSERT_EQUAL(RESET_REASON_CORE_RWDT, esp_rom_get_reset_reason(CONFIG_ESP_MAIN_TASK_AFFINITY));
 #else
     TEST_ASSERT_EQUAL(RESET_REASON_CORE_RTC_WDT, esp_rom_get_reset_reason(CONFIG_ESP_MAIN_TASK_AFFINITY));
@@ -236,7 +236,7 @@ static void rtc_wdt_verify_SYSTEM_reset(void)
 static void rtc_wdt_verify_RTC_reset(void)
 {
     printf("Confirming if reset reason matches 0x10 (main system + RTC reset)\n");
-#if CONFIG_IDF_TARGET_ESP32P4
+#if CONFIG_IDF_TARGET_ESP32P4 || CONFIG_IDF_TARGET_ESP32S31
     TEST_ASSERT_EQUAL(RESET_REASON_SYS_RWDT, esp_rom_get_reset_reason(CONFIG_ESP_MAIN_TASK_AFFINITY));
 #else
     TEST_ASSERT_EQUAL(RESET_REASON_SYS_RTC_WDT, esp_rom_get_reset_reason(CONFIG_ESP_MAIN_TASK_AFFINITY));

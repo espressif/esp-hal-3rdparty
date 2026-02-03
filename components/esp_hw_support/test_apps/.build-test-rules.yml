@@ -1,9 +1,6 @@
 # Documentation: .gitlab/ci/README.md#manifest-file-to-control-the-buildtest-apps
 
 components/esp_hw_support/test_apps/esp_hw_support_unity_tests:
-  disable:
-    - if: IDF_TARGET in ["esp32s31"] # TODO: [ESP32S31] IDF-14672
-      reason: not support yet
 
 components/esp_hw_support/test_apps/host_test_linux:
   enable:
