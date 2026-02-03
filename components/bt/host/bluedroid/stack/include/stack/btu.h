@@ -169,6 +169,9 @@ typedef void (*tBTU_EVENT_CALLBACK)(BT_HDR *p_hdr);
 /* BTU internal timer for set page timeout*/
 #define BTU_TTYPE_BTM_SET_PAGE_TO                   111
 
+/* BTU internal timer for BR/EDR power control*/
+#define BTU_TTYPE_BTM_BREDR_PWR_CTRL                112
+
 /* BTU Task Signal */
 typedef enum {
     SIG_BTU_START_UP = 0,

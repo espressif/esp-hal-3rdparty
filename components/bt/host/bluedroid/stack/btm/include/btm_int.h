@@ -199,6 +199,47 @@ tBTM_CMPL_CB        *p_rln_cmpl_cb;     /* Callback function to be called when  
 TIMER_LIST_ENT       rssi_timer;
 tBTM_CMPL_CB        *p_rssi_cmpl_cb;    /* Callback function to be called when  */
 /* read rssi function completes         */
+
+#if (ESP_BT_CLASSIC_ENABLE_POWER_CTRL_VSC == TRUE)
+TIMER_LIST_ENT       acl_real_rssi_timer;
+tBTM_CMPL_CB        *p_acl_real_rssi_cmpl_cb;    /* Callback function to be called when  */
+/* read acl real rssi function completes         */
+
+TIMER_LIST_ENT       read_new_conn_tx_pwr_lvl_timer;
+tBTM_CMPL_CB        *p_read_new_conn_tx_pwr_lvl_cmpl_cb;    /* Callback function to be called when  */
+/* read new connection transmit power level function completes         */
+
+TIMER_LIST_ENT       write_new_conn_tx_pwr_lvl_timer;
+tBTM_CMPL_CB        *p_write_new_conn_tx_pwr_lvl_cmpl_cb;    /* Callback function to be called when  */
+/* write new connection transmit power level function completes         */
+#endif // #if (ESP_BT_CLASSIC_ENABLE_POWER_CTRL_VSC == TRUE)
+
+#if (CLASSIC_BT_INCLUDED == TRUE)
+TIMER_LIST_ENT       read_page_tx_pwr_lvl_timer;
+tBTM_CMPL_CB        *p_read_page_tx_pwr_lvl_cmpl_cb;    /* Callback function to be called when  */
+/* read page transmit power level function completes         */
+
+TIMER_LIST_ENT       write_page_tx_pwr_lvl_timer;
+tBTM_CMPL_CB        *p_write_page_tx_pwr_lvl_cmpl_cb;    /* Callback function to be called when  */
+/* write page transmit power level function completes         */
+
+TIMER_LIST_ENT       read_pscan_tx_pwr_lvl_timer;
+tBTM_CMPL_CB        *p_read_pscan_tx_pwr_lvl_cmpl_cb;    /* Callback function to be called when  */
+/* read page scan transmit power level function completes         */
+
+TIMER_LIST_ENT       write_pscan_tx_pwr_lvl_timer;
+tBTM_CMPL_CB        *p_write_pscan_tx_pwr_lvl_cmpl_cb;    /* Callback function to be called when  */
+/* write page scan transmit power level function completes         */
+
+TIMER_LIST_ENT       read_inq_tx_pwr_lvl_timer;
+tBTM_CMPL_CB        *p_read_inq_tx_pwr_lvl_cmpl_cb;    /* Callback function to be called when  */
+/* read inquiry transmit power level function completes         */
+
+TIMER_LIST_ENT       write_iscan_tx_pwr_lvl_timer;
+tBTM_CMPL_CB        *p_write_iscan_tx_pwr_lvl_cmpl_cb;    /* Callback function to be called when  */
+/* write inquiry scan transmit power level function completes         */
+#endif // (CLASSIC_BT_INCLUDED == TRUE)
+
 #if BLE_INCLUDED == TRUE
 tBTM_CMPL_CB        *p_ble_ch_map_cmpl_cb; /* Callback function to be called when */
 #endif // #if BLE_INCLUDED == TRUE
@@ -210,11 +251,15 @@ tBTM_CMPL_CB        *p_lnk_qual_cmpl_cb;/* Callback function to be called when  
 
 #if (CLASSIC_BT_INCLUDED == TRUE)
 /* read link quality function completes */
-TIMER_LIST_ENT       txpwer_timer;
-tBTM_CMPL_CB        *p_txpwer_cmpl_cb;    /* Callback function to be called when  */
+TIMER_LIST_ENT       read_iscan_txpwer_timer;
+tBTM_CMPL_CB        *p_read_iscan_txpwer_cmpl_cb;    /* Callback function to be called when  */
+/* read inq scan tx power function completes  */
+
+TIMER_LIST_ENT       write_inq_txpwer_timer;
+tBTM_CMPL_CB        *p_write_inq_txpwer_cmpl_cb;    /* Callback function to be called when  */
+/* write inq tx power function completes  */
 #endif // #if (CLASSIC_BT_INCLUDED == TRUE)
 
-/* read inq tx power function completes  */
 #if (CLASSIC_BT_INCLUDED == TRUE)
 TIMER_LIST_ENT       qossu_timer;
 tBTM_CMPL_CB        *p_qossu_cmpl_cb;   /* Callback function to be called when  */
@@ -1082,6 +1127,18 @@ BOOLEAN      btm_inq_find_bdaddr (BD_ADDR p_bda);
 
 BOOLEAN btm_lookup_eir(BD_ADDR_PTR p_rem_addr);
 
+#if (CLASSIC_BT_INCLUDED == TRUE)
+void btm_read_iscan_tx_power_complete (UINT8 *p);
+void btm_write_inq_tx_power_complete (UINT8 *p);
+#endif // #if (CLASSIC_BT_INCLUDED == TRUE)
+
+/* Internal functions provided by btm_bredr_pwr_ctrl.c
+*******************************************
+*/
+#if (CLASSIC_BT_INCLUDED == TRUE)
+void btm_bredr_pwr_ctrl_timeout(TIMER_LIST_ENT *p_tle);
+#endif // #if (CLASSIC_BT_INCLUDED == TRUE)
+
 /* Internal functions provided by btm_acl.c
 ********************************************
 */
@@ -1253,7 +1310,6 @@ tBTM_STATUS  btm_sec_mx_access_request (BD_ADDR bd_addr, UINT16 psm, BOOLEAN is_
                                         tBTM_SEC_CALLBACK *p_callback, void *p_ref_data);
 void  btm_sec_conn_req (UINT8 *bda, UINT8 *dc);
 void btm_create_conn_cancel_complete (UINT8 *p, UINT16 evt_len);
-void btm_read_linq_tx_power_complete (UINT8 *p);
 
 void  btm_sec_init (UINT8 sec_mode);
 void  btm_sec_dev_reset (void);

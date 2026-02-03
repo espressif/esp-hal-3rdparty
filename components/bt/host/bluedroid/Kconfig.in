@@ -48,6 +48,13 @@ config BT_CLASSIC_ENABLED
     help
         For now this option needs "SMP_ENABLE" to be set to yes
 
+config BT_CLASSIC_ENABLE_POWER_CTRL_VSC
+    bool "Enable Espressif Vendor-specific HCI commands for power control of Classic Bluetooth"
+    depends on BT_CLASSIC_ENABLED
+    default n
+    help
+        Enable Espressif Vendor-specific HCI commands for power control of Classic Bluetooth
+
 choice BT_ENC_KEY_SIZE_CTRL_ENABLED
     prompt "configure encryption key size"
     depends on BT_CLASSIC_ENABLED

@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2015-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -261,6 +261,9 @@ extern void btdm_aa_check_enhance_enable(void);
 #ifdef CONFIG_BT_BLUEDROID_ENABLED
 extern void bt_stack_enableSecCtrlVsCmd(bool en);
 #endif // CONFIG_BT_BLUEDROID_ENABLED
+#if UC_BR_EDR_POWER_CTRL_VSC_ENABLED
+extern void bt_stack_enablePwrCtrlVsCmd(bool en);
+#endif // UC_BR_EDR_POWER_CTRL_VSC_ENABLED
 #if defined(CONFIG_BT_NIMBLE_ENABLED) || defined(CONFIG_BT_BLUEDROID_ENABLED)
 extern void bt_stack_enableCoexVsCmd(bool en);
 extern void scan_stack_enableAdvFlowCtrlVsCmd(bool en);
@@ -1678,7 +1681,7 @@ esp_err_t esp_bt_controller_init(esp_bt_controller_config_t *cfg)
     }
 
     //overwrite some parameters
-    cfg->bt_max_sync_conn = UT_BR_EDR_CTRL_MAX_SYNC_CONN_EFF;
+    cfg->bt_max_sync_conn = UC_BR_EDR_CTRL_MAX_SYNC_CONN_EFF;
     cfg->magic  = ESP_BT_CONTROLLER_CONFIG_MAGIC_VAL;
 
     if (((cfg->mode & ESP_BT_MODE_BLE) && (cfg->ble_max_conn <= 0 || cfg->ble_max_conn > BTDM_CONTROLLER_BLE_MAX_CONN_LIMIT))
@@ -1748,6 +1751,9 @@ esp_err_t esp_bt_controller_init(esp_bt_controller_config_t *cfg)
 #ifdef CONFIG_BT_BLUEDROID_ENABLED
     bt_stack_enableSecCtrlVsCmd(true);
 #endif // CONFIG_BT_BLUEDROID_ENABLED
+#if UC_BR_EDR_POWER_CTRL_VSC_ENABLED
+    bt_stack_enablePwrCtrlVsCmd(true);
+#endif // UC_BR_EDR_POWER_CTRL_VSC_ENABLED
 #if defined(CONFIG_BT_NIMBLE_ENABLED) || defined(CONFIG_BT_BLUEDROID_ENABLED)
     bt_stack_enableCoexVsCmd(true);
     scan_stack_enableAdvFlowCtrlVsCmd(true);
@@ -1796,6 +1802,9 @@ esp_err_t esp_bt_controller_deinit(void)
 #ifdef CONFIG_BT_BLUEDROID_ENABLED
     bt_stack_enableSecCtrlVsCmd(false);
 #endif // CONFIG_BT_BLUEDROID_ENABLED
+#if UC_BR_EDR_POWER_CTRL_VSC_ENABLED
+    bt_stack_enablePwrCtrlVsCmd(false);
+#endif // UC_BR_EDR_POWER_CTRL_VSC_ENABLED
 #if defined(CONFIG_BT_NIMBLE_ENABLED) || defined(CONFIG_BT_BLUEDROID_ENABLED)
     bt_stack_enableCoexVsCmd(false);
     scan_stack_enableAdvFlowCtrlVsCmd(false);
@@ -2012,6 +2021,11 @@ esp_power_level_t esp_ble_tx_power_get(esp_ble_power_type_t power_type)
 
 esp_err_t esp_bredr_tx_power_set(esp_power_level_t min_power_level, esp_power_level_t max_power_level)
 {
+#if UC_BR_EDR_POWER_CTRL_VSC_ENABLED
+    UNUSED(min_power_level);
+    UNUSED(max_power_level);
+    return ESP_ERR_NOT_SUPPORTED;
+#else
     esp_err_t err;
     int ret;
 
@@ -2026,15 +2040,22 @@ esp_err_t esp_bredr_tx_power_set(esp_power_level_t min_power_level, esp_power_le
     }
 
     return err;
+#endif // #if UC_BR_EDR_POWER_CTRL_VSC_ENABLED
 }
 
 esp_err_t esp_bredr_tx_power_get(esp_power_level_t *min_power_level, esp_power_level_t *max_power_level)
 {
+#if UC_BR_EDR_POWER_CTRL_VSC_ENABLED
+    UNUSED(min_power_level);
+    UNUSED(max_power_level);
+    return ESP_ERR_NOT_SUPPORTED;
+#else
     if (bredr_txpwr_get((int *)min_power_level, (int *)max_power_level) != 0) {
         return ESP_ERR_INVALID_ARG;
     }
 
     return ESP_OK;
+#endif // #if UC_BR_EDR_POWER_CTRL_VSC_ENABLED
 }
 
 esp_err_t esp_bt_sleep_enable (void)

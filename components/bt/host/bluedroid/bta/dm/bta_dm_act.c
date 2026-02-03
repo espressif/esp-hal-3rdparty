@@ -1025,7 +1025,59 @@ void bta_dm_read_rssi(tBTA_DM_MSG *p_data)
     }
 }
 
+#if (ESP_BT_CLASSIC_ENABLE_POWER_CTRL_VSC == TRUE)
+void bta_dm_read_acl_real_rssi(tBTA_DM_MSG *p_data)
+{
+    if (p_data->acl_real_rssi.read_acl_real_rssi_cb != NULL) {
+        BTM_ReadAclRealRSSI(p_data->acl_real_rssi.remote_addr, p_data->acl_real_rssi.read_acl_real_rssi_cb);
+    } else {
+        APPL_TRACE_ERROR("%s(), the callback function can't be NULL.", __func__);
+    }
+}
+
+void bta_dm_read_new_conn_tx_pwr_lvl(tBTA_DM_MSG *p_data)
+{
+    if (p_data->read_new_conn_tx_pwr_lvl.read_new_conn_tx_pwr_lvl_cb != NULL) {
+        BTM_ReadNewConnTxPwrLvl(p_data->read_new_conn_tx_pwr_lvl.read_new_conn_tx_pwr_lvl_cb);
+    } else {
+        APPL_TRACE_ERROR("%s(), the callback function can't be NULL.", __func__);
+    }
+}
+
+void bta_dm_write_new_conn_tx_pwr_lvl(tBTA_DM_MSG *p_data)
+{
+    if (p_data->write_new_conn_tx_pwr_lvl.write_new_conn_tx_pwr_lvl_cb != NULL) {
+        BTM_WriteNewConnTxPwrLvl(p_data->write_new_conn_tx_pwr_lvl.pwr_lvl_min,
+                                 p_data->write_new_conn_tx_pwr_lvl.pwr_lvl_max,
+                                 p_data->write_new_conn_tx_pwr_lvl.write_new_conn_tx_pwr_lvl_cb);
+    } else {
+        APPL_TRACE_ERROR("%s(), the callback function can't be NULL.", __func__);
+    }
+}
+#endif // #if (ESP_BT_CLASSIC_ENABLE_POWER_CTRL_VSC == TRUE)
+
 #if (CLASSIC_BT_INCLUDED == TRUE)
+void bta_dm_read_bredr_tx_pwr_lvl(tBTA_DM_MSG *p_data)
+{
+    if (p_data->read_bredr_tx_pwr_lvl.read_bredr_tx_pwr_lvl_cb != NULL) {
+        BTM_ReadBredrTxPwrLvl(p_data->read_bredr_tx_pwr_lvl.type,
+                              p_data->read_bredr_tx_pwr_lvl.read_bredr_tx_pwr_lvl_cb);
+    } else {
+        APPL_TRACE_ERROR("%s(), the callback function can't be NULL.", __func__);
+    }
+}
+
+void bta_dm_write_bredr_tx_pwr_lvl(tBTA_DM_MSG *p_data)
+{
+    if (p_data->write_bredr_tx_pwr_lvl.write_bredr_tx_pwr_lvl_cb != NULL) {
+        BTM_WriteBredrTxPwrLvl(p_data->write_bredr_tx_pwr_lvl.type,
+                               p_data->write_bredr_tx_pwr_lvl.tx_power,
+                               p_data->write_bredr_tx_pwr_lvl.write_bredr_tx_pwr_lvl_cb);
+    } else {
+        APPL_TRACE_ERROR("%s(), the callback function can't be NULL.", __func__);
+    }
+}
+
 /*******************************************************************************
 **
 ** Function         bta_dm_set_visibility

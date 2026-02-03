@@ -412,6 +412,11 @@ static void btu_general_alarm_process(void *param)
     case BTU_TTYPE_BTM_SET_PAGE_TO:
         btm_page_to_setup_timeout(p_tle);
         break;
+#if (CLASSIC_BT_INCLUDED == TRUE)
+    case BTU_TTYPE_BTM_BREDR_PWR_CTRL:
+        btm_bredr_pwr_ctrl_timeout(p_tle);
+        break;
+#endif // #if (CLASSIC_BT_INCLUDED == TRUE)
     default:
         for (int i = 0; i < BTU_MAX_REG_TIMER; i++) {
             if (btu_cb.timer_reg[i].timer_cb == NULL) {

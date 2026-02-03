@@ -177,6 +177,15 @@ const tBTA_DM_ACTION bta_dm_action[BTA_DM_MAX_EVT] = {
     bta_dm_update_white_list,               /* BTA_DM_API_UPDATE_WHITE_LIST_EVT */
     bta_dm_clear_white_list,                /* BTA_DM_API_CLEAR_WHITE_LIST_EVT */
     bta_dm_read_rssi,                       /* BTA_DM_API_READ_RSSI_EVT */
+#if (ESP_BT_CLASSIC_ENABLE_POWER_CTRL_VSC == TRUE)
+    bta_dm_read_acl_real_rssi,              /* BTA_DM_API_READ_ACL_REAL_RSSI_EVT */
+    bta_dm_read_new_conn_tx_pwr_lvl,        /* BTA_DM_API_READ_NEW_CONN_TX_PWR_LVL_EVT */
+    bta_dm_write_new_conn_tx_pwr_lvl,       /* BTA_DM_API_WRITE_NEW_CONN_TX_PWR_LVL_EVT */
+#endif // #if (ESP_BT_CLASSIC_ENABLE_POWER_CTRL_VSC == TRUE)
+#if (CLASSIC_BT_INCLUDED == TRUE)
+    bta_dm_read_bredr_tx_pwr_lvl,           /* BTA_DM_API_READ_BREDR_TX_PWR_LVL_EVT */
+    bta_dm_write_bredr_tx_pwr_lvl,          /* BTA_DM_API_WRITE_BREDR_TX_PWR_LVL_EVT */
+#endif // #if (CLASSIC_BT_INCLUDED == TRUE)
 #if BLE_INCLUDED == TRUE
 #if ((BLE_42_SCAN_EN == TRUE) || (BLE_50_EXTEND_SCAN_EN == TRUE))
     bta_dm_ble_update_duplicate_exceptional_list,/* BTA_DM_API_UPDATE_DUPLICATE_EXCEPTIONAL_LIST_EVT */
