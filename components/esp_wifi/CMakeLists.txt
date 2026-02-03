@@ -1,7 +1,9 @@
 idf_build_get_property(idf_target IDF_TARGET)
 
 if(${idf_target} STREQUAL "linux")
-    return() # This component is not supported by the POSIX/Linux simulator
+    idf_component_register()    # Register empty component for first CMake pass for potential *Remote* functionality
+    add_subdirectory(remote)    # wifi-remote on linux host
+    return() # *Local* esp-wifi component is not supported by the POSIX/Linux simulator
 endif()
 
 if( NOT CONFIG_ESP_WIFI_ENABLED
@@ -17,6 +19,7 @@ if( NOT CONFIG_ESP_WIFI_ENABLED
     # (implementation supported optionally in a managed component esp_wifi_remote)
     idf_component_register(SRCS "${srcs}"
                     INCLUDE_DIRS "include" "wifi_apps/nan_app/include")
+    add_subdirectory(remote)    # wifi-remote on esp32p4/h2 (no wifi)
     return()
 endif()
 
@@ -113,3 +116,5 @@ endif()
 if(CONFIG_SPIRAM)
     idf_component_optional_requires(PRIVATE esp_psram)
 endif()
+
+add_subdirectory(remote)    # wifi-remote as a secondary wifi interface (on wifi targets)
