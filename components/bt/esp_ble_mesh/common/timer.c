@@ -112,6 +112,7 @@ int k_delayed_work_init(struct k_delayed_work *work, k_work_handler_t handler)
 
     if (!hash_map_set(bm_alarm_hash_map, work, (void *)alarm)) {
         BT_ERR("Init, alarm not set");
+        osi_alarm_free(alarm);
         bt_mesh_alarm_unlock();
         return -EIO;
     }
@@ -235,6 +236,7 @@ int k_delayed_work_free(struct k_delayed_work *work)
     }
 
     osi_alarm_cancel(alarm);
+    osi_alarm_free(alarm);
     hash_map_erase(bm_alarm_hash_map, work);
 
     bt_mesh_alarm_unlock();
