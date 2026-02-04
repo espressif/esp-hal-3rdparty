@@ -89,6 +89,9 @@ esp_err_t touch_sensor_new_controller(const touch_sensor_config_t *sens_cfg, tou
     ESP_GOTO_ON_FALSE(g_touch->mutex, ESP_ERR_NO_MEM, err, TAG, "No memory for mutex semaphore");
 
     touch_priv_enable_module(true);
+#if SOC_TOUCH_SENSOR_VERSION >= 2
+    touch_ll_reset_module();
+#endif
     ESP_GOTO_ON_ERROR(touch_priv_config_controller(g_touch, sens_cfg), err, TAG, "Failed to configure the touch controller");
 #if SOC_TOUCH_SENSOR_VERSION <= 2
     ESP_GOTO_ON_ERROR(rtc_isr_register(touch_priv_default_intr_handler, NULL, TOUCH_LL_INTR_MASK_ALL, 0), err, TAG, "Failed to register interrupt handler");
