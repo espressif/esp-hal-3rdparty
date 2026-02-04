@@ -78,6 +78,19 @@ def test_mbedtls_psram_all_ext_flash_enc(dut: Dut) -> None:
     dut.run_all_single_board_cases(timeout=180)
 
 
+@pytest.mark.flash_encryption_f4r8
+@pytest.mark.parametrize(
+    'config',
+    [
+        'psram_all_ext_flash_enc_f4r8',
+    ],
+    indirect=True,
+)
+@idf_parametrize('target', ['esp32s3'], indirect=['target'])
+def test_mbedtls_psram_all_ext_flash_enc_s3_f4r8(dut: Dut) -> None:
+    dut.run_all_single_board_cases(timeout=180)
+
+
 @pytest.mark.ecdsa_efuse
 @pytest.mark.parametrize(
     'config',
