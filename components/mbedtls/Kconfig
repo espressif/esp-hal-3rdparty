@@ -868,7 +868,7 @@ menu "mbedTLS"
 
         config MBEDTLS_ARIA_C
             bool "ARIA block cipher"
-            default y
+            default n
 
         config MBEDTLS_CAMELLIA_SMALL_MEMORY
             bool "Use small memory implementation of Camellia"
@@ -1272,6 +1272,7 @@ menu "mbedTLS"
             help
                 Enable hardware accelerated ECDSA peripheral to verify signature
                 on curve SECP192R1 and SECP256R1 in mbedTLS.
+                Note that SECP192R1 support is disabled by default.
 
         menu "Enable Software Countermeasure for ECDSA signing using on-chip ECDSA peripheral"
             depends on MBEDTLS_HARDWARE_ECDSA_SIGN
@@ -1312,6 +1313,7 @@ menu "mbedTLS"
             help
                 Enable hardware accelerated ECDSA peripheral to sign data
                 on curve SECP192R1 and SECP256R1 in mbedTLS.
+                Note that SECP192R1 support is disabled by default.
 
                 Note that for signing, the private key has to be burnt in an efuse key block
                 with key purpose set to ECDSA_KEY.
@@ -1332,6 +1334,7 @@ menu "mbedTLS"
             help
                 Enable hardware accelerated ECC point multiplication and point verification for points
                 on curve SECP192R1 and SECP256R1 in mbedTLS
+                Note that SECP192R1 support is disabled by default.
 
         config MBEDTLS_ECC_OTHER_CURVES_SOFT_FALLBACK
             bool "Fallback to software implementation for curves not supported in hardware"

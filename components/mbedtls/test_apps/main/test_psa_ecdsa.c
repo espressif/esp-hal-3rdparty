@@ -196,10 +196,6 @@ void test_ecdsa_verify(esp_ecdsa_curve_t curve, const uint8_t *hash, const uint8
     psa_set_key_algorithm(&key_attr, PSA_ALG_ECDSA(PSA_ALG_SHA_256));
 
     switch (curve) {
-        case ESP_ECDSA_CURVE_SECP192R1:
-            plen = 192;
-            hash_len = HASH_LEN;
-            break;
         case ESP_ECDSA_CURVE_SECP256R1:
             plen = 256;
             hash_len = HASH_LEN;
@@ -238,9 +234,7 @@ void test_ecdsa_verify(esp_ecdsa_curve_t curve, const uint8_t *hash, const uint8
     TEST_ASSERT_EQUAL(PSA_SUCCESS, status);
     elapsed_time = ccomp_timer_stop();
 
-    if (curve == ESP_ECDSA_CURVE_SECP192R1) {
-        TEST_PERFORMANCE_CCOMP_LESS_THAN(ECDSA_P192_VERIFY_OP, "%" NEWLIB_NANO_COMPAT_FORMAT" us", NEWLIB_NANO_COMPAT_CAST(elapsed_time));
-    } else if (curve == ESP_ECDSA_CURVE_SECP256R1) {
+    if (curve == ESP_ECDSA_CURVE_SECP256R1) {
         TEST_PERFORMANCE_CCOMP_LESS_THAN(ECDSA_P256_VERIFY_OP, "%" NEWLIB_NANO_COMPAT_FORMAT" us", NEWLIB_NANO_COMPAT_CAST(elapsed_time));
     }
 #if SOC_ECDSA_SUPPORT_CURVE_P384
@@ -250,16 +244,6 @@ void test_ecdsa_verify(esp_ecdsa_curve_t curve, const uint8_t *hash, const uint8
 #endif
     psa_destroy_key(key_id);
     psa_reset_key_attributes(&key_attr);
-}
-
-TEST_CASE("mbedtls ECDSA signature verification performance on SECP192R1", "[mbedtls]")
-{
-#if SOC_ECDSA_SUPPORTED
-    if (!ecdsa_ll_is_supported()) {
-        TEST_IGNORE_MESSAGE("ECDSA is not supported");
-    }
-#endif
-    test_ecdsa_verify(ESP_ECDSA_CURVE_SECP192R1, sha, ecdsa192_r, ecdsa192_s, ecdsa192_pub_x, ecdsa192_pub_y);
 }
 
 TEST_CASE("mbedtls ECDSA signature verification performance on SECP256R1", "[mbedtls]")
@@ -292,11 +276,9 @@ TEST_CASE("mbedtls ECDSA signature verification performance on SECP384R1", "[mbe
 /*
  * This test assumes that ECDSA private key has been burnt in efuse.
  *
- * ecdsa_key_p192.pem must be burnt in efuse block 4
  * ecdsa_key_p256.pem must be burnt in efuse block 5
  * ecdsa_key_p384.pem must be burnt in efuse block 6 and 7
  */
-#define SECP192R1_EFUSE_BLOCK             4         // EFUSE_BLK_KEY0
 #define SECP256R1_EFUSE_BLOCK             5         // EFUSE_BLK_KEY1
 #define SECP384R1_EFUSE_BLOCK_HIGH        6         // EFUSE_BLK_KEY2
 #define SECP384R1_EFUSE_BLOCK_LOW         7         // EFUSE_BLK_KEY3
@@ -328,11 +310,6 @@ void test_ecdsa_sign(esp_ecdsa_curve_t curve, const uint8_t *hash, const uint8_t
     psa_algorithm_t sha_alg = 0;
 
     switch (curve) {
-        case ESP_ECDSA_CURVE_SECP192R1:
-            hash_len = HASH_LEN;
-            plen = 192;
-            sha_alg = PSA_ALG_SHA_256;
-            break;
         case ESP_ECDSA_CURVE_SECP256R1:
             hash_len = HASH_LEN;
             plen = 256;
@@ -391,14 +368,6 @@ void test_ecdsa_sign(esp_ecdsa_curve_t curve, const uint8_t *hash, const uint8_t
     psa_reset_key_attributes(&priv_attr);
 }
 
-TEST_CASE("mbedtls ECDSA signature generation on SECP192R1", "[mbedtls][efuse_key]")
-{
-    if (!ecdsa_ll_is_supported()) {
-        TEST_IGNORE_MESSAGE("ECDSA is not supported");
-    }
-    test_ecdsa_sign(ESP_ECDSA_CURVE_SECP192R1, sha, ecdsa192_pub_x, ecdsa192_pub_y, false, SECP192R1_EFUSE_BLOCK);
-}
-
 TEST_CASE("mbedtls ECDSA signature generation on SECP256R1", "[mbedtls][efuse_key]")
 {
     if (!ecdsa_ll_is_supported()) {
@@ -446,20 +415,6 @@ static void deploy_key_in_key_manager(const uint8_t *k1_encrypted, esp_key_mgr_k
     free(key_config);
 }
 
-TEST_CASE("mbedtls ECDSA signature generation on SECP192R1", "[mbedtls][key_manager_key]")
-{
-    if (!ecdsa_ll_is_supported()) {
-        TEST_IGNORE_MESSAGE("ECDSA is not supported");
-    }
-    if (!key_mgr_ll_is_supported()) {
-        TEST_IGNORE_MESSAGE("Key manager is not supported");
-    }
-
-    deploy_key_in_key_manager(k1_ecdsa192_encrypt, ESP_KEY_MGR_ECDSA_KEY, ESP_KEY_MGR_ECDSA_LEN_192);
-    test_ecdsa_sign(ESP_ECDSA_CURVE_SECP192R1, sha, ecdsa192_pub_x, ecdsa192_pub_y, false, USE_ECDSA_KEY_FROM_KEY_MANAGER);
-    esp_key_mgr_deactivate_key(ESP_KEY_MGR_ECDSA_KEY);
-}
-
 TEST_CASE("mbedtls ECDSA signature generation on SECP256R1", "[mbedtls][key_manager_key]")
 {
     if (!ecdsa_ll_is_supported()) {
@@ -476,17 +431,6 @@ TEST_CASE("mbedtls ECDSA signature generation on SECP256R1", "[mbedtls][key_mana
 #endif /* SOC_KEY_MANAGER_SUPPORTED */
 
 #ifdef SOC_ECDSA_SUPPORT_DETERMINISTIC_MODE
-TEST_CASE("mbedtls ECDSA deterministic signature generation on SECP192R1", "[mbedtls][efuse_key]")
-{
-    if (!ecdsa_ll_is_supported()) {
-        TEST_IGNORE_MESSAGE("ECDSA is not supported");
-    }
-    if (!ecdsa_ll_is_deterministic_mode_supported()) {
-        ESP_LOGI(TAG, "Skipping test because ECDSA deterministic mode is not supported.");
-    } else {
-        test_ecdsa_sign(ESP_ECDSA_CURVE_SECP192R1, sha, ecdsa192_pub_x, ecdsa192_pub_y, true, SECP192R1_EFUSE_BLOCK);
-    }
-}
 
 TEST_CASE("mbedtls ECDSA deterministic signature generation on SECP256R1", "[mbedtls][efuse_key]")
 {
@@ -512,23 +456,6 @@ TEST_CASE("mbedtls ECDSA deterministic signature generation on SECP384R1", "[mbe
 #endif /* SOC_ECDSA_SUPPORT_CURVE_P384 */
 
 #if SOC_KEY_MANAGER_SUPPORTED
-TEST_CASE("mbedtls ECDSA deterministic signature generation on SECP192R1", "[mbedtls][key_manager_key]")
-{
-    if (!ecdsa_ll_is_supported()) {
-        TEST_IGNORE_MESSAGE("ECDSA is not supported");
-    }
-    if (!key_mgr_ll_is_supported()) {
-        TEST_IGNORE_MESSAGE("Key manager is not supported");
-    }
-
-    if (!ecdsa_ll_is_deterministic_mode_supported()) {
-        ESP_LOGI(TAG, "Skipping test because ECDSA deterministic mode is not supported.");
-    } else {
-        deploy_key_in_key_manager(k1_ecdsa192_encrypt, ESP_KEY_MGR_ECDSA_KEY, ESP_KEY_MGR_ECDSA_LEN_192);
-        test_ecdsa_sign(ESP_ECDSA_CURVE_SECP192R1, sha, ecdsa192_pub_x, ecdsa192_pub_y, true, USE_ECDSA_KEY_FROM_KEY_MANAGER);
-        esp_key_mgr_deactivate_key(ESP_KEY_MGR_ECDSA_KEY);
-    }
-}
 
 TEST_CASE("mbedtls ECDSA deterministic signature generation on SECP256R1", "[mbedtls][key_manager_key]")
 {
@@ -567,10 +494,6 @@ void test_ecdsa_export_pubkey(esp_ecdsa_curve_t curve, const uint8_t *pub_x, con
     psa_algorithm_t sha_alg = 0;
 
     switch (curve) {
-        case ESP_ECDSA_CURVE_SECP192R1:
-            plen = 192;
-            sha_alg = PSA_ALG_SHA_256;
-            break;
         case ESP_ECDSA_CURVE_SECP256R1:
             plen = 256;
             sha_alg = PSA_ALG_SHA_256;
@@ -617,14 +540,6 @@ void test_ecdsa_export_pubkey(esp_ecdsa_curve_t curve, const uint8_t *pub_x, con
     psa_reset_key_attributes(&key_attr);
 }
 
-TEST_CASE("mbedtls ECDSA export public key on SECP192R1", "[mbedtls][efuse_key]")
-{
-    if (!ecdsa_ll_is_supported()) {
-        TEST_IGNORE_MESSAGE("ECDSA is not supported");
-    }
-    test_ecdsa_export_pubkey(ESP_ECDSA_CURVE_SECP192R1, ecdsa192_pub_x, ecdsa192_pub_y, SECP192R1_EFUSE_BLOCK);
-}
-
 TEST_CASE("mbedtls ECDSA export public key on SECP256R1", "[mbedtls][efuse_key]")
 {
     if (!ecdsa_ll_is_supported()) {
@@ -645,19 +560,6 @@ TEST_CASE("mbedtls ECDSA export public key on SECP384R1", "[mbedtls][efuse_key]"
 #endif /* SOC_ECDSA_SUPPORT_CURVE_P384 */
 
 #if SOC_KEY_MANAGER_SUPPORTED
-TEST_CASE("mbedtls ECDSA export public key on SECP192R1", "[mbedtls][key_manager_key]")
-{
-    if (!ecdsa_ll_is_supported()) {
-        TEST_IGNORE_MESSAGE("ECDSA is not supported");
-    }
-    if (!key_mgr_ll_is_supported()) {
-        TEST_IGNORE_MESSAGE("Key manager is not supported");
-    }
-
-    deploy_key_in_key_manager(k1_ecdsa192_encrypt, ESP_KEY_MGR_ECDSA_KEY, ESP_KEY_MGR_ECDSA_LEN_192);
-    test_ecdsa_export_pubkey(ESP_ECDSA_CURVE_SECP192R1, ecdsa192_pub_x, ecdsa192_pub_y, USE_ECDSA_KEY_FROM_KEY_MANAGER);
-    esp_key_mgr_deactivate_key(ESP_KEY_MGR_ECDSA_KEY);
-}
 
 TEST_CASE("mbedtls ECDSA export public key on SECP256R1", "[mbedtls][key_manager_key]")
 {
@@ -682,11 +584,6 @@ void test_ecdsa_sign_verify_import_export_error_codes(esp_ecdsa_curve_t curve, c
     psa_algorithm_t sha_alg = 0;
 
     switch (curve) {
-        case ESP_ECDSA_CURVE_SECP192R1:
-            hash_len = HASH_LEN;
-            plen = 192;
-            sha_alg = PSA_ALG_SHA_256;
-            break;
         case ESP_ECDSA_CURVE_SECP256R1:
             hash_len = HASH_LEN;
             plen = 256;

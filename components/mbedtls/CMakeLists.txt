@@ -186,6 +186,9 @@ endif()
 # Core libraries from the mbedTLS project
 set(mbedtls_targets mbedtls mbedx509 tfpsacrypto builtin)
 
+add_library(mbed-builtin ALIAS builtin)
+set_target_properties(builtin PROPERTIES OUTPUT_NAME "mbed-builtin")
+
 target_include_directories(tfpsacrypto PUBLIC "port/include")
 
 message(STATUS "Setting up mbedtls configuration")
@@ -222,7 +225,7 @@ if(NOT ${IDF_TARGET} STREQUAL "linux")
         )
         target_link_libraries(tfpsacrypto PRIVATE "$<$<TARGET_EXISTS:idf::nvs_flash>:idf::nvs_flash>")
         # Define compile definition to indicate ESP-IDF PSA ITS implementation is available
-        target_compile_definitions(tfpsacrypto PRIVATE "$<$<TARGET_EXISTS:idf::nvs_flash>:ESP_PSA_ITS_AVAILABLE>")
+        target_compile_definitions(tfpsacrypto PUBLIC "$<$<TARGET_EXISTS:idf::nvs_flash>:ESP_PSA_ITS_AVAILABLE>")
     else()
         # For v1: check if component is in build before adding source and linking
         idf_build_get_property(build_components BUILD_COMPONENTS)
@@ -230,7 +233,7 @@ if(NOT ${IDF_TARGET} STREQUAL "linux")
             target_sources(tfpsacrypto PRIVATE "${COMPONENT_DIR}/port/psa_crypto_storage/esp_psa_its.c")
             idf_component_get_property(nvs_flash_lib nvs_flash COMPONENT_LIB)
             target_link_libraries(tfpsacrypto PRIVATE ${nvs_flash_lib})
-            target_compile_definitions(tfpsacrypto PRIVATE ESP_PSA_ITS_AVAILABLE)
+            target_compile_definitions(tfpsacrypto PUBLIC ESP_PSA_ITS_AVAILABLE)
         endif()
     endif()
 endif()

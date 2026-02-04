@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2025-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Unlicense OR CC0-1.0
  */
@@ -13,8 +13,7 @@
 #include "unity.h"
 #include "sdkconfig.h"
 
-#if CONFIG_MBEDTLS_GCM_SUPPORT_NON_AES_CIPHER
-
+#ifdef CONFIG_MBEDTLS_ARIA_C
 static const uint8_t key_256[] = {
     0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
     0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
@@ -22,10 +21,8 @@ static const uint8_t key_256[] = {
     0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
 };
 
-TEST_CASE("PSA ARIA-GCM multipart", "[psa-gcm]")
+TEST_CASE("PSA ARIA-GCM multipart", "[psa-gcm][aria]")
 {
-    // TEST_ASSERT_EQUAL(PSA_SUCCESS, psa_crypto_init());
-
     const size_t SZ = 100;
     const size_t iv_SZ = 12;  // GCM typically uses 12 bytes IV
     const size_t tag_SZ = 16; // GCM tag size
@@ -134,7 +131,7 @@ TEST_CASE("PSA ARIA-GCM multipart", "[psa-gcm]")
     psa_destroy_key(key_id);
 }
 
-TEST_CASE("PSA ARIA-GCM one-shot", "[psa-gcm]")
+TEST_CASE("PSA ARIA-GCM one-shot", "[psa-gcm][aria]")
 {
     // TEST_ASSERT_EQUAL(PSA_SUCCESS, psa_crypto_init());
 
@@ -209,4 +206,4 @@ TEST_CASE("PSA ARIA-GCM one-shot", "[psa-gcm]")
     /* Destroy the key */
     psa_destroy_key(key_id);
 }
-#endif /* CONFIG_MBEDTLS_GCM_SUPPORT_NON_AES_CIPHER */
+#endif /* CONFIG_MBEDTLS_ARIA_C */
