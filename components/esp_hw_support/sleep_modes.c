@@ -136,6 +136,10 @@
 #include "hal/clk_gate_ll.h"
 #endif
 
+#if CONFIG_ESP_INT_WDT && CONFIG_ESP32_ECO3_CACHE_LOCK_FIX
+#include "esp_private/eco3_livelock_workaround.h"
+#endif
+
 #if SOC_MSPI_HAS_INDEPENT_IOMUX
 #include "hal/mspi_ll.h"
 #endif
@@ -1237,6 +1241,11 @@ static esp_err_t FORCE_IRAM_ATTR deep_sleep_start(bool allow_sleep_rejection)
     esp_os_enter_critical(&spinlock_rtc_deep_sleep);
     esp_ipc_isr_stall_other_cpu();
     esp_ipc_isr_stall_pause();
+#if CONFIG_ESP_INT_WDT && CONFIG_ESP32_ECO3_CACHE_LOCK_FIX
+    // The other core will be stalled by high-priority interrupt and spins on variables in internal RAM,
+    // which naturally avoids cache livelock, so the 20ms livelock workaround timeout is not needed.
+    esp_int_wdt_livelock_workaround(false);
+#endif
 
     // record current RTC time
     s_config.rtc_ticks_at_sleep_start = rtc_time_get();
@@ -1316,6 +1325,10 @@ static esp_err_t FORCE_IRAM_ATTR deep_sleep_start(bool allow_sleep_rejection)
         sleep_rtc_wdt_prepare(false);
     }
 
+#if CONFIG_ESP_INT_WDT && CONFIG_ESP32_ECO3_CACHE_LOCK_FIX
+    // Configure WDT to use livelock workaround timeout after releasing other CPU
+    esp_int_wdt_livelock_workaround(true);
+#endif
     esp_ipc_isr_stall_resume();
     esp_ipc_isr_release_other_cpu();
     esp_os_exit_critical(&spinlock_rtc_deep_sleep);
@@ -1467,6 +1480,11 @@ esp_err_t esp_light_sleep_start(void)
 #if CONFIG_PM_ESP_SLEEP_POWER_DOWN_CPU && SOC_PM_CPU_RETENTION_BY_SW
     sleep_smp_cpu_sleep_prepare();
 #else
+#if CONFIG_ESP_INT_WDT && CONFIG_ESP32_ECO3_CACHE_LOCK_FIX
+    // The other core will be stalled by high-priority interrupt and spins on variables in internal RAM,
+    // which naturally avoids cache livelock, so the 20ms livelock workaround timeout is not needed.
+    esp_int_wdt_livelock_workaround(false);
+#endif
     esp_ipc_isr_stall_other_cpu();
 #endif
     esp_ipc_isr_stall_pause();
@@ -1680,6 +1698,10 @@ esp_err_t esp_light_sleep_start(void)
     sleep_smp_cpu_wakeup_prepare();
 #else
     esp_ipc_isr_release_other_cpu();
+#if CONFIG_ESP_INT_WDT && CONFIG_ESP32_ECO3_CACHE_LOCK_FIX
+    // Configure WDT to use livelock workaround timeout after releasing other CPU
+    esp_int_wdt_livelock_workaround(true);
+#endif
 #endif
 #endif
 
