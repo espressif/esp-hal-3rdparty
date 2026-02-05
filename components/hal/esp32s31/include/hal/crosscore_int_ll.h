@@ -12,7 +12,6 @@
 extern "C" {
 #endif
 
-// TODO: [ESP32S31] IDF-14666
 /**
  * @brief Clear the crosscore interrupt that just occurred on the current core
  */
