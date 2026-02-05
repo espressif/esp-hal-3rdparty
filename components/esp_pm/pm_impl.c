@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2016-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2016-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <sys/lock.h>
 #include <sys/param.h>
 #include <assert.h>
@@ -833,10 +834,21 @@ static inline void IRAM_ATTR other_core_should_skip_light_sleep(int core_id)
 }
 
 // Adjust RTOS tick count based on the amount of time spent in sleep.
-FORCE_INLINE_ATTR void pm_step_tick(int64_t slept_us)
+FORCE_INLINE_ATTR void pm_step_tick(int64_t slept_us, TickType_t xExpectedIdleTime)
 {
     uint32_t slept_ticks = slept_us / (portTICK_PERIOD_MS * 1000LL);
     if (slept_ticks) {
+#if CONFIG_PM_LIGHTSLEEP_TICK_OVERFLOW_PROTECTION
+        /* Limit slept_ticks when oversleep is within tolerance to prevent assertion failure */
+        if ((slept_ticks > xExpectedIdleTime) &&
+            (slept_ticks <= (xExpectedIdleTime + CONFIG_PM_LIGHTSLEEP_TICK_OVERFLOW_TOLERANCE))) {
+            slept_ticks = xExpectedIdleTime;
+        }
+#endif // CONFIG_PM_LIGHTSLEEP_TICK_OVERFLOW_PROTECTION
+        if (slept_ticks > xExpectedIdleTime) {
+            ESP_EARLY_LOGE(TAG, "Light sleep overslept: expect %"PRIu32" idle ticks but slept %"PRIu32" ticks.",
+                     (uint32_t)xExpectedIdleTime, slept_ticks);
+        }
         /* Adjust RTOS tick count based on the amount of time spent in sleep */
         vTaskStepTick(slept_ticks);
 
@@ -885,7 +897,7 @@ void vApplicationSleep( TickType_t xExpectedIdleTime )
             // In this case, there is no need to call vTaskStepTick, because the OS tick count will
             // automatically catch up in the next systick interrupt handler.
             if (err == ESP_OK) {
-                pm_step_tick(slept_us);
+                pm_step_tick(slept_us, xExpectedIdleTime);
             }
             other_core_should_skip_light_sleep(core_id);
 #ifdef WITH_PROFILING
