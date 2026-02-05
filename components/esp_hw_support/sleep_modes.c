@@ -65,7 +65,6 @@
 #include "hal/rtc_hal.h"
 
 #include "soc/rtc.h"
-#include "regi2c_ctrl.h"    //For `REGI2C_LL_ANA_CALI_PD_WORKAROUND`, temp
 
 #include "hal/cache_ll.h"
 #include "hal/clk_tree_ll.h"
@@ -74,6 +73,11 @@
 #if SOC_TOUCH_SENSOR_SUPPORTED
 #include "hal/touch_sens_hal.h"
 #endif
+#if SOC_ADC_SUPPORTED
+#include "hal/adc_ll.h" // For `ADC_LL_ANA_CALI_REG_PD_WORKAROUND`, temp
+#include "hal/adc_hal_common.h"
+#endif
+#include "hal/temperature_sensor_hal.h"
 #include "hal/mspi_ll.h"
 
 #include "sdkconfig.h"
@@ -701,11 +705,11 @@ static SLEEP_FN_ATTR void misc_modules_sleep_prepare(uint32_t sleep_flags, bool 
         Cache_WriteBack_All();
     }
 #endif
-#if REGI2C_LL_ANA_CALI_PD_WORKAROUND
-        regi2c_analog_cali_reg_read();
+#if ADC_LL_ANA_CALI_REG_PD_WORKAROUND
+        adc_hal_i2c_saradc_reg_backup();
 #endif
 #if SOC_TEMPERATURE_SENSOR_SUPPORT_SLEEP_RETENTION
-        regi2c_tsens_reg_read();
+        temperature_sensor_hal_i2c_saradc_reg_backup();
 #endif
     }
 #if CONFIG_ESP_ENABLE_PVT && SOC_PVT_EN_WITH_SLEEP
@@ -765,11 +769,11 @@ static SLEEP_FN_ATTR void misc_modules_wake_prepare(uint32_t sleep_flags)
     clk_ll_soc_root_clk_auto_gating_bypass(true);
 # endif
 #endif
-#if REGI2C_LL_ANA_CALI_PD_WORKAROUND
-    regi2c_analog_cali_reg_write();
+#if ADC_LL_ANA_CALI_REG_PD_WORKAROUND
+    adc_hal_i2c_saradc_reg_restore();
 #endif
 #if SOC_TEMPERATURE_SENSOR_SUPPORT_SLEEP_RETENTION
-    regi2c_tsens_reg_write();
+    temperature_sensor_hal_i2c_saradc_reg_restore();
 #endif
 #if RNG_LL_DEPENDS_ON_LP_PERIPH
     if (sleep_flags & PMU_SLEEP_PD_LP_PERIPH) {

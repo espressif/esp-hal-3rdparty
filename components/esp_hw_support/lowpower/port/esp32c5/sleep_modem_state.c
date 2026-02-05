@@ -8,9 +8,9 @@
 #include "esp_attr.h"
 
 #include "soc/soc_caps.h"
-#include "soc/i2c_ana_mst_reg.h"
 #include "soc/pmu_reg.h"
 
+#include "modem/i2c_ana_mst_reg.h"
 #include "modem/modem_syscon_reg.h"
 #include "modem/modem_lpcon_reg.h"
 
