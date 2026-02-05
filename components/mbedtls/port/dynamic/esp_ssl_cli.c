@@ -17,13 +17,9 @@ int __wrap_mbedtls_ssl_tls13_handshake_client_step(mbedtls_ssl_context *ssl);
 
 static const char *TAG = "SSL client";
 
-static int manage_resource(mbedtls_ssl_context *ssl, bool add)
+static int manage_resource(mbedtls_ssl_context *ssl, bool add, int prev_state)
 {
-    static _Thread_local int last_state = 0;
-    int state = add ? ssl->MBEDTLS_PRIVATE(state) : last_state;
-    if (add) {
-        last_state = state;
-    }
+    int state = add ? ssl->MBEDTLS_PRIVATE(state) : prev_state;
 
     if (mbedtls_ssl_is_handshake_over(ssl) || ssl->MBEDTLS_PRIVATE(handshake) == NULL) {
         return 0;
@@ -264,33 +260,36 @@ static int manage_resource(mbedtls_ssl_context *ssl, bool add)
 
 int __wrap_mbedtls_ssl_handshake_client_step(mbedtls_ssl_context *ssl)
 {
-    CHECK_OK(manage_resource(ssl, true));
+    int prev_state = ssl->MBEDTLS_PRIVATE(state);
+    CHECK_OK(manage_resource(ssl, true, prev_state));
 
     CHECK_OK(__real_mbedtls_ssl_handshake_client_step(ssl));
 
-    CHECK_OK(manage_resource(ssl, false));
+    CHECK_OK(manage_resource(ssl, false, prev_state));
 
     return 0;
 }
 
 int __wrap_mbedtls_ssl_tls13_handshake_client_step(mbedtls_ssl_context *ssl)
 {
-    CHECK_OK(manage_resource(ssl, true));
+    int prev_state = ssl->MBEDTLS_PRIVATE(state);
+    CHECK_OK(manage_resource(ssl, true, prev_state));
 
     CHECK_OK(__real_mbedtls_ssl_tls13_handshake_client_step(ssl));
 
-    CHECK_OK(manage_resource(ssl, false));
+    CHECK_OK(manage_resource(ssl, false, prev_state));
 
     return 0;
 }
 
 int __wrap_mbedtls_ssl_write_client_hello(mbedtls_ssl_context *ssl)
 {
-    CHECK_OK(manage_resource(ssl, true));
+    int prev_state = ssl->MBEDTLS_PRIVATE(state);
+    CHECK_OK(manage_resource(ssl, true, prev_state));
 
     CHECK_OK(__real_mbedtls_ssl_write_client_hello(ssl));
 
-    CHECK_OK(manage_resource(ssl, false));
+    CHECK_OK(manage_resource(ssl, false, prev_state));
 
     return 0;
 }
