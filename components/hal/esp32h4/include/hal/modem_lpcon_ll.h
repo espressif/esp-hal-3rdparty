@@ -111,18 +111,6 @@ static inline void modem_lpcon_ll_reset_all(modem_lpcon_dev_t *hw)
 }
 
 __attribute__((always_inline))
-static inline uint32_t modem_lpcon_ll_get_wifipwr_icg_bitmap(modem_lpcon_dev_t *hw)
-{
-    return hw->clk_conf_power_st.clk_wifipwr_st_map;
-}
-
-__attribute__((always_inline))
-static inline void modem_lpcon_ll_set_wifipwr_icg_bitmap(modem_lpcon_dev_t *hw, uint32_t bitmap)
-{
-    hw->clk_conf_power_st.clk_wifipwr_st_map = bitmap;
-}
-
-__attribute__((always_inline))
 static inline uint32_t modem_lpcon_ll_get_coex_icg_bitmap(modem_lpcon_dev_t *hw)
 {
     return hw->clk_conf_power_st.clk_coex_st_map;

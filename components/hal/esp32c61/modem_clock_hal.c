@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -32,9 +32,6 @@ void IRAM_ATTR modem_clock_hal_set_clock_domain_icg_bitmap(modem_clock_hal_conte
         break;
     case MODEM_CLOCK_DOMAIN_MODEM_FE:
         modem_syscon_ll_set_fe_icg_bitmap(hal->syscon_dev, bitmap);
-        break;
-    case MODEM_CLOCK_DOMAIN_IEEE802154:
-        modem_syscon_ll_set_ieee802154_icg_bitmap(hal->syscon_dev, bitmap);
         break;
     case MODEM_CLOCK_DOMAIN_LP_APB:
         modem_lpcon_ll_set_lp_apb_icg_bitmap(hal->lpcon_dev, bitmap);
@@ -73,9 +70,6 @@ uint32_t IRAM_ATTR modem_clock_hal_get_clock_domain_icg_bitmap(modem_clock_hal_c
         break;
     case MODEM_CLOCK_DOMAIN_MODEM_FE:
         bitmap = modem_syscon_ll_get_fe_icg_bitmap(hal->syscon_dev);
-        break;
-    case MODEM_CLOCK_DOMAIN_IEEE802154:
-        bitmap = modem_syscon_ll_get_ieee802154_icg_bitmap(hal->syscon_dev);
         break;
     case MODEM_CLOCK_DOMAIN_LP_APB:
         bitmap = modem_lpcon_ll_get_lp_apb_icg_bitmap(hal->lpcon_dev);
