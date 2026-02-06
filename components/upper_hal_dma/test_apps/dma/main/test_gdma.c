@@ -24,6 +24,7 @@
 #include "esp_cache.h"
 #include "esp_memory_utils.h"
 #include "gdma_test_utils.h"
+#include "esp_efuse.h"
 
 #define ALIGN_UP(num, align)    (((num) + ((align) - 1)) & ~((align) - 1))
 #define ALIGN_DOWN(num, align)  ((num) & ~((align) - 1))
@@ -276,7 +277,7 @@ static void test_gdma_m2m_transaction(gdma_channel_handle_t tx_chan, gdma_channe
     TEST_ASSERT_NOT_NULL(done_sem);
     TEST_ESP_OK(gdma_register_rx_event_callbacks(rx_chan, &rx_cbs, done_sem));
 
-    if (efuse_hal_flash_encryption_enabled()) {
+    if (esp_efuse_is_flash_encryption_enabled()) {
         dma_link_in_ext_mem = false;
     }
 
@@ -538,7 +539,7 @@ static void test_gdma_m2m_unaligned_buffer_test(uint8_t *dst_data, uint8_t *src_
 
 TEST_CASE("GDMA M2M Unaligned RX Buffer Test", "[GDMA][M2M]")
 {
-    if (efuse_hal_flash_encryption_enabled()) {
+    if (esp_efuse_is_flash_encryption_enabled()) {
         TEST_PASS_MESSAGE("Flash encryption is enabled, skip this test");
     }
 

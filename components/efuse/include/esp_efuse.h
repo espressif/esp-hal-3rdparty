@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2017-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2017-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -822,6 +822,13 @@ esp_err_t esp_efuse_check_errors(void);
  *                and read protection can not be set.
  */
 esp_err_t esp_efuse_destroy_block(esp_efuse_block_t block);
+
+/**
+ * @brief Checks if flash encryption is enabled.
+ *
+ * This function checks if the current eFuse configuration supports flash encryption.
+*/
+bool esp_efuse_is_flash_encryption_enabled(void);
 
 #if SOC_ECDSA_SUPPORTED
 /**

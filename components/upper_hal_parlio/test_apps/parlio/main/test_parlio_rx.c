@@ -541,7 +541,7 @@ TEST_CASE("parallel_rx_unit_receive_external_memory_test", "[parlio_rx]")
 {
     parlio_rx_unit_handle_t rx_unit = NULL;
     parlio_rx_delimiter_handle_t deli = NULL;
-    size_t payload_size = 1000;
+    size_t payload_size = 1024;
 
     parlio_rx_unit_config_t config = TEST_DEFAULT_UNIT_CONFIG(PARLIO_CLK_SRC_DEFAULT, 1000000);
     config.flags.free_clk = 1;

@@ -406,7 +406,7 @@ static esp_err_t check_and_generate_encryption_keys(void)
 
 esp_err_t esp_flash_encrypt_init(void)
 {
-    if (esp_flash_encryption_enabled()) {
+    if (esp_efuse_is_flash_encryption_enabled()) {
         return ESP_OK;
     }
 
@@ -503,7 +503,7 @@ esp_err_t esp_flash_encrypt_contents(void)
 esp_err_t esp_flash_encrypt_enable(void)
 {
     esp_err_t err = ESP_OK;
-    if (!esp_flash_encryption_enabled()) {
+    if (!esp_efuse_is_flash_encryption_enabled()) {
 
         if (esp_flash_encrypt_is_write_protected(true)) {
             return ESP_FAIL;

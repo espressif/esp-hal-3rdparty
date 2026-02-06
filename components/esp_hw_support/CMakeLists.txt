@@ -30,6 +30,7 @@ if(NOT non_os_build)
                      "port/${target}/io_mux.c"
                      "port/${target}/esp_clk_tree.c"
                      "spi_bus_lock.c"
+                     "heap_align_hw.c"
                      "clk_utils.c")
     if(CONFIG_SOC_USB_OTG_SUPPORTED)
         list(APPEND srcs "usb_phy/usb_phy.c")
