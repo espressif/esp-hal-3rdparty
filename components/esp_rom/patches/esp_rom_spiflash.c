@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2015-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -27,6 +27,9 @@
 #elif CONFIG_IDF_TARGET_ESP32C5
 #include "esp32c5/rom/spi_flash.h"
 #include "esp32c5/rom/opi_flash.h"
+#elif CONFIG_IDF_TARGET_ESP32C61
+#include "esp32c61/rom/spi_flash.h"
+#include "esp32c61/rom/opi_flash.h"
 #endif
 
 #define SPI_IDX   1
@@ -768,7 +771,7 @@ void esp_rom_opiflash_cache_mode_config(esp_rom_spiflash_read_mode_t mode, const
         REG_SET_BIT(SPI_MEM_C_CTRL_REG, SPI_MEM_C_Q_POL);
     }
 }
-#elif CONFIG_IDF_TARGET_ESP32C5
+#elif CONFIG_IDF_TARGET_ESP32C5 || CONFIG_IDF_TARGET_ESP32C61
 extern void esp_rom_spi_set_address_bit_len(int spi, int addr_bits);
 void esp_rom_opiflash_cache_mode_config(esp_rom_spiflash_read_mode_t mode, const esp_rom_opiflash_spi0rd_t *cache)
 {
