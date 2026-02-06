@@ -173,7 +173,7 @@ static bool handle_transfer_complete_int(i3c_master_bus_handle_t i3c_master)
             atomic_store(&i3c_master->fsm, I3C_FSM_ENABLE);
         }
 
-        if (trans_desc->i2c_trans) {
+        if (trans_desc && trans_desc->i2c_trans) {
             i3c_master_i2c_device_handle_t i2c_dev = (i3c_master_i2c_device_handle_t)i3c_master->cur_trans->dev_handle;
             if (i3c_master->cur_trans->read_buffer != NULL) {
                 size_t dma_rcv_size = gdma_link_count_buffer_size_till_eof(i3c_master->rx_dma_link, 0);
