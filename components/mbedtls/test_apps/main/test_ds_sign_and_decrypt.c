@@ -30,10 +30,10 @@ esp_ds_data_ctx_t *esp_secure_cert_get_ds_ctx(void)
     // Mock RSA key parameters
     ds_key->rsa_length_bits = 2048;
     ds_key->efuse_key_id = 0;
-    ds_key->esp_rsa_ds_data = calloc(1, sizeof(esp_ds_data_t));
-    if (ds_key->esp_rsa_ds_data != NULL) {
+    ds_key->esp_ds_data = calloc(1, sizeof(esp_ds_data_t));
+    if (ds_key->esp_ds_data != NULL) {
         /* rsa_length must match rsa_length_bits for driver validation */
-        ds_key->esp_rsa_ds_data->rsa_length = (ds_key->rsa_length_bits / 32) - 1;
+        ds_key->esp_ds_data->rsa_length = (ds_key->rsa_length_bits / 32) - 1;
     }
     // Fill in other necessary fields as per esp_ds_data_ctx_t definition
     // For simplicity, we will leave them zeroed out
@@ -44,8 +44,8 @@ esp_ds_data_ctx_t *esp_secure_cert_get_ds_ctx(void)
 void esp_secure_cert_free_ds_ctx(esp_ds_data_ctx_t *ds_key)
 {
     if (ds_key != NULL) {
-        if (ds_key->esp_rsa_ds_data != NULL) {
-            free(ds_key->esp_rsa_ds_data);
+        if (ds_key->esp_ds_data != NULL) {
+            free(ds_key->esp_ds_data);
         }
         free(ds_key);
     }
@@ -83,15 +83,15 @@ TEST_CASE("ds sign test pkcs1_v15 PSA validation", "[ds_rsa_psa]")
     TEST_ASSERT_EQUAL(PSA_ERROR_INVALID_ARGUMENT, status);
 
     ds_key->rsa_length_bits = 2048; // Reset to valid RSA length
-    esp_ds_data_t *ds_data_backup = ds_key->esp_rsa_ds_data;
-    ds_key->esp_rsa_ds_data = NULL; // NULL esp_rsa_ds_data to trigger validation failure
+    esp_ds_data_t *ds_data_backup = ds_key->esp_ds_data;
+    ds_key->esp_ds_data = NULL; // NULL esp_ds_data to trigger validation failure
     status = psa_import_key(&attributes,
                             (const uint8_t *)ds_key,
                             sizeof(*ds_key),
                             &keyt_id);
     TEST_ASSERT_EQUAL(PSA_ERROR_INVALID_ARGUMENT, status);
 
-    ds_key->esp_rsa_ds_data = ds_data_backup; // Restore esp_rsa_ds_data
+    ds_key->esp_ds_data = ds_data_backup; // Restore esp_ds_data
 
     esp_secure_cert_free_ds_ctx(ds_key);
 }

@@ -70,7 +70,7 @@ static int esp_rsa_ds_validate_opaque_key(const esp_ds_data_ctx_t *opaque_key)
     if (opaque_key == NULL) {
         return PSA_ERROR_INVALID_ARGUMENT;
     }
-    if (opaque_key->esp_rsa_ds_data == NULL) {
+    if (opaque_key->esp_ds_data == NULL) {
         return PSA_ERROR_INVALID_ARGUMENT;
     }
 
@@ -87,7 +87,7 @@ static int esp_rsa_ds_validate_opaque_key(const esp_ds_data_ctx_t *opaque_key)
     }
 
     /* DS data rsa_length must match rsa_length_bits so we can use the key's data directly in sign operations */
-    if (opaque_key->esp_rsa_ds_data->rsa_length != (opaque_key->rsa_length_bits / 32) - 1) {
+    if (opaque_key->esp_ds_data->rsa_length != (opaque_key->rsa_length_bits / 32) - 1) {
         return PSA_ERROR_INVALID_ARGUMENT;
     }
 
@@ -171,7 +171,7 @@ psa_status_t esp_rsa_ds_opaque_sign_hash_start(
     }
 
     esp_err_t err = esp_ds_start_sign((const void *)operation->sig_buffer,
-                            opaque_key->esp_rsa_ds_data,
+                            opaque_key->esp_ds_data,
                             (hmac_key_id_t) opaque_key->efuse_key_id,
                             &operation->esp_rsa_ds_ctx);
     if (err != ESP_OK) {
@@ -319,7 +319,7 @@ psa_status_t esp_rsa_ds_opaque_import_key(
         return ret;
     }
 
-    /* Shallow copy: key buffer holds the context; esp_rsa_ds_data points to the caller's data.
+    /* Shallow copy: key buffer holds the context; esp_ds_data points to the caller's data.
      * The key material (esp_ds_data_ctx_t and the esp_ds_data_t it points to) must remain
      * valid until psa_destroy_key() is called on this key. */
     memcpy(key_buffer, opaque_key, sizeof(esp_ds_data_ctx_t));
@@ -409,7 +409,7 @@ psa_status_t esp_rsa_ds_opaque_asymmetric_decrypt(
     operation.sig_buffer = em_words;
 
     esp_err_t err = esp_ds_start_sign((const void *)em_words,
-                            opaque_key->esp_rsa_ds_data,
+                            opaque_key->esp_ds_data,
                             (hmac_key_id_t) opaque_key->efuse_key_id,
                             &operation.esp_rsa_ds_ctx);
     if (err != ESP_OK) {
