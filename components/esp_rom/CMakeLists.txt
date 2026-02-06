@@ -99,8 +99,6 @@ if(target STREQUAL "linux")
 else()
     if(CONFIG_IDF_TARGET_ESP32P4 AND NOT CONFIG_ESP32P4_SELECTS_REV_LESS_V3)
         target_linker_script(${COMPONENT_LIB} INTERFACE "${target_folder}/${ld_folder}/${target}.rom.eco5.ld")
-    elseif(CONFIG_IDF_TARGET_ESP32H4 AND NOT CONFIG_ESP32H4_SELECTS_REV_MP) # TODO: ESP32H4 IDF-13835
-        target_linker_script(${COMPONENT_LIB} INTERFACE "${target_folder}/${ld_folder}/${target}.rom.beta5.ld")
     else()
         target_linker_script(${COMPONENT_LIB} INTERFACE "${target_folder}/${ld_folder}/${target}.rom.ld")
     endif()
@@ -114,8 +112,6 @@ else()
     if(CONFIG_COMPILER_FLOAT_LIB_FROM_GCCLIB)
         if(CONFIG_IDF_TARGET_ESP32P4 AND NOT CONFIG_ESP32P4_SELECTS_REV_LESS_V3)
             rom_linker_script("eco5.libgcc")
-        elseif(CONFIG_IDF_TARGET_ESP32H4 AND NOT CONFIG_ESP32H4_SELECTS_REV_MP) # TODO: ESP32H4 IDF-13835
-            rom_linker_script("beta5.libgcc")
         else()
             rom_linker_script("libgcc")
         endif()
@@ -131,11 +127,7 @@ endif()
 # Common API which is linked both for bootloader and app builds
 
 if(CONFIG_HAL_SYSTIMER_USE_ROM_IMPL)
-    if(CONFIG_IDF_TARGET_ESP32H4 AND NOT CONFIG_ESP32H4_SELECTS_REV_MP) # TODO: ESP32H4 IDF-13835
-        rom_linker_script("beta5.systimer")
-    else()
-        rom_linker_script("systimer")
-    endif()
+    rom_linker_script("systimer")
 endif()
 
 if(CONFIG_ESP_ROM_HAS_VERSION)
@@ -169,8 +161,6 @@ if(BOOTLOADER_BUILD)
         else()
             if(CONFIG_IDF_TARGET_ESP32P4 AND NOT CONFIG_ESP32P4_SELECTS_REV_LESS_V3)
                 rom_linker_script("eco5.libc")
-            elseif(CONFIG_IDF_TARGET_ESP32H4 AND NOT CONFIG_ESP32H4_SELECTS_REV_MP) # TODO: ESP32H4 IDF-13835
-                rom_linker_script("beta5.libc")
             else()
                 rom_linker_script("libc")
             endif()
@@ -181,8 +171,6 @@ if(BOOTLOADER_BUILD)
             if(CONFIG_LIBC_NEWLIB)
                 if(CONFIG_IDF_TARGET_ESP32P4 AND NOT CONFIG_ESP32P4_SELECTS_REV_LESS_V3)
                     rom_linker_script("eco5.newlib")
-                elseif(CONFIG_IDF_TARGET_ESP32H4 AND NOT CONFIG_ESP32H4_SELECTS_REV_MP) # TODO: ESP32H4 IDF-13835
-                    rom_linker_script("beta5.newlib")
                 else()
                     rom_linker_script("newlib")
                 endif()
@@ -340,8 +328,6 @@ else() # Regular app build
         # ESP32 and S2 are a bit different, keep them as special cases in the target specific include section
         if(CONFIG_IDF_TARGET_ESP32P4 AND NOT CONFIG_ESP32P4_SELECTS_REV_LESS_V3)
             rom_linker_script("eco5.libc")
-        elseif(CONFIG_IDF_TARGET_ESP32H4 AND NOT CONFIG_ESP32H4_SELECTS_REV_MP) # TODO: ESP32H4 IDF-13835
-            rom_linker_script("beta5.libc")
         else()
             rom_linker_script("libc")
         endif()
@@ -351,8 +337,6 @@ else() # Regular app build
         if(CONFIG_LIBC_NEWLIB)
             if(CONFIG_IDF_TARGET_ESP32P4 AND NOT CONFIG_ESP32P4_SELECTS_REV_LESS_V3)
                 rom_linker_script("eco5.newlib")
-            elseif(CONFIG_IDF_TARGET_ESP32H4 AND NOT CONFIG_ESP32H4_SELECTS_REV_MP) # TODO: ESP32H4 IDF-13835
-                rom_linker_script("beta5.newlib")
             else()
                 rom_linker_script("newlib")
             endif()
@@ -362,11 +346,7 @@ else() # Regular app build
             if(NOT CONFIG_ESP_ROM_HAS_NEWLIB_32BIT_TIME AND NOT CONFIG_ESP_ROM_HAS_NEWLIB_NANO_PRINTF_FLOAT_BUG)
                 # Newlib-nano functions contains time_t related functions
                 # and cannot be used if they were compiled with 32 bit time_t
-                if(CONFIG_IDF_TARGET_ESP32H4 AND NOT CONFIG_ESP32H4_SELECTS_REV_MP) # TODO: ESP32H4 IDF-13835
-                    rom_linker_script("beta5.newlib-nano")
-                else()
-                    rom_linker_script("newlib-nano")
-                endif()
+                rom_linker_script("newlib-nano")
             endif()
         endif()
 
@@ -388,21 +368,13 @@ else() # Regular app build
             target_link_libraries(${COMPONENT_LIB} PRIVATE "-u esp_rom_include_multi_heap_patch")
         endif()
 
-        if(CONFIG_IDF_TARGET_ESP32H4 AND NOT CONFIG_ESP32H4_SELECTS_REV_MP) # TODO: ESP32H4 IDF-13835
-            rom_linker_script("beta5.heap")
-        else()
-            rom_linker_script("heap")
-        endif()
+        rom_linker_script("heap")
     endif()
 
     if(CONFIG_SPI_FLASH_ROM_IMPL)
         # Older targets do not have a separate ld file for spiflash
         if(NOT target STREQUAL "esp32c3" AND NOT target STREQUAL "esp32s3" AND NOT target STREQUAL "esp32c2")
-            if(CONFIG_IDF_TARGET_ESP32H4 AND NOT CONFIG_ESP32H4_SELECTS_REV_MP) # TODO: ESP32H4 IDF-13835
-                rom_linker_script("beta5.spiflash")
-            else()
-                rom_linker_script("spiflash")
-            endif()
+            rom_linker_script("spiflash")
         endif()
     endif()
 

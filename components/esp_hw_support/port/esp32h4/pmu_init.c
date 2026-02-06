@@ -122,7 +122,6 @@ void pmu_hp_system_init(pmu_context_t *ctx, pmu_hp_mode_t mode, const pmu_hp_sys
     /* set dcdc ccm mode software enable */
     pmu_ll_set_dcdc_ccm_sw_en(ctx->hal->dev, true);
 
-#if CONFIG_ESP32H4_SELECTS_REV_MP
     /* set ble bandgap ocode */
     uint32_t ulp_ocode = 0;
 #if !CONFIG_IDF_ENV_FPGA
@@ -135,7 +134,6 @@ void pmu_hp_system_init(pmu_context_t *ctx, pmu_hp_mode_t mode, const pmu_hp_sys
 #endif
     REG_SET_FIELD(PMU_BLE_BANDGAP_CTRL_REG, PMU_EXT_OCODE, ulp_ocode);
     SET_PERI_REG_MASK(PMU_BLE_BANDGAP_CTRL_REG, PMU_EXT_FORCE_OCODE);
-#endif
 }
 
 void pmu_lp_system_init(pmu_context_t *ctx, pmu_lp_mode_t mode, const pmu_lp_system_param_t *param)
