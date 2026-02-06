@@ -21,7 +21,7 @@
 #include "unity.h"
 #include "unity_test_utils.h"
 #include "driver/gpio.h"
-#include "hal/gpio_ll.h"
+#include "hal/gpio_hal.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
@@ -504,12 +504,11 @@ TEST_CASE("GPIO_iram_interrupt_safe_test", "[gpio]")
 // Inter-connect input pin and output pin through an internal signal
 static void gpio_interconnect_input_output_pin(uint32_t input_pin, uint32_t output_pin, uint32_t signal_idx)
 {
+    gpio_hal_context_t hal = {
+        .dev = &GPIO,
+    };
     // signal256 -> output pin -> signal_idx -> input_pin
-    // Set output pin IE to be able to connect to the signal
-    gpio_ll_input_enable(&GPIO, output_pin);
-    esp_rom_gpio_connect_in_signal(output_pin, signal_idx, 0);
-    // Input pin OE to be able to connect to the signal is done by the esp_rom_gpio_connect_out_signal function
-    esp_rom_gpio_connect_out_signal(input_pin, signal_idx, 0, 0);
+    gpio_hal_matrix_interconnect(&hal, output_pin, input_pin, signal_idx);
 }
 #endif
 
