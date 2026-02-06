@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2015-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -10,6 +10,7 @@
 #include <sys/param.h>
 
 #include "esp_attr.h"
+#include "esp_system.h"
 #include "esp_sleep.h"
 #include "esp_log.h"
 #include "esp_memory_utils.h"
@@ -97,6 +98,7 @@ void esp_sleep_gpio_pupd_config_workaround_unapply(void)
 }
 #endif
 
+#if CONFIG_ESP_SLEEP_GPIO_RESET_WORKAROUND || CONFIG_PM_SLP_DISABLE_GPIO
 void esp_sleep_config_gpio_isolate(void)
 {
     ESP_EARLY_LOGI(TAG, "Configure to isolate all GPIO pins in sleep state");
@@ -169,6 +171,7 @@ void esp_sleep_enable_gpio_switch(bool enable)
         }
     }
 }
+#endif
 
 #if !SOC_GPIO_SUPPORT_HOLD_SINGLE_IO_IN_DSLP
 IRAM_ATTR void esp_sleep_isolate_digital_gpio(void)
@@ -265,14 +268,22 @@ void esp_deep_sleep_wakeup_io_reset(void)
 }
 #endif
 
-#if CONFIG_ESP_SLEEP_GPIO_RESET_WORKAROUND || CONFIG_PM_SLP_DISABLE_GPIO
 ESP_SYSTEM_INIT_FN(esp_sleep_startup_init, SECONDARY, BIT(0), 105)
 {
+#if SOC_DEEP_SLEEP_SUPPORTED
+    // Need to unhold the IOs that were hold right before entering deep sleep, which are used as wakeup pins
+    if (esp_reset_reason() == ESP_RST_DEEPSLEEP) {
+        esp_deep_sleep_wakeup_io_reset();
+    }
+#endif  //#if SOC_DEEP_SLEEP_SUPPORTED
+
+#if CONFIG_ESP_SLEEP_GPIO_RESET_WORKAROUND || CONFIG_PM_SLP_DISABLE_GPIO
     // Configure to isolate (disable the Input/Output/Pullup/Pulldown
     // function of the pin) all GPIO pins in sleep state
     esp_sleep_config_gpio_isolate();
     // Enable automatic switching of GPIO configuration
     esp_sleep_enable_gpio_switch(true);
+#endif
     return ESP_OK;
 }
 
@@ -280,4 +291,3 @@ void esp_sleep_gpio_include(void)
 {
     // Linker hook function, exists to make the linker examine this file
 }
-#endif
