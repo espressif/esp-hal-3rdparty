@@ -160,6 +160,17 @@
 #define SOC_CPU_WATCHPOINTS_NUM             2
 #define SOC_CPU_WATCHPOINT_MAX_REGION_SIZE  0x40 // bytes
 
+/*-------------------------- DIGITAL SIGNATURE CAPS ----------------------------------------*/
+/** The maximum length of a Digital Signature in bits. */
+#define SOC_DS_SIGNATURE_MAX_BIT_LEN (4096)
+
+/** Initialization vector (IV) length for the RSA key parameter message digest (MD) in bytes. */
+#define SOC_DS_KEY_PARAM_MD_IV_LENGTH (16)
+
+/** Maximum wait time for DS parameter decryption key. If overdue, then key error.
+    See TRM DS chapter for more details */
+#define SOC_DS_KEY_CHECK_MAX_WAIT_US (1100)
+
 /*-------------------------- DAC CAPS ----------------------------------------*/
 #define SOC_DAC_CHAN_NUM      2
 #define SOC_DAC_RESOLUTION      8 // DAC resolution ratio 8 bit

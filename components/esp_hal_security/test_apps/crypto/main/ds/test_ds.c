@@ -149,10 +149,10 @@ static esp_err_t esp_ds_finish_sign(void *signature, const esp_ds_data_t *data)
     return return_value;
 }
 
-esp_err_t esp_ds_sign(const void *message,
-                      const esp_ds_data_t *data,
-                      uint32_t key_id,
-                      void *signature)
+static esp_err_t esp_ds_sign(const void *message,
+                             const esp_ds_data_t *data,
+                             uint32_t key_id,
+                             void *signature)
 {
     esp_err_t result = esp_ds_start_sign(message, data, key_id);
     if (result != ESP_OK) {
@@ -247,7 +247,7 @@ static esp_err_t esp_ds_start_sign(const void *message,
     return ESP_OK;
 }
 
-esp_err_t esp_ds_finish_sign(void *signature, const esp_ds_data_t *data)
+static esp_err_t esp_ds_finish_sign(void *signature, const esp_ds_data_t *data)
 {
     ets_ds_result_t result = ets_ds_finish_sign(signature, (ets_ds_data_t*) data);
 

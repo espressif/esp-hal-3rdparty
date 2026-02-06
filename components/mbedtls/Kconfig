@@ -1543,6 +1543,13 @@ menu "mbedTLS"
             help
                 This option enables hardware acceleration for ECDSA sign function, only
                 when using ATECC608A cryptoauth chip.
+
+        config MBEDTLS_HARDWARE_RSA_DS_PERIPHERAL
+            bool "Enable hardware RSA digital signature peripheral acceleration"
+            default n
+            depends on SOC_DIG_SIGN_SUPPORTED
+            help
+                Enable hardware accelerated digital signature peripheral for RSA digital signature generation.
     endmenu
 
     menu "Entropy and Random Number Generation"

@@ -278,8 +278,9 @@ endif()
 target_sources(mbedtls PRIVATE ${mbedtls_target_sources})
 
 if(NOT ${IDF_TARGET} STREQUAL "linux")
-    target_link_libraries(tfpsacrypto PRIVATE idf::esp_security)
+    target_link_libraries(tfpsacrypto PUBLIC idf::esp_security)
     target_link_libraries(builtin PRIVATE idf::esp_security)
+    target_link_libraries(p256m PRIVATE idf::esp_security)
 endif()
 
 # Choose peripheral type
@@ -382,15 +383,12 @@ if(CONFIG_SOC_HMAC_SUPPORTED)
     target_link_libraries(tfpsacrypto PRIVATE idf::efuse)
 endif()
 
-if(CONFIG_SOC_DIG_SIGN_SUPPORTED)
+if(CONFIG_SOC_DIG_SIGN_SUPPORTED AND CONFIG_MBEDTLS_HARDWARE_RSA_DS_PERIPHERAL)
 target_sources(tfpsacrypto PRIVATE
-                "${COMPONENT_DIR}/port/esp_ds/esp_rsa_sign_alt.c"
-                "${COMPONENT_DIR}/port/esp_ds/esp_rsa_dec_alt.c"
-                "${COMPONENT_DIR}/port/esp_ds/esp_ds_common.c")
-endif()
-# # CONFIG_ESP_TLS_USE_DS_PERIPHERAL can be enabled only for the supported targets.
-if(CONFIG_ESP_TLS_USE_DS_PERIPHERAL)
-    target_sources(tfpsacrypto PRIVATE "${COMPONENT_DIR}/port/esp_ds/esp_rsa_sign_alt.c")
+                "${COMPONENT_DIR}/port/psa_driver/esp_rsa_ds/psa_crypto_driver_esp_rsa_ds.c"
+                "${COMPONENT_DIR}/port/psa_driver/esp_rsa_ds/psa_crypto_driver_esp_rsa_ds_utilities.c"
+)
+target_link_libraries(tfpsacrypto PRIVATE idf::efuse)
 endif()
 
 if(CONFIG_SOC_HMAC_SUPPORTED)

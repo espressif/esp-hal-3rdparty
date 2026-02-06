@@ -20,5 +20,7 @@ target_compile_definitions(${mbedtls} INTERFACE "-DMBEDTLS_DEPRECATED_WARNING")
 target_compile_definitions(mbedtls PUBLIC "-DMBEDTLS_DEPRECATED_WARNING")
 target_compile_definitions(mbedx509 PUBLIC "-DMBEDTLS_DEPRECATED_WARNING")
 
-# Add linker wrap option to override esp_ds_finish_sign
-target_link_options(${COMPONENT_LIB} INTERFACE "-Wl,--wrap=esp_ds_finish_sign,--wrap=esp_ds_start_sign")
+target_link_options(
+    ${COMPONENT_LIB} INTERFACE
+    "-Wl,--wrap=esp_ds_finish_sign,--wrap=esp_ds_start_sign,--wrap=esp_efuse_get_key_purpose"
+    )

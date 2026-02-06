@@ -1743,6 +1743,13 @@
 #undef PSA_WANT_KEY_TYPE_AES
 #endif
 
+/* PSA Crypto RSA DS Driver */
+#ifdef CONFIG_MBEDTLS_HARDWARE_RSA_DS_PERIPHERAL
+#define ESP_RSA_DS_DRIVER_ENABLED
+#else
+#undef ESP_RSA_DS_DRIVER_ENABLED
+#endif
+
 /* The following units have ESP32 hardware support,
    uncommenting each _ALT macro will use the
    hardware-accelerated implementation. */
