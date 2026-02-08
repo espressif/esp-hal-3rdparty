@@ -51,10 +51,6 @@ if(CONFIG_IDF_TARGET_ARCH_XTENSA)
     list(APPEND sources "patches/esp_rom_longjmp.S")
 endif()
 
-if(CONFIG_SOC_SYSTIMER_SUPPORTED)
-    list(APPEND sources "patches/esp_rom_systimer.c")
-endif()
-
 if(CONFIG_ESP_ROM_CLIC_INT_TYPE_PATCH)
     list(APPEND sources "patches/esp_rom_clic.c")
 endif()
@@ -125,10 +121,6 @@ else()
 endif()
 
 # Common API which is linked both for bootloader and app builds
-
-if(CONFIG_HAL_SYSTIMER_USE_ROM_IMPL)
-    rom_linker_script("systimer")
-endif()
 
 if(CONFIG_ESP_ROM_HAS_VERSION)
     rom_linker_script("version")
