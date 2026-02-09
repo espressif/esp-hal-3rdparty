@@ -594,14 +594,26 @@ uint64_t esp_sleep_get_ext1_wakeup_status(void);
 
 #if SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP
 /**
- * @brief Get the bit mask of GPIOs which caused wakeup (gpio)
+ * @brief Get the bit mask of RTC IO which caused wakeup (GPIO wakeup source).
  *
  * If wakeup was caused by another source, this function will return 0.
+ * Each bit corresponds to an RTC IO.
+ * Use esp_sleep_wakeup_io_bit2num() to convert a bit index to GPIO number.
  *
- * @return bit mask, if GPIOn caused wakeup, BIT(n) will be set
+ * @return bit mask of RTC IO that caused wakeup
  */
 uint64_t esp_sleep_get_gpio_wakeup_status(void);
 #endif //SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP
+
+/**
+ * @brief Convert RTC IO status bit index to GPIO number.
+ *
+ * Used to interpret the bit mask returned by esp_sleep_get_gpio_wakeup_status().
+ *
+ * @param bit RTC IO bit index (0 to SOC_RTCIO_PIN_COUNT-1).
+ * @return GPIO number, or GPIO_NUM_NC if bit is invalid or has no corresponding GPIO.
+ */
+gpio_num_t esp_sleep_wakeup_io_bit2num(uint32_t bit);
 
 /**
  * @brief Configure power domain options for sleep mode

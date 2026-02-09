@@ -231,7 +231,7 @@ IRAM_ATTR void esp_sleep_isolate_digital_gpio(void)
 #endif //!SOC_GPIO_SUPPORT_HOLD_SINGLE_IO_IN_DSLP
 
 #if SOC_DEEP_SLEEP_SUPPORTED
-void esp_deep_sleep_wakeup_io_reset(void)
+static void esp_deep_sleep_wakeup_io_reset(void)
 {
 #if SOC_PM_SUPPORT_EXT1_WAKEUP
     uint32_t rtc_io_mask = rtc_hal_ext1_get_wakeup_pins();
@@ -285,6 +285,29 @@ ESP_SYSTEM_INIT_FN(esp_sleep_startup_init, SECONDARY, BIT(0), 105)
     esp_sleep_enable_gpio_switch(true);
 #endif
     return ESP_OK;
+}
+
+/**
+ * @brief Convert RTC IO status bit number to GPIO number (for sleep wakeup status translation).
+ *
+ * @param bit RTC IO intr status bit index (0 to SOC_RTCIO_PIN_COUNT-1).
+ * @return GPIO number, or GPIO_NUM_NC if bit is invalid or has no corresponding GPIO.
+ */
+gpio_num_t esp_sleep_wakeup_io_bit2num(uint32_t bit)
+{
+#if SOC_RTCIO_PIN_COUNT > 0
+    if (bit >= SOC_RTCIO_PIN_COUNT) {
+        return GPIO_NUM_NC;
+    }
+    for (int gpio = 0; gpio < SOC_GPIO_PIN_COUNT; gpio++) {
+        if (rtc_io_num_map[gpio] == (int8_t)bit) {
+            return (gpio_num_t)gpio;
+        }
+    }
+#elif (SOC_RTCIO_PIN_COUNT == 0)
+    return (gpio_num_t)bit;
+#endif
+    return GPIO_NUM_NC;
 }
 
 void esp_sleep_gpio_include(void)

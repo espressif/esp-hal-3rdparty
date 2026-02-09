@@ -95,11 +95,14 @@
 #include "esp_private/esp_task_wdt.h"
 #include "esp_private/sar_periph_ctrl.h"
 
+#if SOC_PM_SUPPORT_EXT1_WAKEUP && SOC_RTCIO_PIN_COUNT > 0
+#include "esp_private/sleep_gpio.h"
+#endif
+
 #ifdef CONFIG_IDF_TARGET_ESP32
 #include "esp32/rom/cache.h"
 #include "esp32/rom/rtc.h"
 #include "esp_private/gpio.h"
-#include "esp_private/sleep_gpio.h"
 #elif CONFIG_IDF_TARGET_ESP32S2
 #include "esp32s2/rom/rtc.h"
 #include "soc/extmem_reg.h"
@@ -2225,15 +2228,13 @@ uint64_t esp_sleep_get_ext1_wakeup_status(void)
     uint32_t status = rtc_hal_ext1_get_wakeup_status();
     // Translate bit map of RTC IO numbers into the bit map of GPIO numbers
     uint64_t gpio_mask = 0;
-    for (int gpio = 0; gpio < SOC_GPIO_PIN_COUNT; ++gpio) {
-        if (!esp_sleep_is_valid_wakeup_gpio(gpio)) {
-            continue;
+    while (status) {
+        int rtc_pin = __builtin_ctz(status);
+        gpio_num_t gpio = esp_sleep_wakeup_io_bit2num(rtc_pin);
+        if (gpio != GPIO_NUM_NC) {
+            gpio_mask |= 1ULL << gpio;
         }
-        int rtc_pin = rtc_io_number_get(gpio);
-        if ((status & BIT(rtc_pin)) == 0) {
-            continue;
-        }
-        gpio_mask |= 1ULL << gpio;
+        status &= ~BIT(rtc_pin);
     }
     return gpio_mask;
 }
