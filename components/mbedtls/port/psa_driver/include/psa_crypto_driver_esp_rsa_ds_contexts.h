@@ -30,11 +30,11 @@ typedef enum {
  * This context is used to store the ESP DS data.
  *
  * When passed to psa_import_key() for PSA_KEY_LIFETIME_ESP_RSA_DS, the key material
- * (this struct and the esp_ds_data_t pointed to by esp_rsa_ds_data) must remain valid
+ * (this struct and the esp_ds_data_t pointed to by esp_ds_data) must remain valid
  * until psa_destroy_key() is called on the imported key.
  */
 typedef struct {
-    esp_ds_data_t *esp_rsa_ds_data; /**< Pointer to the esp ds data */
+    esp_ds_data_t *esp_ds_data;     /**< Pointer to the esp ds data */
     uint8_t efuse_key_id;           /**< efuse block id in which DS_KEY is stored e.g. 0,1*/
     uint16_t rsa_length_bits;       /**< length of RSA private key in bits e.g. 2048 */
 } esp_ds_data_ctx_t;
