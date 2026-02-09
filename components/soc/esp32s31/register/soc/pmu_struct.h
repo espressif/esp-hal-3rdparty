@@ -1,5 +1,5 @@
 /**
- * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2026 Espressif Systems (Shanghai) CO LTD
  *
  *  SPDX-License-Identifier: Apache-2.0 OR MIT
  */
@@ -2955,7 +2955,7 @@ typedef union {
  */
 typedef union {
     struct {
-        /** puf_mem_psw : R/W; bitpos: [0]; default: 1;
+        /** puf_mem_psw : R/W; bitpos: [0]; default: 0;
          *  need_des
          */
         uint32_t puf_mem_psw:1;

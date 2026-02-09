@@ -1,5 +1,5 @@
 /**
- * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2026 Espressif Systems (Shanghai) CO LTD
  *
  *  SPDX-License-Identifier: Apache-2.0 OR MIT
  */
@@ -3955,7 +3955,7 @@ extern "C" {
  *  used for future potential eco, others don't care
  */
 #define PMU_PUF_MEM_CTRL_REG (DR_REG_PMU_BASE + 0x210)
-/** PMU_PUF_MEM_PSW : R/W; bitpos: [0]; default: 1;
+/** PMU_PUF_MEM_PSW : R/W; bitpos: [0]; default: 0;
  *  need_des
  */
 #define PMU_PUF_MEM_PSW    (BIT(0))
