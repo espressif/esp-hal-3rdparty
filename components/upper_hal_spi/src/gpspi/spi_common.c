@@ -13,6 +13,7 @@
 #include "esp_check.h"
 #include "esp_cache.h"
 #include "esp_heap_caps.h"
+#include "esp_memory_utils.h"
 #include "driver/spi_master.h"
 #include "driver/gpio.h"
 #include "esp_private/gpio.h"
@@ -27,6 +28,9 @@
 #include "freertos/FreeRTOS.h"
 #if CONFIG_IDF_TARGET_ESP32
 #include "soc/dport_reg.h"
+#endif
+#if CONFIG_SPIRAM
+#include "esp_private/esp_psram_mspi.h"
 #endif
 
 #if CONFIG_SPI_MASTER_ISR_IN_IRAM || CONFIG_SPI_SLAVE_ISR_IN_IRAM
@@ -62,11 +66,11 @@ typedef struct {
     spi_destroy_func_t destroy_func;
     void* destroy_arg;
     spi_bus_attr_t bus_attr;
-    spi_dma_ctx_t *dma_ctx;
 } spicommon_bus_context_t;
 
 static spicommon_bus_context_t s_mainbus = SPI_MAIN_BUS_DEFAULT();
 static spicommon_bus_context_t* bus_ctx[SOC_SPI_PERIPH_NUM] = {&s_mainbus};
+static spi_dma_ctx_t *spi_dma_ctx[SOC_SPI_PERIPH_NUM];
 
 #if CONFIG_SPI_FLASH_SHARE_SPI1_BUS
 /* The lock for the share SPI1 bus is registered here in a constructor due to need to access the context
@@ -90,6 +94,10 @@ esp_err_t spicommon_bus_alloc(spi_host_device_t host_id, const char *name)
     PERIPH_RCC_ATOMIC() {
         spi_ll_enable_clock(host_id, true);
     }
+    // Get cache alignment constraints
+    esp_cache_get_alignment(MALLOC_CAP_DMA, &ctx->bus_attr.cache_align_int);
+    esp_cache_get_alignment(MALLOC_CAP_SPIRAM, &ctx->bus_attr.cache_align_ext);
+
     ctx->host_id = host_id;
     bus_ctx[host_id] = ctx;
     return ESP_OK;
@@ -106,20 +114,6 @@ esp_err_t spicommon_bus_free(spi_host_device_t host_id)
     bus_ctx[host_id] = NULL;
     return ESP_OK;
 }
-
-#if SOC_GDMA_SUPPORTED
-//NOTE!! If both A and B are not defined, '#if (A==B)' is true, because GCC use 0 stand for undefined symbol
-#if defined(SOC_GDMA_BUS_AXI) && (SOC_GDMA_TRIG_PERIPH_SPI2_BUS == SOC_GDMA_BUS_AXI)
-#define SPI_GDMA_NEW_CHANNEL     gdma_new_axi_channel
-#elif defined(SOC_GDMA_BUS_AHB) && (SOC_GDMA_TRIG_PERIPH_SPI2_BUS == SOC_GDMA_BUS_AHB)
-#define SPI_GDMA_NEW_CHANNEL    gdma_new_ahb_channel
-#endif
-
-#else
-//Each bit stands for 1 dma channel, BIT(0) should be used for SPI1
-static uint8_t spi_dma_chan_enabled = 0;
-static portMUX_TYPE spi_dma_spinlock = portMUX_INITIALIZER_UNLOCKED;
-#endif  //!SOC_GDMA_SUPPORTED
 
 static inline bool is_valid_host(spi_host_device_t host)
 {
@@ -142,44 +136,52 @@ int spicommon_irqdma_source_for_host(spi_host_device_t host)
 
 //----------------------------------------------------------alloc dma periph-------------------------------------------------------//
 #if !SOC_GDMA_SUPPORTED
+//Each bit stands for 1 dma channel, BIT(0) should be used for SPI1
+static uint8_t spi_dma_chan_enabled = 0;
+static portMUX_TYPE spi_dma_spinlock = portMUX_INITIALIZER_UNLOCKED;
 
-#if SPI_LL_DMA_SHARED
-static inline shared_periph_module_t get_dma_periph(int dma_chan)
+static inline void _spicommon_dma_rcc_clock_ctrl(spi_dma_chan_t dma_chan, bool enable)
 {
-    assert(dma_chan >= 1 && dma_chan <= SPI_LL_DMA_CHANNEL_NUM);
+#if SPI_LL_DMA_SHARED
+    shared_periph_module_t dma_periph;
     if (dma_chan == 1) {
-        return PERIPH_SPI2_DMA_MODULE;
+        dma_periph = PERIPH_SPI2_DMA_MODULE;
     } else if (dma_chan == 2) {
-        return PERIPH_SPI3_DMA_MODULE;
+        dma_periph = PERIPH_SPI3_DMA_MODULE;
     } else {
         abort();
     }
-}
+
+    if (enable) {
+        PERIPH_RCC_ACQUIRE_ATOMIC(dma_periph, ref_count) {
+            if (ref_count == 0) {
+                spi_dma_ll_enable_bus_clock(dma_chan, true);
+                spi_dma_ll_reset_register(dma_chan);
+            }
+        }
+    } else {
+        PERIPH_RCC_RELEASE_ATOMIC(dma_periph, ref_count) {
+            if (ref_count == 0) {
+                spi_dma_ll_enable_bus_clock(dma_chan, false);
+            }
+        }
+    }
+#else
+    PERIPH_RCC_ATOMIC() {
+        spi_dma_ll_enable_bus_clock(dma_chan, enable);
+        spi_dma_ll_reset_register(dma_chan);
+    }
 #endif
+}
 
 static bool claim_dma_chan(int dma_chan, uint32_t *out_actual_dma_chan)
 {
     bool ret = false;
 
     portENTER_CRITICAL(&spi_dma_spinlock);
-    bool is_used = (BIT(dma_chan) & spi_dma_chan_enabled);
-    if (!is_used) {
+    if (!(BIT(dma_chan) & spi_dma_chan_enabled)) {
         spi_dma_chan_enabled |= BIT(dma_chan);
-#if SPI_LL_DMA_SHARED
-        PERIPH_RCC_ACQUIRE_ATOMIC(get_dma_periph(dma_chan), ref_count) {
-            //esp32s2: dma_chan index is same as spi host_id, no matter dma_chan_auto or not
-            if (ref_count == 0) {
-                spi_dma_ll_enable_bus_clock(dma_chan, true);
-                spi_dma_ll_reset_register(dma_chan);
-            }
-        }
-#else
-        PERIPH_RCC_ATOMIC() {
-            //esp32: have only one spi_dma
-            spi_dma_ll_enable_bus_clock(dma_chan, true);
-            spi_dma_ll_reset_register(dma_chan);
-        }
-#endif
+        _spicommon_dma_rcc_clock_ctrl(dma_chan, true);
         *out_actual_dma_chan = dma_chan;
         ret = true;
     }
@@ -249,6 +251,12 @@ static esp_err_t alloc_dma_chan(spi_host_device_t host_id, spi_dma_chan_t dma_ch
 }
 
 #else //SOC_GDMA_SUPPORTED
+//NOTE!! If both A and B are not defined, '#if (A==B)' is true, because GCC use 0 stand for undefined symbol
+#if defined(SOC_GDMA_BUS_AXI) && (SOC_GDMA_TRIG_PERIPH_SPI2_BUS == SOC_GDMA_BUS_AXI)
+#define SPI_GDMA_NEW_CHANNEL     gdma_new_axi_channel
+#elif defined(SOC_GDMA_BUS_AHB) && (SOC_GDMA_TRIG_PERIPH_SPI2_BUS == SOC_GDMA_BUS_AHB)
+#define SPI_GDMA_NEW_CHANNEL    gdma_new_ahb_channel
+#endif
 
 static esp_err_t alloc_dma_chan(spi_host_device_t host_id, spi_dma_chan_t dma_chan, spi_dma_ctx_t *dma_ctx)
 {
@@ -291,7 +299,7 @@ static esp_err_t alloc_dma_chan(spi_host_device_t host_id, spi_dma_chan_t dma_ch
 }
 #endif  //#if !SOC_GDMA_SUPPORTED
 
-esp_err_t spicommon_dma_chan_alloc(spi_host_device_t host_id, spi_dma_chan_t dma_chan, spi_dma_ctx_t **out_dma_ctx)
+esp_err_t spicommon_dma_chan_alloc(spi_host_device_t host_id, spi_dma_chan_t dma_chan)
 {
     assert(is_valid_host(host_id));
 #if CONFIG_IDF_TARGET_ESP32
@@ -311,7 +319,7 @@ esp_err_t spicommon_dma_chan_alloc(spi_host_device_t host_id, spi_dma_chan_t dma
     if (ret != ESP_OK) {
         goto cleanup;
     }
-    *out_dma_ctx = dma_ctx;
+    spi_dma_ctx[host_id] = dma_ctx;
     return ret;
 
 cleanup:
@@ -319,13 +327,17 @@ cleanup:
     return ret;
 }
 
-esp_err_t spicommon_dma_desc_alloc(spi_dma_ctx_t *dma_ctx, int cfg_max_sz, int *actual_max_sz)
+esp_err_t spicommon_dma_desc_alloc(spi_host_device_t host_id, int cfg_max_sz, int *actual_max_sz)
 {
     int dma_desc_ct = (cfg_max_sz + DMA_DESCRIPTOR_BUFFER_MAX_SIZE_4B_ALIGNED - 1) / DMA_DESCRIPTOR_BUFFER_MAX_SIZE_4B_ALIGNED;
     if (dma_desc_ct == 0) {
         dma_desc_ct = 1;    //default to 4k when max is not given
     }
 
+    spi_dma_ctx_t *dma_ctx = spi_bus_get_dma_ctx(host_id);
+    if (!dma_ctx) {
+        return ESP_ERR_INVALID_STATE;
+    }
     dma_ctx->dmadesc_tx = heap_caps_aligned_calloc(DMA_DESC_MEM_ALIGN_SIZE, 1, sizeof(spi_dma_desc_t) * dma_desc_ct, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
     dma_ctx->dmadesc_rx = heap_caps_aligned_calloc(DMA_DESC_MEM_ALIGN_SIZE, 1, sizeof(spi_dma_desc_t) * dma_desc_ct, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
     if (dma_ctx->dmadesc_tx == NULL || dma_ctx->dmadesc_rx == NULL) {
@@ -372,10 +384,71 @@ void SPI_COMMON_ISR_ATTR spicommon_dma_desc_setup_link(spi_dma_desc_t *dmadesc, 
     dmadesc[n - 1].next = NULL;
 }
 
-//----------------------------------------------------------free dma periph-------------------------------------------------------//
-esp_err_t spicommon_dma_chan_free(spi_dma_ctx_t *dma_ctx)
+esp_err_t SPI_COMMON_ISR_ATTR spicommon_dma_setup_priv_buffer(spi_host_device_t host_id, uint32_t *buffer, uint32_t len, bool is_tx, bool psram_prefer, bool auto_malloc, uint32_t **ret_buffer)
 {
-    assert(dma_ctx);
+    spi_bus_attr_t *bus_attr = spi_bus_get_attr(host_id);
+    spi_dma_ctx_t *dma_ctx = spi_bus_get_dma_ctx(host_id);
+    assert(bus_attr && dma_ctx);
+    if ((buffer == NULL) || (len == 0)) {
+        *ret_buffer = buffer;
+        return ESP_OK;
+    }
+
+    bool is_ptr_ext = esp_ptr_external_ram(buffer);
+    bool use_psram = is_ptr_ext && psram_prefer;
+#if SOC_IS(ESP32S2)
+    ESP_RETURN_ON_FALSE_ISR((host_id != SPI3_HOST) || !use_psram, ESP_ERR_NOT_SUPPORTED, SPI_TAG, "SPI3 does not support external memory");
+#endif
+    bool need_malloc = is_ptr_ext ? (!use_psram || !esp_ptr_dma_ext_capable(buffer)) : !esp_ptr_dma_capable(buffer);
+    // If psram is wanted, re-malloc also from psram.
+    uint32_t mem_cap = MALLOC_CAP_DMA | (use_psram ? MALLOC_CAP_SPIRAM : MALLOC_CAP_INTERNAL);
+    uint16_t alignment = 0;
+    if (is_tx) {
+        alignment = use_psram ? dma_ctx->dma_align_tx_ext : dma_ctx->dma_align_tx_int;
+    } else {
+        // RX cache sync still need consider the cache alignment requirement
+        if (use_psram) {
+            alignment = MAX(dma_ctx->dma_align_rx_ext, bus_attr->cache_align_ext);
+        } else {
+            alignment = MAX(dma_ctx->dma_align_rx_int, bus_attr->cache_align_int);
+        }
+    }
+    need_malloc |= (((uint32_t)buffer | len) & (alignment - 1));
+    uint32_t align_len = (len + alignment - 1) & (~(alignment - 1));   // up align alignment
+    ESP_EARLY_LOGV(SPI_TAG, "SPI%d %s %p, len %d, is_ptr_ext %d, use_psram: %d, alignment: %d, need_malloc: %d from %s", host_id + 1, is_tx ? "TX" : "RX", buffer, len, is_ptr_ext, use_psram, alignment, need_malloc, (mem_cap & MALLOC_CAP_SPIRAM) ? "psram" : "internal");
+    if (need_malloc) {
+        ESP_RETURN_ON_FALSE_ISR(auto_malloc, ESP_ERR_INVALID_STATE, SPI_TAG, "%s addr&len not align to %d, or not dma_capable, suggest use 'heap_caps_malloc' or enable auto_align", is_tx ? "TX" : "RX", alignment);
+        uint32_t *temp = heap_caps_aligned_alloc(alignment, align_len, mem_cap);
+        ESP_RETURN_ON_FALSE_ISR(temp != NULL, ESP_ERR_NO_MEM, SPI_TAG, "Failed to allocate priv %s buffer", is_tx ? "TX" : "RX");
+
+        if (is_tx) {
+            memcpy(temp, buffer, len);
+        }
+        buffer = temp;
+    }
+    *ret_buffer = buffer;
+    uint32_t sync_flags = is_tx ? (ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_UNALIGNED) : ESP_CACHE_MSYNC_FLAG_DIR_M2C;
+    esp_err_t ret = esp_cache_msync((void *)buffer, need_malloc ? align_len : len, sync_flags);
+    // ESP_ERR_NOT_SUPPORTED stands for not cache sync required, it's allowed here
+    ESP_RETURN_ON_FALSE_ISR((ret == ESP_OK) || (ret == ESP_ERR_NOT_SUPPORTED), ESP_ERR_INVALID_ARG, SPI_TAG, "sync failed for %s buffer", is_tx ? "TX" : "RX");
+    return ESP_OK;
+}
+
+void SPI_COMMON_ISR_ATTR spicommon_dma_rx_mb(spi_host_device_t host_id, void *rx_buffer)
+{
+    (void)host_id;
+#if SOC_PSRAM_DMA_CAPABLE && CONFIG_SPIRAM
+    if (esp_ptr_external_ram(rx_buffer)) {
+        // dma rx data to psram need memory barrier fix
+        esp_psram_mspi_mb();
+    }
+#endif
+}
+
+//----------------------------------------------------------free dma periph-------------------------------------------------------//
+esp_err_t spicommon_dma_chan_free(spi_host_device_t host_id)
+{
+    spi_dma_ctx_t *dma_ctx = spi_bus_get_dma_ctx(host_id);
 
 #if !SOC_GDMA_SUPPORTED
     //On ESP32S2, each SPI controller has its own DMA channel
@@ -384,17 +457,7 @@ esp_err_t spicommon_dma_chan_free(spi_dma_ctx_t *dma_ctx)
 
     portENTER_CRITICAL(&spi_dma_spinlock);
     spi_dma_chan_enabled &= ~BIT(dma_chan);
-#if SPI_LL_DMA_SHARED
-    PERIPH_RCC_RELEASE_ATOMIC(get_dma_periph(dma_chan), ref_count) {
-        if (ref_count == 0) {
-            spi_dma_ll_enable_bus_clock(dma_ctx->tx_dma_chan.host_id, false);
-        }
-    }
-#else
-    PERIPH_RCC_ATOMIC() {
-        spi_dma_ll_enable_bus_clock(dma_ctx->tx_dma_chan.host_id, false);
-    }
-#endif
+    _spicommon_dma_rcc_clock_ctrl(dma_chan, false);
     portEXIT_CRITICAL(&spi_dma_spinlock);
 
 #else //SOC_GDMA_SUPPORTED
@@ -408,7 +471,14 @@ esp_err_t spicommon_dma_chan_free(spi_dma_ctx_t *dma_ctx)
     }
 #endif
 
+    if (dma_ctx->dmadesc_tx) {
+        free(dma_ctx->dmadesc_tx);
+    }
+    if (dma_ctx->dmadesc_rx) {
+        free(dma_ctx->dmadesc_rx);
+    }
     free(dma_ctx);
+    spi_dma_ctx[host_id] = NULL;
     return ESP_OK;
 }
 
@@ -546,7 +616,7 @@ Do the common stuff to hook up a SPI host to a bus defined by a bunch of GPIO pi
 bus config struct and it'll set up the GPIO matrix and enable the device. If a pin is set to non-negative value,
 it should be able to be initialized.
 */
-esp_err_t spicommon_bus_initialize_io(spi_host_device_t host, const spi_bus_config_t *bus_config, uint32_t flags, uint32_t* flags_o, uint64_t *io_reserved)
+esp_err_t spicommon_bus_initialize_io(spi_host_device_t host, const spi_bus_config_t *bus_config, uint32_t flags, uint32_t* flags_o)
 {
 #if SOC_SPI_SUPPORT_OCT
     // In the driver of previous version, spi data4 ~ spi data7 are not in spi_bus_config_t struct. So the new-added pins come as 0
@@ -837,18 +907,14 @@ esp_err_t spi_bus_initialize(spi_host_device_t host_id, const spi_bus_config_t *
     bus_attr->dma_enabled = (dma_chan != SPI_DMA_DISABLED);
     bus_attr->max_transfer_sz = SOC_SPI_MAXIMUM_BUFFER_SIZE;
     if (bus_attr->dma_enabled) {
-        err = spicommon_dma_chan_alloc(host_id, dma_chan, &ctx->dma_ctx);
+        err = spicommon_dma_chan_alloc(host_id, dma_chan);
         if (err != ESP_OK) {
             goto cleanup;
         }
-        err = spicommon_dma_desc_alloc(ctx->dma_ctx, bus_config->max_transfer_sz, &bus_attr->max_transfer_sz);
+        err = spicommon_dma_desc_alloc(host_id, bus_config->max_transfer_sz, &bus_attr->max_transfer_sz);
         if (err != ESP_OK) {
             goto cleanup;
         }
-
-        // Get cache alignment constraints
-        esp_cache_get_alignment(MALLOC_CAP_DMA, &bus_attr->cache_align_int);
-        esp_cache_get_alignment(MALLOC_CAP_SPIRAM, &bus_attr->cache_align_ext);
     }
 
     spi_bus_lock_config_t lock_config = {
@@ -902,7 +968,7 @@ esp_err_t spi_bus_initialize(spi_host_device_t host_id, const spi_bus_config_t *
     }
 #endif //CONFIG_PM_ENABLE
 
-    err = spicommon_bus_initialize_io(host_id, bus_config, SPICOMMON_BUSFLAG_MASTER | bus_config->flags, NULL, NULL);
+    err = spicommon_bus_initialize_io(host_id, bus_config, SPICOMMON_BUSFLAG_MASTER | bus_config->flags, NULL);
     if (err != ESP_OK) {
         goto cleanup;
     }
@@ -917,12 +983,10 @@ cleanup:
         if (bus_attr->lock) {
             spi_bus_deinit_lock(bus_attr->lock);
         }
-        if (ctx->dma_ctx) {
-            free(ctx->dma_ctx->dmadesc_tx);
-            free(ctx->dma_ctx->dmadesc_rx);
-            spicommon_dma_chan_free(ctx->dma_ctx);
-            ctx->dma_ctx = NULL;
-        }
+    }
+    if (bus_attr->dma_enabled) {
+        // free dma channel and descriptors
+        spicommon_dma_chan_free(host_id);
     }
     spicommon_bus_free(host_id);
     return err;
@@ -931,19 +995,20 @@ cleanup:
 void *spi_bus_dma_memory_alloc(spi_host_device_t host_id, size_t size, uint32_t extra_heap_caps)
 {
     SPI_CHECK(bus_ctx[host_id], "SPI %d not initialized", NULL, host_id + 1);
+    spi_dma_ctx_t *dma_ctx = spi_bus_get_dma_ctx(host_id);
 
-    size_t alignment = 16;
-    // detailed alignment requirement is not available for slave bus, so use 16 bytes as default
-    if (bus_ctx[host_id]->bus_attr.flags & SPICOMMON_BUSFLAG_MASTER) {
+    size_t alignment = 1;   // return 1 anyway if dma not used but user use it.
+    if (dma_ctx) {
         // As don't know the buffer will used for TX or RX, so use the max alignment requirement
         alignment = (extra_heap_caps & MALLOC_CAP_SPIRAM) ? \
-                    MAX(bus_ctx[host_id]->dma_ctx->dma_align_tx_ext, bus_ctx[host_id]->dma_ctx->dma_align_rx_ext) : \
-                    MAX(bus_ctx[host_id]->dma_ctx->dma_align_tx_int, bus_ctx[host_id]->dma_ctx->dma_align_rx_int);
+                    MAX(dma_ctx->dma_align_tx_ext, dma_ctx->dma_align_rx_ext) : \
+                    MAX(dma_ctx->dma_align_tx_int, dma_ctx->dma_align_rx_int);
     }
+
     return heap_caps_aligned_calloc(alignment, 1, size, extra_heap_caps | MALLOC_CAP_DMA);
 }
 
-const spi_bus_attr_t* spi_bus_get_attr(spi_host_device_t host_id)
+SPI_COMMON_ISR_ATTR spi_bus_attr_t* spi_bus_get_attr(spi_host_device_t host_id)
 {
     if (bus_ctx[host_id] == NULL) {
         return NULL;
@@ -952,13 +1017,9 @@ const spi_bus_attr_t* spi_bus_get_attr(spi_host_device_t host_id)
     return &bus_ctx[host_id]->bus_attr;
 }
 
-const spi_dma_ctx_t* spi_bus_get_dma_ctx(spi_host_device_t host_id)
+SPI_COMMON_ISR_ATTR spi_dma_ctx_t* spi_bus_get_dma_ctx(spi_host_device_t host_id)
 {
-    if (bus_ctx[host_id] == NULL) {
-        return NULL;
-    }
-
-    return bus_ctx[host_id]->dma_ctx;
+    return spi_dma_ctx[host_id];
 }
 
 esp_err_t spi_bus_free(spi_host_device_t host_id)
@@ -998,11 +1059,8 @@ esp_err_t spi_bus_free(spi_host_device_t host_id)
 #endif
 
     spi_bus_deinit_lock(bus_attr->lock);
-    if (ctx->dma_ctx) {
-        free(ctx->dma_ctx->dmadesc_tx);
-        free(ctx->dma_ctx->dmadesc_rx);
-        spicommon_dma_chan_free(ctx->dma_ctx);
-        ctx->dma_ctx = NULL;
+    if (bus_attr->dma_enabled) {
+        spicommon_dma_chan_free(host_id);
     }
     spicommon_bus_free(host_id);
     return err;

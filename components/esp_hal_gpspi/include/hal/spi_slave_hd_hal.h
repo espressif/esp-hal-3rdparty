@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2015-2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -137,6 +137,15 @@ void spi_slave_hd_hal_init(spi_slave_hd_hal_context_t *hal, const spi_slave_hd_h
  * @return          True if event triggered, otherwise false
  */
 bool spi_slave_hd_hal_check_clear_event(spi_slave_hd_hal_context_t* hal, spi_event_t ev);
+
+/**
+ * @brief Check and clear the interrupt by mask
+ *
+ * @param hal       Context of the HAL layer
+ * @param mask      Mask of the interrupt bits to check
+ * @return          True if the masked interrupts are set, false otherwise
+ */
+bool spi_slave_hd_hal_check_clear_intr(spi_slave_hd_hal_context_t *hal, uint32_t mask);
 
 /**
  * @brief Check and clear the interrupt of one event.

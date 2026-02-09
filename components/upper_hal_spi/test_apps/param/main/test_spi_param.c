@@ -1567,15 +1567,18 @@ static void test_slave_hd_dma(void)
                     test_fill_random_to_buffers_dualboard(985 + mode + speed_level + i, slave_expect, slave_send, TEST_STEP_LEN);
                     uint32_t test_trans_len = TEST_STEP_LEN;
 
-                    spi_slave_hd_data_t *ret_trans, slave_trans = {
+                    spi_slave_hd_data_t *ret_trans, slave_tx = {
                         .data = slave_send,
+                        .len = test_trans_len,
+                        .flags = SPI_SLAVE_HD_TRANS_DMA_BUFFER_ALIGN_AUTO,
+                    }, slave_rx = {
+                        .data = slave_receive,
                         .len = test_trans_len,
                         .flags = SPI_SLAVE_HD_TRANS_DMA_BUFFER_ALIGN_AUTO,
                     };
                     unity_send_signal("Slave ready");
-                    TEST_ESP_OK(spi_slave_hd_queue_trans(TEST_SPI_HOST, SPI_SLAVE_CHAN_TX, &slave_trans, portMAX_DELAY));
-                    slave_trans.data = slave_receive;
-                    TEST_ESP_OK(spi_slave_hd_queue_trans(TEST_SPI_HOST, SPI_SLAVE_CHAN_RX, &slave_trans, portMAX_DELAY));
+                    TEST_ESP_OK(spi_slave_hd_queue_trans(TEST_SPI_HOST, SPI_SLAVE_CHAN_TX, &slave_tx, portMAX_DELAY));
+                    TEST_ESP_OK(spi_slave_hd_queue_trans(TEST_SPI_HOST, SPI_SLAVE_CHAN_RX, &slave_rx, portMAX_DELAY));
                     TEST_ESP_OK(spi_slave_hd_get_trans_res(TEST_SPI_HOST, SPI_SLAVE_CHAN_TX, &ret_trans, portMAX_DELAY));
                     TEST_ESP_OK(spi_slave_hd_get_trans_res(TEST_SPI_HOST, SPI_SLAVE_CHAN_RX, &ret_trans, portMAX_DELAY));
 
@@ -1677,16 +1680,19 @@ static void test_slave_hd_no_dma(void)
                     test_fill_random_to_buffers_dualboard(911 + mode + speed_level + i, slave_expect, slave_send, SOC_SPI_MAXIMUM_BUFFER_SIZE);
                     uint32_t test_trans_len = SOC_SPI_MAXIMUM_BUFFER_SIZE;
 
-                    spi_slave_hd_data_t *ret_trans, slave_trans = {
+                    spi_slave_hd_data_t *ret_trans, slave_tx = {
                         .data = slave_send,
                         .len = test_trans_len,
                         .flags = SPI_SLAVE_HD_TRANS_DMA_BUFFER_ALIGN_AUTO,
+                    }, slave_rx = {
+                        .data = slave_receive,
+                        .len = test_trans_len,
+                        .flags = SPI_SLAVE_HD_TRANS_DMA_BUFFER_ALIGN_AUTO,
                     };
-                    TEST_ESP_OK(spi_slave_hd_queue_trans(TEST_SPI_HOST, SPI_SLAVE_CHAN_TX, &slave_trans, portMAX_DELAY));
+                    TEST_ESP_OK(spi_slave_hd_queue_trans(TEST_SPI_HOST, SPI_SLAVE_CHAN_TX, &slave_tx, portMAX_DELAY));
                     unity_send_signal("Slave ready");
                     TEST_ESP_OK(spi_slave_hd_get_trans_res(TEST_SPI_HOST, SPI_SLAVE_CHAN_TX, &ret_trans, portMAX_DELAY));
-                    slave_trans.data = slave_receive;
-                    TEST_ESP_OK(spi_slave_hd_queue_trans(TEST_SPI_HOST, SPI_SLAVE_CHAN_RX, &slave_trans, portMAX_DELAY));
+                    TEST_ESP_OK(spi_slave_hd_queue_trans(TEST_SPI_HOST, SPI_SLAVE_CHAN_RX, &slave_rx, portMAX_DELAY));
                     unity_send_signal("Slave ready");
                     TEST_ESP_OK(spi_slave_hd_get_trans_res(TEST_SPI_HOST, SPI_SLAVE_CHAN_RX, &ret_trans, portMAX_DELAY));
 

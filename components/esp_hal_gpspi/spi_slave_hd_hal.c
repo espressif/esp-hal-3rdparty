@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2015-2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -154,14 +154,18 @@ static spi_ll_intr_t get_event_intr(spi_slave_hd_hal_context_t *hal, spi_event_t
     return intr;
 }
 
-bool spi_slave_hd_hal_check_clear_event(spi_slave_hd_hal_context_t *hal, spi_event_t ev)
+bool spi_slave_hd_hal_check_clear_intr(spi_slave_hd_hal_context_t *hal, uint32_t mask)
 {
-    spi_ll_intr_t intr = get_event_intr(hal, ev);
-    if (spi_ll_get_intr(hal->dev, intr)) {
-        spi_ll_clear_intr(hal->dev, intr);
+    if (spi_ll_get_intr(hal->dev, mask)) {
+        spi_ll_clear_intr(hal->dev, mask);
         return true;
     }
     return false;
+}
+
+bool spi_slave_hd_hal_check_clear_event(spi_slave_hd_hal_context_t *hal, spi_event_t ev)
+{
+    return spi_slave_hd_hal_check_clear_intr(hal, get_event_intr(hal, ev));
 }
 
 bool spi_slave_hd_hal_check_disable_event(spi_slave_hd_hal_context_t *hal, spi_event_t ev)
