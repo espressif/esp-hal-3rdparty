@@ -291,12 +291,12 @@ psa_status_t esp_hmac_finish_transparent(
         goto exit;
     }
 
-    if (mac_size < hash_size) {
-        status = PSA_ERROR_BUFFER_TOO_SMALL;
-        goto exit;
-    }
-    memcpy(mac, tmp, hash_size);
-    *mac_length = hash_size;
+    /* Copy the MAC, limiting to the actual hash size we computed.
+     * This supports truncated MACs (mac_size < hash_size) and also
+     * handles cases where the output buffer is larger than needed. */
+    size_t bytes_to_copy = (mac_size <= hash_size) ? mac_size : hash_size;
+    memcpy(mac, tmp, bytes_to_copy);
+    *mac_length = bytes_to_copy;
 
 exit:
     mbedtls_platform_zeroize(tmp, hash_size);
