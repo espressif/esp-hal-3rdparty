@@ -1026,9 +1026,6 @@ static esp_err_t SLEEP_FN_ATTR esp_sleep_start(uint32_t sleep_flags, uint32_t cl
 
     int64_t sleep_duration = (int64_t) s_config.sleep_duration - (int64_t) s_config.sleep_time_adjustment;
 
-    // Sleep UART prepare
-    sleep_uart_prepare(sleep_flags, deep_sleep);
-
 #if CONFIG_ESP_PHY_ENABLED && SOC_DEEP_SLEEP_SUPPORTED
     // Do deep-sleep PHY related callback, which need to be executed when the PLL clock is exists.
     // For light-sleep, PHY state is managed by the upper layer of the wifi/bt protocol stack.
@@ -1037,21 +1034,11 @@ static esp_err_t SLEEP_FN_ATTR esp_sleep_start(uint32_t sleep_flags, uint32_t cl
     }
 #endif
 
-#if !CONFIG_APP_BUILD_TYPE_PURE_RAM_APP
-    uint32_t xtal_freq = rtc_clk_xtal_freq_get();
-    esp_clk_utils_mspi_speed_mode_sync_before_cpu_freq_switching(xtal_freq, xtal_freq);
-#endif
-
 #if SOC_PM_RETENTION_SW_TRIGGER_REGDMA
     if (!deep_sleep && (sleep_flags & PMU_SLEEP_PD_TOP)) {
         sleep_retention_do_system_retention(true);
     }
 #endif
-
-    // Save current frequency and switch to XTAL
-    rtc_cpu_freq_config_t cpu_freq_config;
-    rtc_clk_cpu_freq_get_config(&cpu_freq_config);
-    rtc_clk_cpu_freq_set_xtal_for_sleep();
 
 #if SOC_PM_SUPPORT_EXT0_WAKEUP
     // Configure pins for external wakeup
@@ -1072,6 +1059,19 @@ static esp_err_t SLEEP_FN_ATTR esp_sleep_start(uint32_t sleep_flags, uint32_t cl
         esp_sleep_gpio_wakeup_prepare_on_hp_periph_powerdown();
     }
 #endif
+
+    // Sleep UART prepare
+    sleep_uart_prepare(sleep_flags, deep_sleep);
+
+#if !CONFIG_APP_BUILD_TYPE_PURE_RAM_APP
+    uint32_t xtal_freq = rtc_clk_xtal_freq_get();
+    esp_clk_utils_mspi_speed_mode_sync_before_cpu_freq_switching(xtal_freq, xtal_freq);
+#endif
+
+    // Save current frequency and switch to XTAL
+    rtc_cpu_freq_config_t cpu_freq_config;
+    rtc_clk_cpu_freq_get_config(&cpu_freq_config);
+    rtc_clk_cpu_freq_set_xtal_for_sleep();
 
 #if CONFIG_ULP_COPROC_ENABLED
     // Enable ULP wakeup
@@ -2261,12 +2261,16 @@ static void esp_sleep_gpio_wakeup_prepare_on_hp_periph_powerdown(void)
         rtcio_ll_enable_io_clock(true);
 #endif
 #if CONFIG_ESP_SLEEP_GPIO_ENABLE_INTERNAL_RESISTORS
-        if (s_config.gpio_trigger_mode & BIT(gpio_idx)) {
-            ESP_ERROR_CHECK(gpio_pullup_dis(gpio_idx));
-            ESP_ERROR_CHECK(gpio_pulldown_en(gpio_idx));
+        if (GPIO_IS_VALID_OUTPUT_GPIO(gpio_idx)) {
+            if (s_config.gpio_trigger_mode & BIT(gpio_idx)) {
+                gpio_pullup_dis(gpio_idx);
+                gpio_pulldown_en(gpio_idx);
+            } else {
+                gpio_pullup_en(gpio_idx);
+                gpio_pulldown_dis(gpio_idx);
+            }
         } else {
-            ESP_ERROR_CHECK(gpio_pullup_en(gpio_idx));
-            ESP_ERROR_CHECK(gpio_pulldown_dis(gpio_idx));
+            ESP_EARLY_LOGE(TAG, "GPIO%d not support internal PU/PD", gpio_idx);
         }
 #endif
         ESP_ERROR_CHECK(gpio_hold_en(gpio_idx));
