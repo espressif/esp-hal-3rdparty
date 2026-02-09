@@ -2275,9 +2275,6 @@ esp_err_t uart_set_wakeup_threshold(uart_port_t uart_num, int wakeup_threshold)
                         "wakeup_threshold out of bounds");
     UART_ENTER_CRITICAL(&(uart_context[uart_num].spinlock));
     uart_hal_set_wakeup_edge_thrd(&(uart_context[uart_num].hal), wakeup_threshold);
-    PERIPH_RCC_ATOMIC() {
-        uart_ll_enable_pad_sleep_clock(uart_context[uart_num].hal.dev, true);
-    }
     UART_EXIT_CRITICAL(&(uart_context[uart_num].spinlock));
     return ESP_OK;
 }
