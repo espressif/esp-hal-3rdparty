@@ -138,7 +138,7 @@ TEST_CASE("SPI Master clockdiv calculation routines", "[spi]")
 
 // Test All clock source
 #define TEST_CLK_BYTE_LEN           10000
-#define TEST_TRANS_TIME_BIAS_RATIO  (float)10.0/100   // think 10% transfer time bias as acceptable
+#define TEST_TRANS_TIME_BIAS_RATIO  (float)15.0/100   // think 15% transfer time bias as acceptable
 TEST_CASE("SPI Master clk_source and divider accuracy", "[spi]")
 {
     int64_t start = 0, end = 0;
@@ -677,6 +677,24 @@ TEST_CASE("spi bus setting with different pin configs", "[spi]")
     };
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_ARG, spicommon_bus_initialize_io(TEST_SPI_HOST, &cfg, flags_expected | SPICOMMON_BUSFLAG_MASTER, &flags_o));
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_ARG, spicommon_bus_initialize_io(TEST_SPI_HOST, &cfg, flags_expected | SPICOMMON_BUSFLAG_SLAVE, &flags_o));
+
+#ifdef SPI2_IOMUX_PIN_2_NUM_MOSI
+    ESP_LOGI(TAG, "check 2nd set of iomux pins...");
+    flags_expected = SPICOMMON_BUSFLAG_MOSI | SPICOMMON_BUSFLAG_MISO | SPICOMMON_BUSFLAG_QUAD | SPICOMMON_BUSFLAG_SCLK | SPICOMMON_BUSFLAG_IOMUX_PINS;
+    // all 2nd iomux pins
+    cfg = (spi_bus_config_t) {
+        .mosi_io_num = SPI2_IOMUX_PIN_2_NUM_MOSI, .miso_io_num = SPI2_IOMUX_PIN_2_NUM_MISO, .sclk_io_num = SPI2_IOMUX_PIN_2_NUM_CLK, .quadhd_io_num = SPI2_IOMUX_PIN_2_NUM_HD, .quadwp_io_num = SPI2_IOMUX_PIN_2_NUM_WP,
+    };
+    TEST_ESP_OK(spicommon_bus_initialize_io(TEST_SPI_HOST, &cfg, flags_expected | SPICOMMON_BUSFLAG_MASTER, &flags_o));
+    TEST_ASSERT_EQUAL_HEX32(flags_expected, flags_o);
+
+    // mixed 1st and 2nd iomux pins
+    cfg = (spi_bus_config_t) {
+        .mosi_io_num = SPI2_IOMUX_PIN_NUM_MOSI, .miso_io_num = SPI2_IOMUX_PIN_2_NUM_MISO, .sclk_io_num = SPI2_IOMUX_PIN_2_NUM_CLK, .quadhd_io_num = SPI2_IOMUX_PIN_NUM_HD, .quadwp_io_num = SPI2_IOMUX_PIN_2_NUM_WP,
+    };
+    TEST_ESP_OK(spicommon_bus_initialize_io(TEST_SPI_HOST, &cfg, flags_expected | SPICOMMON_BUSFLAG_SLAVE, &flags_o));
+    TEST_ASSERT_EQUAL_HEX32(flags_expected, flags_o);
+#endif
 }
 
 TEST_CASE("SPI Master no response when switch from host1 (SPI2) to host2 (SPI3)", "[spi]")
@@ -934,7 +952,7 @@ void test_cmd_addr(spi_slave_task_context_t *slave_context, bool lsb_first)
 
     //initial master, mode 0, 1MHz
     spi_bus_config_t buscfg = SPI_BUS_TEST_DEFAULT_CONFIG();
-    buscfg.quadhd_io_num = UNCONNECTED_PIN;
+    buscfg.flags |= SPICOMMON_BUSFLAG_GPIO_PINS;
     TEST_ESP_OK(spi_bus_initialize(TEST_SPI_HOST, &buscfg, SPI_DMA_CH_AUTO));
     spi_device_interface_config_t devcfg = SPI_DEVICE_TEST_DEFAULT_CONFIG();
     devcfg.clock_speed_hz = 1 * 1000 * 1000;

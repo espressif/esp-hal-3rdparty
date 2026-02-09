@@ -687,6 +687,7 @@ static SPI_MASTER_ISR_ATTR void spi_setup_device(spi_device_t *dev, spi_trans_pr
 #if SPI_LL_SRC_PRE_DIV_MAX
             //we set mst_div as const 2, then (hs_clk = 2*mst_clk) to ensure timing turning work as past
             //and sure (hs_div * mst_div = source_pre_div)
+            assert(hal_dev->timing_conf.source_pre_div >= 2);   // source_pre_div must be even and at least 2
             spi_ll_clk_source_pre_div(hal->hw, hal_dev->timing_conf.source_pre_div / 2, 2);
 #endif
             spi_ll_set_clk_source(hal->hw, hal_dev->timing_conf.clock_source);

@@ -57,7 +57,7 @@
 #define SOC_RMT_SUPPORTED               1
 // #define SOC_I2S_SUPPORTED               1      // TODO: [ESP32S31] IDF-14771
 #define SOC_SDM_SUPPORTED               1
-// #define SOC_GPSPI_SUPPORTED             1      // TODO: [ESP32S31] IDF-14734
+#define SOC_GPSPI_SUPPORTED             1
 #define SOC_LEDC_SUPPORTED              1
 // #define SOC_ISP_SUPPORTED               1      // TODO: [ESP32S31] IDF-14769
 // #define SOC_I2C_SUPPORTED               1      // TODO: [ESP32S31] IDF-14726
@@ -237,11 +237,11 @@
 #define SOC_MMU_PER_EXT_MEM_TARGET            (1) /*!< MMU is per physical external memory target (flash, psram) */
 
 /*-------------------------- SPI CAPS ----------------------------------------*/
-// TODO: [ESP32S31] IDF-14734
-#define SOC_SPI_PERIPH_NUM              3
-#define SOC_SPI_PERIPH_CS_NUM(i)        (((i)==0)? 2: (((i)==1)? 6: 3))
-#define SOC_SPI_MAXIMUM_BUFFER_SIZE     64
-#define SOC_SPI_MAX_BITWIDTH(host_id)   ((host_id == 2) ? 4 : 8) // Supported line mode: SPI3: 1, 2, 4, SPI1/2: 1, 2, 4, 8
+#define SOC_SPI_PERIPH_NUM                  3
+#define SOC_SPI_MAXIMUM_BUFFER_SIZE         64
+#define SOC_SPI_SUPPORT_SLEEP_RETENTION     1
+#define SOC_SPI_SUPPORT_SLAVE_HD_VER2       1
+#define SOC_SPI_SUPPORT_OCT                 1
 
 /*-------------------------- SPIRAM CAPS ----------------------------------------*/
 #define SOC_SPIRAM_XIP_SUPPORTED        1

@@ -536,25 +536,18 @@ static bool check_iomux_pins_oct(spi_host_device_t host, const spi_bus_config_t*
 
 static bool check_iomux_pins_quad(spi_host_device_t host, const spi_bus_config_t* bus_config)
 {
-    if (bus_config->sclk_io_num >= 0 &&
-            bus_config->sclk_io_num != spi_periph_signal[host].spiclk_iomux_pin) {
-        return false;
-    }
-    if (bus_config->quadwp_io_num >= 0 &&
-            bus_config->quadwp_io_num != spi_periph_signal[host].spiwp_iomux_pin) {
-        return false;
-    }
-    if (bus_config->quadhd_io_num >= 0 &&
-            bus_config->quadhd_io_num != spi_periph_signal[host].spihd_iomux_pin) {
-        return false;
-    }
-    if (bus_config->mosi_io_num >= 0 &&
-            bus_config->mosi_io_num != spi_periph_signal[host].spid_iomux_pin) {
-        return false;
-    }
-    if (bus_config->miso_io_num >= 0 &&
-            bus_config->miso_io_num != spi_periph_signal[host].spiq_iomux_pin) {
-        return false;
+    int io_nums[] = {bus_config->data0_io_num, bus_config->data1_io_num, bus_config->data2_io_num, bus_config->data3_io_num, bus_config->sclk_io_num};
+    int io_mux_nums[] = {spi_periph_signal[host].spid_iomux_pin, spi_periph_signal[host].spiq_iomux_pin, spi_periph_signal[host].spiwp_iomux_pin, spi_periph_signal[host].spihd_iomux_pin, spi_periph_signal[host].spiclk_iomux_pin};
+#ifdef SPI2_IOMUX_PIN_2_NUM_MOSI
+    int io_mux_2_nums[] = {SPI2_IOMUX_PIN_2_NUM_MOSI, SPI2_IOMUX_PIN_2_NUM_MISO, SPI2_IOMUX_PIN_2_NUM_WP, SPI2_IOMUX_PIN_2_NUM_HD, SPI2_IOMUX_PIN_2_NUM_CLK};
+#else
+    // use same pin again to fake the second set of pins
+    int *io_mux_2_nums = io_mux_nums;
+#endif
+    for (size_t i = 0; i < sizeof(io_nums) / sizeof(io_nums[0]); i++) {
+        if (io_nums[i] >= 0 && (io_nums[i] != io_mux_nums[i]) && (io_nums[i] != io_mux_2_nums[i])) {
+            return false;
+        }
     }
     return true;
 }
@@ -594,25 +587,14 @@ static void bus_iomux_pins_set_oct(spi_host_device_t host, const spi_bus_config_
 
 static void bus_iomux_pins_set_quad(spi_host_device_t host, const spi_bus_config_t* bus_config)
 {
-    if (bus_config->mosi_io_num >= 0) {
-        gpio_iomux_input(bus_config->mosi_io_num, spi_periph_signal[host].func, spi_periph_signal[host].spid_in);
-        gpio_iomux_output(bus_config->mosi_io_num, spi_periph_signal[host].func);
-    }
-    if (bus_config->miso_io_num >= 0) {
-        gpio_iomux_input(bus_config->miso_io_num, spi_periph_signal[host].func, spi_periph_signal[host].spiq_in);
-        gpio_iomux_output(bus_config->miso_io_num, spi_periph_signal[host].func);
-    }
-    if (bus_config->quadwp_io_num >= 0) {
-        gpio_iomux_input(bus_config->quadwp_io_num, spi_periph_signal[host].func, spi_periph_signal[host].spiwp_in);
-        gpio_iomux_output(bus_config->quadwp_io_num, spi_periph_signal[host].func);
-    }
-    if (bus_config->quadhd_io_num >= 0) {
-        gpio_iomux_input(bus_config->quadhd_io_num, spi_periph_signal[host].func, spi_periph_signal[host].spihd_in);
-        gpio_iomux_output(bus_config->quadhd_io_num, spi_periph_signal[host].func);
-    }
-    if (bus_config->sclk_io_num >= 0) {
-        gpio_iomux_input(bus_config->sclk_io_num, spi_periph_signal[host].func, spi_periph_signal[host].spiclk_in);
-        gpio_iomux_output(bus_config->sclk_io_num, spi_periph_signal[host].func);
+    int io_nums[] = {bus_config->data0_io_num, bus_config->data1_io_num, bus_config->data2_io_num, bus_config->data3_io_num, bus_config->sclk_io_num};
+    int io_signals[] = {spi_periph_signal[host].spid_in, spi_periph_signal[host].spiq_in, spi_periph_signal[host].spiwp_in, spi_periph_signal[host].spihd_in, spi_periph_signal[host].spiclk_in};
+
+    for (size_t i = 0; i < sizeof(io_nums) / sizeof(io_nums[0]); i++) {
+        if (io_nums[i] >= 0) {
+            gpio_iomux_input(io_nums[i], spi_periph_signal[host].func, io_signals[i]);
+            gpio_iomux_output(io_nums[i], spi_periph_signal[host].func);
+        }
     }
 }
 

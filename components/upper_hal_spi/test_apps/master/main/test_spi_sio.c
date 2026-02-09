@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2021-2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2021-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -35,27 +35,6 @@
 /********************************************************************************
  *      Test SIO
  ********************************************************************************/
-#if CONFIG_IDF_TARGET_ESP32
-#define MASTER_DIN_SIGNAL    HSPID_IN_IDX
-#elif CONFIG_IDF_TARGET_ESP32P4
-#define MASTER_DIN_SIGNAL    SPI2_D_PAD_IN_IDX
-#else
-#define MASTER_DIN_SIGNAL    FSPID_IN_IDX
-#endif
-static void inner_connect(spi_bus_config_t bus)
-{
-    //Master MOSI(spid_out) output to `mosi_num`
-    spitest_gpio_output_sel(bus.mosi_io_num, FUNC_GPIO, spi_periph_signal[TEST_SPI_HOST].spid_out);
-    //Slave MOSI(spid_in) input to `mosi_num`
-    spitest_gpio_input_sel(bus.mosi_io_num, FUNC_GPIO, spi_periph_signal[TEST_SLAVE_HOST].spid_in);
-
-    //Master MOSI input(spid_in) to `miso_num`, due to SIO mode, we use Master's `spid_in` to receive data
-    spitest_gpio_input_sel(bus.miso_io_num, FUNC_GPIO, spi_periph_signal[TEST_SPI_HOST].spid_in);
-    //Slave MISO output(spiq_out)
-    spitest_gpio_output_sel(bus.miso_io_num, FUNC_GPIO, spi_periph_signal[TEST_SLAVE_HOST].spiq_out);
-    //Force this signal goes through gpio matrix
-    GPIO.func_in_sel_cfg[MASTER_DIN_SIGNAL].sig_in_sel = 1;
-}
 
 TEST_CASE("SPI Single Board Test SIO", "[spi]")
 {
@@ -76,7 +55,8 @@ TEST_CASE("SPI Single Board Test SIO", "[spi]")
     TEST_ESP_OK(spi_slave_initialize(TEST_SLAVE_HOST, &bus_cfg, &slv_cfg, SPI_DMA_DISABLED));
 
     same_pin_func_sel(TEST_SPI_HOST, TEST_SLAVE_HOST, bus_cfg, dev_cfg.spics_io_num);
-    inner_connect(bus_cfg);
+    // fix sio internal connection
+    spitest_gpio_input_sel(bus_cfg.miso_io_num, FUNC_GPIO, spi_periph_signal[TEST_SPI_HOST].spid_in);
 
     WORD_ALIGNED_ATTR uint8_t master_rx_buffer[320];
     WORD_ALIGNED_ATTR uint8_t slave_rx_buffer[320];
