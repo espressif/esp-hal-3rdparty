@@ -27,7 +27,6 @@
 #pragma once
 #include "esp_err.h"
 #include "soc/soc_caps.h"
-#include "soc/spi_periph.h"
 #include "hal/spi_types.h"
 #if SOC_GPSPI_SUPPORTED
 #include "hal/spi_ll.h"
@@ -127,7 +126,6 @@ typedef struct {
     };//boolean configurations
 } spi_hal_dev_config_t;
 
-#ifdef SOC_SPI_SCT_SUPPORTED
 /**
  * SCT mode required configurations, per segment
  */
@@ -152,7 +150,6 @@ typedef struct {
     /* DONE State */
     int cs_hold;                        ///< Hold time of CS inactive edge after the last SPI clock
 } spi_hal_seg_config_t;
-#endif  //#ifdef SOC_SPI_SCT_SUPPORTED
 
 /**
  * Init the peripheral and the context.
@@ -312,7 +309,6 @@ void spi_hal_cal_timing(int source_freq_hz, int eff_clk, bool gpio_is_used, int 
  */
 int spi_hal_get_freq_limit(bool gpio_is_used, int input_delay_ns);
 
-#ifdef SOC_SPI_SCT_SUPPORTED
 /*----------------------------------------------------------
  * Segmented-Configure-Transfer (SCT) Mode
  * ---------------------------------------------------------*/
@@ -354,7 +350,6 @@ void spi_hal_sct_set_conf_bits_len(spi_hal_context_t *hal, uint32_t conf_len);
  * Set conf_bitslen base to HW for sct, only supported on s2.
  */
 #define spi_hal_sct_setup_conf_base(hal, conf_base)     spi_ll_set_conf_base_bitslen((hal)->hw, conf_base)
-#endif  //#ifdef SOC_SPI_SCT_SUPPORTED
 #endif  //#if SOC_GPSPI_SUPPORTED
 
 #ifdef __cplusplus

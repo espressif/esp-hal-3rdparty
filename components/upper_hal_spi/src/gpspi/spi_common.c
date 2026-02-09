@@ -949,7 +949,7 @@ esp_err_t spi_bus_initialize(spi_host_device_t host_id, const spi_bus_config_t *
 
     spi_bus_lock_config_t lock_config = {
         .host_id = host_id,
-        .cs_num = SOC_SPI_PERIPH_CS_NUM(host_id),
+        .cs_num = SPI_LL_PERIPH_CS_NUM(host_id),
     };
     err = spi_bus_init_lock(&bus_attr->lock, &lock_config);
     if (err != ESP_OK) {

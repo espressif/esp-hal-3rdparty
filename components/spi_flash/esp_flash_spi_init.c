@@ -28,6 +28,7 @@
 #include "soc/soc_caps.h"
 #include "hal/spi_flash_hal.h"
 #include "hal/mspi_ll.h"
+#include "hal/spi_ll.h"
 
 #include "esp_flash.h"
 #include "esp_flash_spi_init.h"
@@ -240,7 +241,7 @@ static esp_err_t acquire_spi_device(const esp_flash_spi_device_config_t *config,
         }
     } else {
         const bool is_main_flash = (config->host_id == SPI1_HOST && config->cs_id == 0);
-        if (config->cs_id >= SOC_SPI_PERIPH_CS_NUM(config->host_id) || config->cs_id < 0 || is_main_flash) {
+        if (config->cs_id >= SPI_LL_PERIPH_CS_NUM(config->host_id) || config->cs_id < 0 || is_main_flash) {
             ESP_LOGE(TAG, "Not valid CS.");
             ret = ESP_ERR_INVALID_ARG;
         } else {
