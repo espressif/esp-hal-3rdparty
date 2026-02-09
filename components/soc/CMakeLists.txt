@@ -2,6 +2,8 @@ idf_build_get_property(target IDF_TARGET)
 
 set(target_folder "${target}")
 
+set(srcs)
+
 # On Linux the soc component is a simple wrapper, without much functionality
 if(NOT ${target} STREQUAL "linux")
     set(srcs "lldesc.c"
