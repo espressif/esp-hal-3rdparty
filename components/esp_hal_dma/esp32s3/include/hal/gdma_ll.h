@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2020-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2020-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -73,6 +73,10 @@ extern "C" {
 #define GDMA_LL_MAX_BURST_SIZE_PSRAM          64 // PSRAM controller doesn't support burst access with size > 64 bytes
 
 #define GDMA_LL_AHB_M2M_CAPABLE_PAIR_MASK   0x1F  // pair 0,1,2,3,4 are M2M capable
+
+// SPI DMA supported burst sizes
+#define GDMA_LL_SUPPORTED_BURST_SIZES_ARRAY  { 16, 32, 64 }
+#define GDMA_LL_SUPPORTED_BURST_SIZES_STR    "16, 32, 64"
 
 ///////////////////////////////////// Common /////////////////////////////////////////
 

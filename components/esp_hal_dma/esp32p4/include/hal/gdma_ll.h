@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2022-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2022-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -70,6 +70,10 @@
 #endif
 
 #define GDMA_LL_AXI_M2M_CAPABLE_PAIR_MASK   0x07  // pair 0,1,2 are M2M capable
+
+// SPI DMA supported burst sizes
+#define GDMA_LL_SUPPORTED_BURST_SIZES_ARRAY  { 8, 16, 32, 64, 128 }
+#define GDMA_LL_SUPPORTED_BURST_SIZES_STR    "8, 16, 32, 64, 128"
 
 #define GDMA_LL_TX_ETM_EVENT_TABLE(group, chan, event)                \
     (uint32_t[2][GDMA_ETM_EVENT_MAX]){                                \
