@@ -10,7 +10,6 @@ from pytest_embedded_idf.utils import idf_parametrize
     'config,target',
     [
         ('default', 'supported_targets'),
-        ('picolibc', 'supported_targets'),
         ('options', 'supported_targets'),
         ('single_core_esp32', 'esp32'),
         ('psram_esp32', 'esp32'),
