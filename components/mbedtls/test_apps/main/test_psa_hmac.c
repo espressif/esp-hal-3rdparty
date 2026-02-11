@@ -58,7 +58,7 @@ static void test_hmac_compute_and_verify(psa_key_id_t key_id,
                                           size_t expected_mac_len)
 {
     psa_status_t status;
-    size_t hmac_length = PSA_HASH_LENGTH(alg);
+    size_t hmac_length = PSA_MAC_TRUNCATED_LENGTH(alg) ? PSA_MAC_TRUNCATED_LENGTH(alg) : PSA_HASH_LENGTH(alg);
     uint8_t *hmac = malloc(hmac_length);
     TEST_ASSERT_NOT_NULL(hmac);
 
@@ -66,6 +66,7 @@ static void test_hmac_compute_and_verify(psa_key_id_t key_id,
     status = psa_mac_compute(key_id, alg, data, data_len,
                              hmac, hmac_length, &mac_length);
     TEST_ASSERT_EQUAL(PSA_SUCCESS, status);
+    TEST_ASSERT_EQUAL(expected_mac_len, mac_length);
 
     status = psa_mac_verify(key_id, alg, data, data_len,
                             expected_mac, expected_mac_len);
@@ -184,4 +185,26 @@ TEST_CASE("PSA HMAC SHA-256 multipart test", "[psa_hmac]")
     psa_mac_abort(&op);
     psa_destroy_key(key_id);
     free(hmac);
+}
+
+TEST_CASE("PSA HMAC SHA-256 truncated test", "[psa_hmac]")
+{
+    psa_status_t status;
+    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
+    psa_key_id_t key_id = 0;
+    // Create truncated HMAC algorithm (16 bytes instead of full 32 bytes)
+    psa_algorithm_t alg = PSA_ALG_TRUNCATED_MAC(PSA_ALG_HMAC(PSA_ALG_SHA_256), 16);
+
+    setup_hmac_key_attributes(&attributes, alg, PSA_KEY_LIFETIME_VOLATILE);
+
+    status = psa_import_key(&attributes, key_256, sizeof(key_256), &key_id);
+    TEST_ASSERT_EQUAL(PSA_SUCCESS, status);
+
+    // Test single-shot compute and verify with truncated MAC
+    test_hmac_compute_and_verify(key_id, alg, test_data, sizeof(test_data),
+                                 expected_hmac_sha256,
+                                 16);
+
+    psa_destroy_key(key_id);
+    psa_reset_key_attributes(&attributes);
 }
