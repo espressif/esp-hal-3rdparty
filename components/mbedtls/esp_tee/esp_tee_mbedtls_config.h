@@ -190,3 +190,6 @@
 #undef PSA_WANT_ALG_TLS12_PRF
 #undef PSA_WANT_ALG_PBKDF2_HMAC
 #undef PSA_WANT_ALG_PBKDF2_AES_CMAC_PRF_128
+
+/* ESP-TEE is single threaded so we can disable threading in mbedTLS */
+#undef MBEDTLS_THREADING_C
