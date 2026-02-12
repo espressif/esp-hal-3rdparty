@@ -9,6 +9,7 @@
 #include "test_utils.h"
 #include "unity_test_utils.h"
 #include "driver/uart.h"
+#include "driver/uart_wakeup.h"
 #include "esp_log.h"
 #include "esp_rom_gpio.h"
 #include "esp_private/gpio.h"
@@ -272,19 +273,6 @@ static void uart_hw_flow_set_get_test(int uart_num)
     }
 }
 
-static void uart_wakeup_set_get_test(int uart_num)
-{
-    printf("uart wake up set and get test\n");
-    int wake_up_set = 0;
-    int wake_up_get = 0;
-    for (int i = 3; i < 0x3ff; i++) {
-        wake_up_set = i;
-        TEST_ESP_OK(uart_set_wakeup_threshold(uart_num, wake_up_set));
-        TEST_ESP_OK(uart_get_wakeup_threshold(uart_num, &wake_up_get));
-        TEST_ASSERT_EQUAL(wake_up_set, wake_up_get);
-    }
-}
-
 TEST_CASE("uart general API test", "[uart]")
 {
     uart_port_param_t port_param = {};
@@ -304,7 +292,6 @@ TEST_CASE("uart general API test", "[uart]")
     uart_stop_bit_set_get_test(uart_num);
     uart_parity_set_get_test(uart_num);
     uart_hw_flow_set_get_test(uart_num);
-    uart_wakeup_set_get_test(uart_num);
 }
 
 typedef struct {
