@@ -38,7 +38,7 @@ TEST_CASE("psa SHA256 performance", "[mbedtls]")
     TEST_ASSERT_NOT_NULL(buf);
     memset(buf, 0x55, CALL_SZ);
 
-    ccomp_timer_start();
+    TEST_ESP_OK(ccomp_timer_start());
     for (int c = 0; c < CALLS; c++) {
         status = psa_hash_update(&operation, buf, CALL_SZ);
         TEST_ASSERT_EQUAL(PSA_SUCCESS, status);
@@ -47,6 +47,7 @@ TEST_CASE("psa SHA256 performance", "[mbedtls]")
     status = psa_hash_finish(&operation, sha256, sizeof(sha256), &hash_length);
     TEST_ASSERT_EQUAL(PSA_SUCCESS, status);
     elapsed_usec = ccomp_timer_stop();
+    TEST_ASSERT_GREATER_THAN(0, elapsed_usec);
 
     free(buf);
 
