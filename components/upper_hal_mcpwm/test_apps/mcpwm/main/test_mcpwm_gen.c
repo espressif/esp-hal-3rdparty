@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2022-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2022-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -417,18 +417,18 @@ static void mcpwm_gen_action_test_template(uint32_t timer_resolution, uint32_t p
     }
 
     TEST_ESP_OK(mcpwm_timer_disable(timer));
-    TEST_ESP_OK(mcpwm_del_generator(generator_a));
-    TEST_ESP_OK(mcpwm_del_generator(generator_b));
-    TEST_ESP_OK(mcpwm_del_comparator(comparator_a));
-    TEST_ESP_OK(mcpwm_del_comparator(comparator_b));
-    TEST_ESP_OK(mcpwm_del_operator(oper));
-    TEST_ESP_OK(mcpwm_del_timer(timer));
     TEST_ESP_OK(mcpwm_capture_channel_disable(cap_channel_a));
     TEST_ESP_OK(mcpwm_del_capture_channel(cap_channel_a));
     TEST_ESP_OK(mcpwm_capture_channel_disable(cap_channel_b));
     TEST_ESP_OK(mcpwm_del_capture_channel(cap_channel_b));
     TEST_ESP_OK(mcpwm_capture_timer_disable(cap_timer));
     TEST_ESP_OK(mcpwm_del_capture_timer(cap_timer));
+    TEST_ESP_OK(mcpwm_del_generator(generator_a));
+    TEST_ESP_OK(mcpwm_del_generator(generator_b));
+    TEST_ESP_OK(mcpwm_del_comparator(comparator_a));
+    TEST_ESP_OK(mcpwm_del_comparator(comparator_b));
+    TEST_ESP_OK(mcpwm_del_operator(oper));
+    TEST_ESP_OK(mcpwm_del_timer(timer));
 }
 
 static void single_edge_active_high(mcpwm_gen_handle_t gena, mcpwm_gen_handle_t genb, mcpwm_cmpr_handle_t cmpa, mcpwm_cmpr_handle_t cmpb)
@@ -651,18 +651,18 @@ static void mcpwm_deadtime_test_template(uint32_t timer_resolution, uint32_t per
     ret_capb[1] = cap_value_b[1] * 1000 / clk_src_res;
 
     TEST_ESP_OK(mcpwm_timer_disable(timer));
-    TEST_ESP_OK(mcpwm_del_generator(generator_a));
-    TEST_ESP_OK(mcpwm_del_generator(generator_b));
-    TEST_ESP_OK(mcpwm_del_comparator(comparator_a));
-    TEST_ESP_OK(mcpwm_del_comparator(comparator_b));
-    TEST_ESP_OK(mcpwm_del_operator(oper));
-    TEST_ESP_OK(mcpwm_del_timer(timer));
     TEST_ESP_OK(mcpwm_capture_channel_disable(cap_channel_a));
     TEST_ESP_OK(mcpwm_del_capture_channel(cap_channel_a));
     TEST_ESP_OK(mcpwm_capture_channel_disable(cap_channel_b));
     TEST_ESP_OK(mcpwm_del_capture_channel(cap_channel_b));
     TEST_ESP_OK(mcpwm_capture_timer_disable(cap_timer));
     TEST_ESP_OK(mcpwm_del_capture_timer(cap_timer));
+    TEST_ESP_OK(mcpwm_del_generator(generator_a));
+    TEST_ESP_OK(mcpwm_del_generator(generator_b));
+    TEST_ESP_OK(mcpwm_del_comparator(comparator_a));
+    TEST_ESP_OK(mcpwm_del_comparator(comparator_b));
+    TEST_ESP_OK(mcpwm_del_operator(oper));
+    TEST_ESP_OK(mcpwm_del_timer(timer));
 }
 
 static void ahc_set_generator_actions(mcpwm_gen_handle_t gena, mcpwm_gen_handle_t genb, mcpwm_cmpr_handle_t cmpa, mcpwm_cmpr_handle_t cmpb)
