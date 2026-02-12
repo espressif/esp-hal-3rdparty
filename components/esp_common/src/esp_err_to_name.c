@@ -295,6 +295,10 @@ static const esp_err_msg_t esp_err_msg_table[] = {
                                                                                 already in progress on the same
                                                                                 partition */
 #   endif
+#   ifdef      ESP_ERR_OTA_SPI_MODE_MISMATCH
+    ERR_TBL_IT(ESP_ERR_OTA_SPI_MODE_MISMATCH),                  /*  5384 0x1508 Error if the firmware's SPI flash mode
+                                                                                doesn't match the running firmware */
+#   endif
     // components/efuse/include/esp_efuse.h
 #   ifdef      ESP_ERR_EFUSE
     ERR_TBL_IT(ESP_ERR_EFUSE),                                  /*  5632 0x1600 Base error code for efuse api. */
