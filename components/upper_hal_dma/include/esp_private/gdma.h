@@ -17,13 +17,11 @@ extern "C" {
 
 /**
  * @brief Type of GDMA channel handle
- *
  */
 typedef struct gdma_channel_t *gdma_channel_handle_t;
 
 /**
  * @brief Collection of configuration items that used for allocating GDMA channel
- *
  */
 typedef struct {
     struct {
@@ -79,7 +77,6 @@ typedef struct {
 /**
  * @brief Type of GDMA engine trigger
  * @note It's recommended to initialize this structure with `GDMA_MAKE_TRIGGER`.
- *
  */
 typedef struct {
     int instance_id;                  /*!< Peripheral instance ID. Supported IDs are listed in `hal/gdma_channel.h`, e.g. SOC_GDMA_TRIG_PERIPH_UHCI0 */
