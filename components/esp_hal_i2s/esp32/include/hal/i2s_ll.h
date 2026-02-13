@@ -22,6 +22,7 @@
 #include "hal/hal_utils.h"
 
 #define I2S_LL_GET(_attr)       I2S_LL_ ## _attr
+#define I2S_LL_SUPPORT(_feat)   I2S_LL_SUPPORT_ ## _feat
 #define I2S_LL_BUS_WIDTH        24
 #define I2S_LL_INST_NUM         2
 #define I2S_LL_TRANS_SIZE_ALIGN_WORD  1  // I2S DMA transfer size must be aligned to word
