@@ -19,6 +19,9 @@ components/esp_driver_i2s/test_apps/i2s_multi_dev:
     - if: IDF_TARGET in ["esp32c61"]  # TODO: [ESP32C61] IDF-11442
       temporary: true
       reason: lack of runners
+    - if: IDF_TARGET in ["esp32s31"]
+      temporary: true
+      reason: lack of s31 multi-device runner
   depends_components:
     - esp_driver_i2s
     - esp_driver_dma

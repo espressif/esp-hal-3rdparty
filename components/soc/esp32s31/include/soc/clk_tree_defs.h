@@ -476,6 +476,25 @@ typedef enum {
     MCPWM_CARRIER_CLK_SRC_DEFAULT = SOC_MOD_CLK_PLL_F160M,   /*!< Select PLL_F160M as the default choice */
 } soc_periph_mcpwm_carrier_clk_src_t;
 
+//////////////////////////////////////////////////I2S/////////////////////////////////////////////////////////////////
+
+/**
+ * @brief I2S clock source
+ */
+#define SOC_I2S_CLKS {SOC_MOD_CLK_XTAL, SOC_MOD_CLK_APLL, SOC_MOD_CLK_RTC_FAST, I2S_CLK_SRC_EXTERNAL}
+
+/**
+ * @brief I2S clock source enum
+ * @note Enum values are matched with the register field values on purpose
+ */
+typedef enum {
+    I2S_CLK_SRC_DEFAULT = SOC_MOD_CLK_XTAL,                            /*!< Auto select maximum clock source as default source clock */
+    I2S_CLK_SRC_XTAL = SOC_MOD_CLK_XTAL,                /*!< Select XTAL as the source clock */
+    I2S_CLK_SRC_APLL = SOC_MOD_CLK_APLL,                /*!< Select APLL as the source clock */
+    I2S_CLK_SRC_RTC_FAST = SOC_MOD_CLK_RTC_FAST,        /*!< Select RTC_FAST as the source clock */
+    I2S_CLK_SRC_EXTERNAL = -1,                          /*!< Select external clock as source clock */
+} soc_periph_i2s_clk_src_t;
+
 //////////////////////////////////////////////CLOCK OUTPUT///////////////////////////////////////////////////////////
 typedef enum {
     CLKOUT_SIG_MPLL_500M         = 0,   /*!< MPLL output at 500MHz */

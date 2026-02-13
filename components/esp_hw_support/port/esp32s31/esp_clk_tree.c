@@ -5,6 +5,7 @@
  */
 
 #include <stdint.h>
+#include <stdatomic.h>
 #include "esp_clk_tree.h"
 #include "esp_err.h"
 #include "esp_check.h"
@@ -15,6 +16,9 @@
 #include "esp_private/periph_ctrl.h"
 
 ESP_LOG_ATTR_TAG(TAG, "esp_clk_tree");
+
+static _Atomic int16_t s_pll_src_cg_ref_cnt[SOC_MOD_CLK_INVALID] = { 0 };
+static bool s_clk_tree_initialized = false;
 
 esp_err_t esp_clk_tree_src_get_freq_hz(soc_module_clk_t clk_src, esp_clk_tree_src_freq_precision_t precision,
                                        uint32_t *freq_value)
@@ -52,6 +56,9 @@ esp_err_t esp_clk_tree_src_get_freq_hz(soc_module_clk_t clk_src, esp_clk_tree_sr
     case SOC_MOD_CLK_MPLL:
         clk_src_freq = clk_ll_mpll_get_freq_mhz(clk_hal_xtal_get_freq_mhz()) * MHZ;
         break;
+    case SOC_MOD_CLK_APLL:
+        clk_src_freq = clk_hal_apll_get_freq_hz();
+        break;
     case SOC_MOD_CLK_RTC_SLOW:
         clk_src_freq = esp_clk_tree_lp_slow_get_freq_hz(precision);
         break;
@@ -82,9 +89,22 @@ esp_err_t esp_clk_tree_src_get_freq_hz(soc_module_clk_t clk_src, esp_clk_tree_sr
 
 esp_err_t esp_clk_tree_src_set_freq_hz(soc_module_clk_t clk_src, uint32_t expt_freq_value, uint32_t *ret_freq_value)
 {
-    /* TODO: [ESP32S31] IDF-14733 */
-    (void)clk_src; (void)expt_freq_value; (void)ret_freq_value;
-    return ESP_ERR_NOT_SUPPORTED;
+    ESP_RETURN_ON_FALSE(clk_src > 0 && clk_src < SOC_MOD_CLK_INVALID, ESP_ERR_INVALID_ARG, TAG, "unknown clk src");
+    ESP_RETURN_ON_FALSE(expt_freq_value > 0, ESP_ERR_INVALID_ARG, TAG, "invalid frequency");
+
+    uint32_t real_freq_value = 0;
+    esp_err_t ret = ESP_OK;
+    switch (clk_src) {
+    case SOC_MOD_CLK_APLL:
+        ret = esp_clk_tree_apll_freq_set(expt_freq_value, &real_freq_value);
+        break;
+    default:
+        return ESP_ERR_NOT_SUPPORTED;
+    }
+    if (ret_freq_value) {
+        *ret_freq_value = real_freq_value;
+    }
+    return ret;
 }
 
 static int16_t s_cpll_ref_cnt = 0;
@@ -102,6 +122,7 @@ void esp_clk_tree_initialize(void)
 
     // Gating
     // flash clock source is set to BBPLL in bootloader
+    s_clk_tree_initialized = true;
 }
 
 bool esp_clk_tree_enable_power(soc_root_clk_circuit_t clk_circuit, bool enable)
@@ -134,6 +155,49 @@ bool esp_clk_tree_enable_power(soc_root_clk_circuit_t clk_circuit, bool enable)
 
 esp_err_t esp_clk_tree_enable_src(soc_module_clk_t clk_src, bool enable)
 {
+    if (clk_src < 1 || clk_src >= SOC_MOD_CLK_INVALID) {
+        // some conditions is legal, e.g. -1 means external clock source
+        return ESP_OK;
+    }
+
+    if (!s_clk_tree_initialized) {
+        return ESP_OK;
+    }
+
+    // These clock sources have their own reference counting
+    switch (clk_src) {
+    case SOC_MOD_CLK_APLL:
+        if (enable) {
+            esp_clk_tree_apll_acquire();
+        } else {
+            esp_clk_tree_apll_release();
+        }
+        return ESP_OK;
+    case SOC_MOD_CLK_MPLL:
+        if (enable) {
+            return esp_clk_tree_mpll_acquire();
+        } else {
+            esp_clk_tree_mpll_release();
+        }
+        return ESP_OK;
+    default:
+        break;
+    }
+
+    // Other clock sources use the global reference counting
+    int16_t prev_ref_cnt = 0;
+    if (enable) {
+        prev_ref_cnt = atomic_fetch_add(&s_pll_src_cg_ref_cnt[clk_src], 1);
+    } else {
+        prev_ref_cnt = atomic_fetch_sub(&s_pll_src_cg_ref_cnt[clk_src], 1);
+        if (prev_ref_cnt <= 0) {
+            ESP_EARLY_LOGW(TAG, "soc_module_clk_t %d disabled multiple times!!", clk_src);
+            atomic_store(&s_pll_src_cg_ref_cnt[clk_src], 0);
+            return ESP_OK;
+        }
+    }
+
     // TODO: IDF-15502
+
     return ESP_OK;
 }

@@ -58,7 +58,7 @@
 #define SOC_RTC_FAST_MEM_SUPPORTED      1
 #define SOC_RTC_MEM_SUPPORTED           1      // TODO: [ESP32S31] IDF-14645
 #define SOC_RMT_SUPPORTED               1
-// #define SOC_I2S_SUPPORTED               1      // TODO: [ESP32S31] IDF-14771
+#define SOC_I2S_SUPPORTED               1
 #define SOC_SDM_SUPPORTED               1
 #define SOC_GPSPI_SUPPORTED             1
 #define SOC_LEDC_SUPPORTED              1
@@ -390,12 +390,14 @@
 
 #define SOC_CLK_RC_FAST_SUPPORT_CALIBRATION       (1)
 
-// #define SOC_CLK_APLL_SUPPORTED                    (1)     /*!< Support Audio PLL */ // TODO: IDF-14771, IDF-14750
+#define SOC_CLK_APLL_SUPPORTED                    (1)     /*!< Support Audio PLL */
 #define SOC_CLK_MPLL_SUPPORTED                    (1)     /*!< Support MSPI PLL */ // TODO: IDF-14718
 #define SOC_CLK_XTAL32K_SUPPORTED                 (1)     /*!< Support to connect an external low frequency crystal */
 #define SOC_CLK_RC32K_SUPPORTED                   (1)     /*!< Support an internal 32kHz RC oscillator */
 
 #define SOC_CLK_LP_FAST_SUPPORT_XTAL              (1)     /*!< Support XTAL clock as the LP_FAST clock source */
+
+#define SOC_CLK_ANA_I2C_MST_HAS_ROOT_GATE         (1)     /*!< Any regi2c operation needs enable the analog i2c master clock first */
 
 #define SOC_RCC_IS_INDEPENDENT                    1       /*!< Reset and Clock Control has own registers for each module */
 /*-------------------------- Memory CAPS --------------------------*/
@@ -501,3 +503,23 @@
 #define SOC_BLE_SUBRATE_SUPPORTED                   (1)     /*!< Support Bluetooth LE Connection Subrating */
 #define SOC_BLE_PERIODIC_ADV_WITH_RESPONSE          (1)     /*!< Support Bluetooth LE Periodic Advertising with Response (PAwR) */
 // #define SOC_BLE_ISO_SUPPORTED                       (1)     /*!< Support Bluetooth ISO */
+
+/*-------------------------- I2S CAPS ----------------------------------------*/
+#define SOC_I2S_NUM                          (2U)
+#define SOC_I2S_HW_VERSION_2                 (1)
+#define SOC_I2S_SUPPORTS_ETM                  (1)
+#define SOC_I2S_SUPPORTS_APLL                 (1)
+#define SOC_I2S_SUPPORTS_RTC_FAST             (1)     // Support RTC_FAST as I2S clock source
+#define SOC_I2S_SUPPORTS_EXTERNAL             (1)     // Support External clock source
+#define SOC_I2S_SUPPORTS_PCM                  (1)
+#define SOC_I2S_SUPPORTS_PDM                  (1)
+#define SOC_I2S_SUPPORTS_PDM_TX               (1)     // Support to output raw PDM format data
+#define SOC_I2S_SUPPORTS_PCM2PDM              (1)     // Support to write PCM format but output PDM format data with the help of PCM to PDM filter
+#define SOC_I2S_SUPPORTS_PDM_RX               (1)     // Support to input raw PDM format data
+#define SOC_I2S_SUPPORTS_PDM2PCM              (1)     // Support to input PDM format but read PCM format data with the help of PDM to PCM filter (only on I2S0)
+#define SOC_I2S_SUPPORTS_PDM_RX_HP_FILTER    (1)
+#define SOC_I2S_SUPPORTS_TX_SYNC_CNT          (1)     // Support TX synchronization count (ideal_cnt)
+#define SOC_I2S_SUPPORTS_RX_RECOMB            (1)     // Support RX recomb for DMA data format reorganization
+#define SOC_I2S_SUPPORTS_TDM                  (1)
+#define SOC_I2S_PDM_MAX_TX_LINES              (2)     // On I2S0
+#define SOC_I2S_PDM_MAX_RX_LINES              (4)     // On I2S0
