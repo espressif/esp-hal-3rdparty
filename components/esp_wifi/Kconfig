@@ -884,3 +884,5 @@ menu "Wi-Fi"
     endif # wifi enabled
 
 endmenu # Wi-Fi
+
+rsource "remote/Kconfig.remote"
