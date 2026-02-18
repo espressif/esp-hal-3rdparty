@@ -13,9 +13,19 @@
 #include "hal/hmac_types.h"
 #include "esp_hmac.h"
 
+#if SOC_KEY_MANAGER_SUPPORTED
+#include "esp_key_mgr.h"
+#endif /* SOC_KEY_MANAGER_SUPPORTED */
+
 static bool validate_hmac_opaque_key_attributes(const esp_hmac_opaque_key_t *opaque_key)
 {
-    // efuse_key_id is uint8_t, so it's always >= 0 (EFUSE_BLK0)
+#if SOC_KEY_MANAGER_SUPPORTED
+    if (opaque_key->key_recovery_info) {
+        return true;
+    }
+#endif /* SOC_KEY_MANAGER_SUPPORTED */
+
+    // efuse_key_id is uint8_t, so opaque_key->efuse_key_id + EFUSE_BLK_KEY0 >= EFUSE_BLK_KEY0
     if (((opaque_key->efuse_key_id + EFUSE_BLK_KEY0) < EFUSE_BLK_KEY_MAX)
         && (esp_efuse_get_key_purpose(EFUSE_BLK_KEY0 + opaque_key->efuse_key_id) == ESP_EFUSE_KEY_PURPOSE_HMAC_UP)) {
         return true;
@@ -106,13 +116,26 @@ psa_status_t esp_hmac_update_opaque(esp_hmac_opaque_operation_t *esp_hmac_ctx, c
 
     hmac_key_id_t hmac_key_id = esp_hmac_ctx->opaque_key->efuse_key_id;
 
-#if SOC_KEY_MANAGER_HMAC_KEY_DEPLOY
-    if (esp_hmac_ctx->opaque_key->use_km_key) {
+#if SOC_KEY_MANAGER_SUPPORTED && !ESP_TEE_BUILD
+    esp_key_mgr_key_recovery_info_t *key_recovery_info = esp_hmac_ctx->opaque_key->key_recovery_info;
+    if (key_recovery_info) {
+        esp_err_t err = esp_key_mgr_activate_key(key_recovery_info);
+        if (err != ESP_OK) {
+            ESP_LOGE("ESP_HMAC_OPAQUE", "Failed to activate key: 0x%x", err);
+            return PSA_ERROR_INVALID_HANDLE;
+        }
         hmac_key_id = HMAC_KEY_KM;
     }
-#endif /* SOC_KEY_MANAGER_HMAC_KEY_DEPLOY */
+#endif /* SOC_KEY_MANAGER_SUPPORTED && !ESP_TEE_BUILD */
 
     esp_err_t hmac_ret = esp_hmac_calculate(hmac_key_id, data, data_length, esp_hmac_ctx->hmac);
+
+#if SOC_KEY_MANAGER_SUPPORTED && !ESP_TEE_BUILD
+    if (key_recovery_info) {
+        esp_key_mgr_deactivate_key(key_recovery_info->key_type);
+    }
+#endif /* SOC_KEY_MANAGER_SUPPORTED && !ESP_TEE_BUILD */
+
     if (hmac_ret == ESP_ERR_INVALID_ARG) {
         return PSA_ERROR_INVALID_ARGUMENT;
     } else if (hmac_ret == ESP_FAIL) {
