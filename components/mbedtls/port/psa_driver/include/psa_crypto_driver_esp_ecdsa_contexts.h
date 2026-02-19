@@ -66,7 +66,7 @@ typedef struct {
 /* The buffers are stored in the little-endian format */
 typedef struct {
     psa_algorithm_t alg;
-    esp_ecdsa_opaque_key_t *opaque_key;
+    const esp_ecdsa_opaque_key_t *opaque_key;
     uint8_t r[MAX_ECDSA_COMPONENT_LEN];
     uint8_t s[MAX_ECDSA_COMPONENT_LEN];
     uint8_t sha[MAX_ECDSA_SHA_LEN];

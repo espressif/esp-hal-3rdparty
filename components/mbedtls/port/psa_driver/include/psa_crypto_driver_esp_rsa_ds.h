@@ -110,7 +110,7 @@ psa_status_t esp_rsa_ds_opaque_signature_sign_hash(
 
 /**
  * @brief Import the RSA DS opaque key
- *        The data should be of type esp_ds_data_ctx_t and should be
+ *        The data should be of type esp_rsa_ds_opaque_key_t and should be
  *        already initialised with DS data and efuse key id.
  *
  * @param attributes Key attributes
