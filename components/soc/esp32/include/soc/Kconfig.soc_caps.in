@@ -806,3 +806,7 @@ config SOC_PHY_COMBO_MODULE
 config SOC_EMAC_RMII_CLK_OUT_INTERNAL_LOOPBACK
     bool
     default y
+
+config SOC_EMAC_REF_CLK_FROM_APLL
+    bool
+    default y
