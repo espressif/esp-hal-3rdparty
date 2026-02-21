@@ -203,11 +203,16 @@ esp_err_t esp_ds_finish_sign(void *signature, esp_ds_context_t *esp_ds_ctx)
     return return_value;
 }
 
-esp_err_t esp_ds_encrypt_params(esp_ds_data_t *data,
-                                const void *iv,
-                                const esp_ds_p_data_t *p_data,
-                                const void *key)
+static esp_err_t ds_encrypt_params_using_key_type(esp_ds_data_t *data,
+                                                  const void *iv,
+                                                  const esp_ds_p_data_t *p_data,
+                                                  const void *key,
+                                                  esp_ds_key_type_t key_type)
 {
+    if (key_type >= ESP_DS_KEY_MAX) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
     // p_data has to be valid, in internal memory and word aligned
     if (!p_data) {
         return ESP_ERR_INVALID_ARG;
@@ -223,7 +228,7 @@ esp_err_t esp_ds_encrypt_params(esp_ds_data_t *data,
     ets_ds_data_t *ds_data = (ets_ds_data_t *) data;
     const ets_ds_p_data_t *ds_plain_data = (const ets_ds_p_data_t *) p_data;
 
-    ets_ds_result_t ets_result = ets_ds_encrypt_params(ds_data, iv, ds_plain_data, key, ETS_DS_KEY_HMAC);
+    ets_ds_result_t ets_result = ets_ds_encrypt_params(ds_data, iv, ds_plain_data, key, (ets_ds_key_t) key_type);
 
     if (ets_result == ETS_DS_INVALID_PARAM) {
         result = ESP_ERR_INVALID_ARG;
@@ -423,18 +428,23 @@ esp_err_t esp_ds_finish_sign(void *signature, esp_ds_context_t *esp_ds_ctx)
     return return_value;
 }
 
-esp_err_t esp_ds_encrypt_params(esp_ds_data_t *data,
-                                const void *iv,
-                                const esp_ds_p_data_t *p_data,
-                                const void *key)
+static esp_err_t ds_encrypt_params_using_key_type(esp_ds_data_t *data,
+                                                  const void *iv,
+                                                  const esp_ds_p_data_t *p_data,
+                                                  const void *key,
+                                                  esp_ds_key_type_t key_type)
 {
+    if (key_type >= ESP_DS_KEY_MAX) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
     if (!p_data) {
         return ESP_ERR_INVALID_ARG;
     }
 
     esp_err_t result = ESP_OK;
 
-    // The `esp_ds_encrypt_params` operation does not use the Digital Signature peripheral,
+    // The `esp_ds_encrypt_params_using_key_type` operation does not use the Digital Signature peripheral,
     // but just the AES and SHA peripherals, so acquiring locks just for these peripherals
     // would be enough rather than acquiring a lock for the Digital Signature peripheral.
     esp_crypto_sha_aes_lock_acquire();
@@ -446,7 +456,7 @@ esp_err_t esp_ds_encrypt_params(esp_ds_data_t *data,
     ets_ds_data_t *ds_data = (ets_ds_data_t *) data;
     const ets_ds_p_data_t *ds_plain_data = (const ets_ds_p_data_t *) p_data;
 
-    ets_ds_result_t ets_result = ets_ds_encrypt_params(ds_data, iv, ds_plain_data, key, ETS_DS_KEY_HMAC);
+    ets_ds_result_t ets_result = ets_ds_encrypt_params(ds_data, iv, ds_plain_data, key, (ets_ds_key_t) key_type);
 
     if (ets_result == ETS_DS_INVALID_PARAM) {
         result = ESP_ERR_INVALID_ARG;
@@ -461,3 +471,20 @@ esp_err_t esp_ds_encrypt_params(esp_ds_data_t *data,
     return result;
 }
 #endif
+
+esp_err_t esp_ds_encrypt_params_using_key_type(esp_ds_data_t *data,
+                                               const void *iv,
+                                               const esp_ds_p_data_t *p_data,
+                                               const void *key,
+                                               esp_ds_key_type_t key_type)
+{
+    return ds_encrypt_params_using_key_type(data, iv, p_data, key, key_type);
+}
+
+esp_err_t esp_ds_encrypt_params(esp_ds_data_t *data,
+                                const void *iv,
+                                const esp_ds_p_data_t *p_data,
+                                const void *key)
+{
+    return ds_encrypt_params_using_key_type(data, iv, p_data, key, ESP_DS_KEY_HMAC);
+}
