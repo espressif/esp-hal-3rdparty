@@ -35,14 +35,13 @@ FORCE_INLINE_ATTR void lp_sys_ll_inform_wakeup_type(bool dslp)
     }
 }
 
-FORCE_INLINE_ATTR void lp_sys_ll_set_pau_aon_bypass(bool bypass)
-{
-    LP_SYS.backup_dma_cfg1.aon_bypass = bypass ? 1 : 0;
-}
-
-FORCE_INLINE_ATTR void lp_sys_ll_set_pau_link_tout_thres(uint32_t tout)
+FORCE_INLINE_ATTR void lp_sys_ll_set_pau_link_wait_tout_thres(uint32_t tout)
 {
     LP_SYS.backup_dma_cfg1.link_wait_tout_thres_aon = tout;
+}
+
+FORCE_INLINE_ATTR void lp_sys_ll_set_pau_link_work_tout_thres(uint32_t tout)
+{
     LP_SYS.backup_dma_cfg1.link_work_tout_thres_aon = tout;
 }
 
@@ -59,6 +58,11 @@ FORCE_INLINE_ATTR void lp_sys_ll_set_pau_reg_read_interval(uint32_t val)
 FORCE_INLINE_ATTR void lp_sys_ll_set_pau_link_addr(uint32_t addr)
 {
     LP_SYS.backup_dma_cfg2.link_addr_aon = addr;
+}
+
+static inline void lp_sys_set_regdma_link_count(int count)
+{
+    HAL_FORCE_MODIFY_U32_REG_FIELD(LP_SYS.backup_dma_cfg1, branch_link_length_aon, count);
 }
 
 #ifdef __cplusplus
