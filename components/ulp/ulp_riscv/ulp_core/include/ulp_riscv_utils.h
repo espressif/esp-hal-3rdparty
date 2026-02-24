@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2015-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -12,6 +12,7 @@ extern "C" {
 
 #include "sdkconfig.h"
 #include <stdint.h>
+#include <stdbool.h>
 #include "ulp_riscv_register_ops.h"
 #include "ulp_riscv_interrupt.h"
 
@@ -97,6 +98,26 @@ void ulp_riscv_timer_resume(void);
 static inline uint32_t ulp_riscv_get_cpu_cycles(void)
 {
     return ULP_RISCV_GET_CCOUNT();
+}
+
+/**
+ * @brief Check whether an mcycle-based timeout has elapsed.
+ *
+ * @note A timeout value of -1 means "wait forever".
+ *       Other values are interpreted as unsigned cycle counts.
+ *
+ * @param start_cycle_count Cycle counter value captured at timeout start.
+ * @param cycles_to_wait Timeout in CPU cycles, or -1 to disable timeout.
+ *
+ * @return true if timeout elapsed, false otherwise.
+ */
+static inline bool ulp_riscv_is_timeout_elapsed(uint32_t start_cycle_count, int32_t cycles_to_wait)
+{
+    if (cycles_to_wait == -1) {
+        return false;
+    }
+
+    return (ulp_riscv_get_cpu_cycles() - start_cycle_count) >= (uint32_t)cycles_to_wait;
 }
 
 /**
