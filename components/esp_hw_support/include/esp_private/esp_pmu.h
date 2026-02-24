@@ -187,6 +187,9 @@ typedef enum {
 typedef struct {
     pmu_hal_context_t *hal;
     void *mc;
+#if SOC_PM_SLEEP_CLK_ICG_USE_REGDMA
+    void *priv;
+#endif
 } pmu_context_t;
 
 pmu_context_t * PMU_instance(void);

@@ -667,11 +667,15 @@
 #define SOC_PM_SUPPORT_CNNT_PD          (1)
 #define SOC_PM_SUPPORT_RTC_PERIPH_PD    (1)
 
+#define SOC_PM_SUPPORT_PMU_CLK_ICG      (1)
+
 #define SOC_PM_SUPPORT_DEEPSLEEP_CHECK_STUB_ONLY   (1) /*!<Supports CRC only the stub code in RTC memory */
 
 #define SOC_PM_CPU_RETENTION_BY_SW      (1)
 #define SOC_PM_FPU_RETENTION_BY_SW      (1)
 #define SOC_PM_CACHE_RETENTION_BY_PAU   (1)
+
+#define SOC_PM_SLEEP_CLK_ICG_USE_REGDMA (1)
 
 #define SOC_PM_PAU_LINK_NUM             (4)
 #define SOC_PM_PAU_REGDMA_LINK_MULTI_ADDR   (1)
