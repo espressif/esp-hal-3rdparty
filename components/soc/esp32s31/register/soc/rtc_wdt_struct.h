@@ -1,5 +1,5 @@
 /**
- * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2026 Espressif Systems (Shanghai) CO LTD
  *
  *  SPDX-License-Identifier: Apache-2.0 OR MIT
  */
@@ -63,7 +63,7 @@ typedef union {
         uint32_t wdt_en:1;
     };
     uint32_t val;
-} lp_wdt_config0_reg_t;
+} rtc_wdt_config0_reg_t;
 
 /** Type of config1 register
  *  need_des
@@ -76,7 +76,7 @@ typedef union {
         uint32_t wdt_stg0_hold:32;
     };
     uint32_t val;
-} lp_wdt_config1_reg_t;
+} rtc_wdt_config1_reg_t;
 
 /** Type of config2 register
  *  need_des
@@ -89,7 +89,7 @@ typedef union {
         uint32_t wdt_stg1_hold:32;
     };
     uint32_t val;
-} lp_wdt_config2_reg_t;
+} rtc_wdt_config2_reg_t;
 
 /** Type of config3 register
  *  need_des
@@ -102,7 +102,7 @@ typedef union {
         uint32_t wdt_stg2_hold:32;
     };
     uint32_t val;
-} lp_wdt_config3_reg_t;
+} rtc_wdt_config3_reg_t;
 
 /** Type of config4 register
  *  need_des
@@ -115,7 +115,7 @@ typedef union {
         uint32_t wdt_stg3_hold:32;
     };
     uint32_t val;
-} lp_wdt_config4_reg_t;
+} rtc_wdt_config4_reg_t;
 
 /** Type of feed register
  *  need_des
@@ -129,7 +129,7 @@ typedef union {
         uint32_t feed:1;
     };
     uint32_t val;
-} lp_wdt_feed_reg_t;
+} rtc_wdt_feed_reg_t;
 
 /** Type of wprotect register
  *  need_des
@@ -142,7 +142,7 @@ typedef union {
         uint32_t wdt_wkey:32;
     };
     uint32_t val;
-} lp_wdt_wprotect_reg_t;
+} rtc_wdt_wprotect_reg_t;
 
 /** Type of swd_config register
  *  need_des
@@ -176,7 +176,7 @@ typedef union {
         uint32_t swd_feed:1;
     };
     uint32_t val;
-} lp_wdt_swd_config_reg_t;
+} rtc_wdt_swd_config_reg_t;
 
 /** Type of swd_wprotect register
  *  need_des
@@ -189,7 +189,7 @@ typedef union {
         uint32_t swd_wkey:32;
     };
     uint32_t val;
-} lp_wdt_swd_wprotect_reg_t;
+} rtc_wdt_swd_wprotect_reg_t;
 
 /** Type of int_raw register
  *  need_des
@@ -207,7 +207,7 @@ typedef union {
         uint32_t lp_wdt_int_raw:1;
     };
     uint32_t val;
-} lp_wdt_int_raw_reg_t;
+} rtc_wdt_int_raw_reg_t;
 
 /** Type of int_st register
  *  need_des
@@ -225,7 +225,7 @@ typedef union {
         uint32_t lp_wdt_int_st:1;
     };
     uint32_t val;
-} lp_wdt_int_st_reg_t;
+} rtc_wdt_int_st_reg_t;
 
 /** Type of int_ena register
  *  need_des
@@ -243,7 +243,7 @@ typedef union {
         uint32_t lp_wdt_int_ena:1;
     };
     uint32_t val;
-} lp_wdt_int_ena_reg_t;
+} rtc_wdt_int_ena_reg_t;
 
 /** Type of int_clr register
  *  need_des
@@ -261,7 +261,7 @@ typedef union {
         uint32_t lp_wdt_int_clr:1;
     };
     uint32_t val;
-} lp_wdt_int_clr_reg_t;
+} rtc_wdt_int_clr_reg_t;
 
 /** Type of pause_en register
  *  need_des
@@ -275,7 +275,7 @@ typedef union {
         uint32_t pause_en:1;
     };
     uint32_t val;
-} lp_wdt_pause_en_reg_t;
+} rtc_wdt_pause_en_reg_t;
 
 /** Type of date register
  *  need_des
@@ -292,32 +292,32 @@ typedef union {
         uint32_t clk_en:1;
     };
     uint32_t val;
-} lp_wdt_date_reg_t;
+} rtc_wdt_date_reg_t;
 
 
 typedef struct {
-    volatile lp_wdt_config0_reg_t config0;
-    volatile lp_wdt_config1_reg_t config1;
-    volatile lp_wdt_config2_reg_t config2;
-    volatile lp_wdt_config3_reg_t config3;
-    volatile lp_wdt_config4_reg_t config4;
-    volatile lp_wdt_feed_reg_t feed;
-    volatile lp_wdt_wprotect_reg_t wprotect;
-    volatile lp_wdt_swd_config_reg_t swd_config;
-    volatile lp_wdt_swd_wprotect_reg_t swd_wprotect;
-    volatile lp_wdt_int_raw_reg_t int_raw;
-    volatile lp_wdt_int_st_reg_t int_st;
-    volatile lp_wdt_int_ena_reg_t int_ena;
-    volatile lp_wdt_int_clr_reg_t int_clr;
-    volatile lp_wdt_pause_en_reg_t pause_en;
+    volatile rtc_wdt_config0_reg_t config0;
+    volatile rtc_wdt_config1_reg_t config1;
+    volatile rtc_wdt_config2_reg_t config2;
+    volatile rtc_wdt_config3_reg_t config3;
+    volatile rtc_wdt_config4_reg_t config4;
+    volatile rtc_wdt_feed_reg_t feed;
+    volatile rtc_wdt_wprotect_reg_t wprotect;
+    volatile rtc_wdt_swd_config_reg_t swd_config;
+    volatile rtc_wdt_swd_wprotect_reg_t swd_wprotect;
+    volatile rtc_wdt_int_raw_reg_t int_raw;
+    volatile rtc_wdt_int_st_reg_t int_st;
+    volatile rtc_wdt_int_ena_reg_t int_ena;
+    volatile rtc_wdt_int_clr_reg_t int_clr;
+    volatile rtc_wdt_pause_en_reg_t pause_en;
     uint32_t reserved_038[241];
-    volatile lp_wdt_date_reg_t date;
-} lp_wdt_dev_t;
+    volatile rtc_wdt_date_reg_t date;
+} rtc_wdt_dev_t;
 
-extern lp_wdt_dev_t LP_WDT;
+extern rtc_wdt_dev_t RTC_WDT;
 
 #ifndef __cplusplus
-_Static_assert(sizeof(lp_wdt_dev_t) == 0x400, "Invalid size of lp_wdt_dev_t structure");
+_Static_assert(sizeof(rtc_wdt_dev_t) == 0x400, "Invalid size of rtc_wdt_dev_t structure");
 #endif
 
 #ifdef __cplusplus

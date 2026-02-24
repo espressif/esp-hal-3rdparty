@@ -72,8 +72,9 @@
 // #define SOC_SECURE_BOOT_SUPPORTED       1      // TODO: [ESP32S31] IDF-14629
 // #define SOC_BOD_SUPPORTED               1      // TODO: [ESP32S31] IDF-14658
 // #define SOC_APM_SUPPORTED               1      // TODO: [ESP32S31] IDF-14620
-// #define SOC_PMU_SUPPORTED               1      // TODO: [ESP32S31] IDF-14642
-// #define SOC_RTC_TIMER_V2_SUPPORTED      1      // TODO: [ESP32S31] IDF-14638
+// #define SOC_PAU_SUPPORTED               1      // TODO: [ESP32S31] IDF-14582
+#define SOC_PMU_SUPPORTED                  1
+#define SOC_RTC_TIMER_SUPPORTED            1
 // #define SOC_ULP_LP_UART_SUPPORTED       1      // TODO: [ESP32S31] IDF-14634
 // #define SOC_LP_GPIO_MATRIX_SUPPORTED    1      // TODO: [ESP32S31] IDF-14785
 // #define SOC_LP_PERIPHERALS_SUPPORTED    1      // TODO: [ESP32S31] IDF-14785
@@ -284,3 +285,42 @@
 #define SOC_CLK_ANA_I2C_MST_HAS_ROOT_GATE         (1)     /*!< Any regi2c operation needs enable the analog i2c master clock first */
 
 #define SOC_RCC_IS_INDEPENDENT                    1       /*!< Reset and Clock Control has own registers for each module */
+
+/*-------------------------- Power Management CAPS ----------------------------*/
+#define SOC_PM_SUPPORT_EXT1_WAKEUP      (1)
+#define SOC_PM_SUPPORT_EXT1_WAKEUP_MODE_PER_PIN   (1) /*!<Supports one bit per pin to configure the EXT1 trigger level */
+#define SOC_PM_EXT1_WAKEUP_BY_PMU       (1)
+#define SOC_PM_SUPPORT_WIFI_WAKEUP      (1)
+#define SOC_PM_SUPPORT_BEACON_WAKEUP    (1)
+#define SOC_PM_SUPPORT_TOUCH_SENSOR_WAKEUP    (1)     /*!<Supports waking up from touch pad trigger */
+// #define SOC_PM_SUPPORT_CPU_PD           (1) // TODO: [ESP32S31] IDF-14647
+#define SOC_PM_SUPPORT_XTAL32K_PD       (1)
+#define SOC_PM_SUPPORT_RC32K_PD         (1)
+#define SOC_PM_SUPPORT_RC_FAST_PD       (1)
+#define SOC_PM_SUPPORT_VDDSDIO_PD       (1)
+#define SOC_PM_SUPPORT_TOP_PD           (1)
+#define SOC_PM_SUPPORT_HP_AON_PD        (1)
+#define SOC_PM_SUPPORT_CNNT_PD          (1)
+#define SOC_PM_SUPPORT_RTC_PERIPH_PD    (1)
+#define SOC_PM_SUPPORT_MODEM_PD         (1) /*!<modem includes BLE and 15.4 and wifi*/
+#define SOC_PM_SUPPORT_MAC_BB_PD        (1)
+
+#define SOC_PM_SUPPORT_DEEPSLEEP_CHECK_STUB_ONLY   (1) /*!<Supports CRC only the stub code in RTC memory */
+
+#define SOC_PM_CPU_RETENTION_BY_SW          (1)
+#define SOC_PM_CACHE_RETENTION_BY_PAU       (1)
+#define SOC_EXT_MEM_CACHE_TAG_IN_CPU_DOMAIN (1)
+
+#define SOC_PM_PAU_LINK_NUM                 (5)
+#define SOC_PM_PAU_REGDMA_LINK_CONFIGURABLE (1)
+#define SOC_PM_PAU_REGDMA_LINK_IDX_WIFIMAC  (4) // The range of values for the link index is [0, SOC_PM_PAU_LINK_NUM)
+
+#define SOC_PM_MODEM_RETENTION_BY_REGDMA           (1)
+// #define SOC_PM_SUPPORT_PMU_MODEM_STATE      (1) // TODO: [ESP32S31] IDF-14582
+
+#define SOC_PM_RETENTION_MODULE_NUM         (64)
+
+/*-------------------------- LP_TIMER CAPS ----------------------------------*/
+#define SOC_LP_TIMER_BIT_WIDTH_LO           32 // Bit width of lp_timer low part
+#define SOC_LP_TIMER_BIT_WIDTH_HI           16 // Bit width of lp_timer high part
+#define SOC_RTC_TIMER_V3                    1

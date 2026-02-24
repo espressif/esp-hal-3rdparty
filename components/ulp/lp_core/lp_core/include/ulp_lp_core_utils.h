@@ -161,7 +161,7 @@ static inline void ulp_lp_core_sw_intr_clear(void)
     return ulp_lp_core_sw_intr_from_hp_clear();
 }
 
-#if SOC_RTC_TIMER_V2_SUPPORTED
+#if SOC_RTC_TIMER_SUPPORTED
 /**
  * @brief Enable the LP Timer interrupt
  *

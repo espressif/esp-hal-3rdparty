@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2023-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2023-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -19,7 +19,7 @@
 #include "hal/lp_i2s_ll.h"
 #endif
 
-#if SOC_RTC_TIMER_V2_SUPPORTED
+#if SOC_RTC_TIMER_SUPPORTED
 #include "hal/rtc_timer_ll.h"
 #endif
 
@@ -82,13 +82,13 @@ void ulp_lp_core_update_wakeup_cause(void)
     }
 #endif /* SOC_ETM_SUPPORTED */
 
-#if SOC_RTC_TIMER_V2_SUPPORTED
+#if SOC_RTC_TIMER_SUPPORTED
     if ((lp_core_ll_get_wakeup_source() & LP_CORE_LL_WAKEUP_SOURCE_LP_TIMER) \
             && (rtc_timer_ll_get_intr_raw(&LP_TIMER, 1) & LP_TIMER_MAIN_TIMER_LP_INT_RAW)) {
         lp_wakeup_cause |= LP_CORE_LL_WAKEUP_SOURCE_LP_TIMER;
         rtc_timer_ll_clear_alarm_intr_status(&LP_TIMER, 1);
     }
-#endif /* SOC_RTC_TIMER_V2_SUPPORTED */
+#endif /* SOC_RTC_TIMER_SUPPORTED */
 
 }
 
@@ -196,7 +196,7 @@ void ulp_lp_core_sw_intr_from_hp_clear(void)
     pmu_ll_lp_clear_sw_intr_status(&PMU);
 }
 
-#if SOC_RTC_TIMER_V2_SUPPORTED
+#if SOC_RTC_TIMER_SUPPORTED
 void ulp_lp_core_lp_timer_intr_enable(bool enable)
 {
     rtc_timer_ll_alarm_intr_enable(&LP_TIMER, 1, enable);

@@ -33,6 +33,7 @@
 #include "esp_private/esp_sleep_internal.h"
 #include "esp_private/periph_ctrl.h"
 #include "esp_private/esp_clk.h"
+#include "esp_private/esp_pmu.h"
 #include "esp_rom_serial_output.h"
 #include "esp_rom_sys.h"
 
