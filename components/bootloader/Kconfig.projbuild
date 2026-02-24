@@ -708,7 +708,8 @@ menu "Security features"
             Path to the key file used to sign app images.
 
             Key file is an ECDSA private key (NIST256p curve) in PEM format for Secure Boot V1.
-            Key file is an RSA private key in PEM format for Secure Boot V2.
+            Key file is an RSA private key in PEM format for Secure Boot V2 (RSA scheme).
+            Key file is an ECDSA private key (NIST 192p, 256p or 384p) in PEM format for Secure Boot V2 (ECDSA scheme).
 
             Path is evaluated relative to the project directory.
 
