@@ -196,4 +196,14 @@ void pmu_sleep_clock_icg_config(void *icg_context, const uint32_t icg_func)
         regdma_link_set_write_wait_content(clock_icg->regdma_desc[14], PERI_CLK_EN(UART2), PERI_CLK_MASK(UART2));
     }
 #endif
+#if SOC_UART_HP_NUM > 3
+    if (icg_func & BIT(PMU_ICG_FUNC_ENA_UART3)) {
+        regdma_link_set_write_wait_content(clock_icg->regdma_desc[15], PERI_CLK_EN(UART3), PERI_CLK_MASK(UART3));
+    }
+#endif
+#if SOC_UART_HP_NUM > 4
+    if (icg_func & BIT(PMU_ICG_FUNC_ENA_UART4)) {
+        regdma_link_set_write_wait_content(clock_icg->regdma_desc[16], PERI_CLK_EN(UART4), PERI_CLK_MASK(UART4));
+    }
+#endif
 }

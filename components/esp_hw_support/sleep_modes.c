@@ -1744,31 +1744,35 @@ esp_err_t esp_sleep_disable_wakeup_source(esp_sleep_source_t source)
         s_config.gpio_trigger_mode = 0;
 #endif
         s_config.wakeup_triggers &= ~RTC_GPIO_TRIG_EN;
-#if SOC_PMU_SUPPORTED && (SOC_UART_HP_NUM > 2)
-    } else if (CHECK_SOURCE(source, ESP_SLEEP_WAKEUP_UART, (RTC_UART0_TRIG_EN | RTC_UART1_TRIG_EN | RTC_UART2_TRIG_EN))) {
-        s_config.wakeup_triggers &= ~(RTC_UART0_TRIG_EN | RTC_UART1_TRIG_EN | RTC_UART2_TRIG_EN);
-    }
-#else
-    } else if (CHECK_SOURCE(source, ESP_SLEEP_WAKEUP_UART, (RTC_UART0_TRIG_EN | RTC_UART1_TRIG_EN))) {
-        s_config.wakeup_triggers &= ~(RTC_UART0_TRIG_EN | RTC_UART1_TRIG_EN);
-    }
+    } else if (CHECK_SOURCE(source, ESP_SLEEP_WAKEUP_UART0, RTC_UART0_TRIG_EN)) {
+        s_config.wakeup_triggers &= ~RTC_UART0_TRIG_EN;
+    } else if (CHECK_SOURCE(source, ESP_SLEEP_WAKEUP_UART1, RTC_UART1_TRIG_EN)) {
+        s_config.wakeup_triggers &= ~RTC_UART1_TRIG_EN;
+#if (SOC_UART_HP_NUM > 2) && !SOC_PM_RTC_NOT_SUPPORT_UART2_WAKEUP
+    } else if (CHECK_SOURCE(source, ESP_SLEEP_WAKEUP_UART2, RTC_UART2_TRIG_EN)) {
+        s_config.wakeup_triggers &= ~RTC_UART2_TRIG_EN;
+#endif
+#if (SOC_UART_HP_NUM > 3)
+    } else if (CHECK_SOURCE(source, ESP_SLEEP_WAKEUP_UART3, RTC_UART3_TRIG_EN)) {
+        s_config.wakeup_triggers &= ~RTC_UART3_TRIG_EN;
+#endif
+#if (SOC_UART_HP_NUM > 4)
+    } else if (CHECK_SOURCE(source, ESP_SLEEP_WAKEUP_UART4, RTC_UART4_TRIG_EN)) {
+        s_config.wakeup_triggers &= ~RTC_UART4_TRIG_EN;
 #endif
 #if CONFIG_ULP_COPROC_TYPE_FSM
-    else if (CHECK_SOURCE(source, ESP_SLEEP_WAKEUP_ULP, RTC_ULP_TRIG_EN)) {
+    } else if (CHECK_SOURCE(source, ESP_SLEEP_WAKEUP_ULP, RTC_ULP_TRIG_EN)) {
         s_config.wakeup_triggers &= ~RTC_ULP_TRIG_EN;
-    }
 #endif
 #if SOC_LP_VAD_SUPPORTED
-    else if (CHECK_SOURCE(source, ESP_SLEEP_WAKEUP_VAD, RTC_LP_VAD_TRIG_EN)) {
+    } else if (CHECK_SOURCE(source, ESP_SLEEP_WAKEUP_VAD, RTC_LP_VAD_TRIG_EN)) {
         s_config.wakeup_triggers &= ~RTC_LP_VAD_TRIG_EN;
-    }
 #endif
 #if SOC_VBAT_SUPPORTED
-    else if (CHECK_SOURCE(source, ESP_SLEEP_WAKEUP_VBAT_UNDER_VOLT, RTC_VBAT_UNDER_VOLT_TRIG_EN)) {
+    } else if (CHECK_SOURCE(source, ESP_SLEEP_WAKEUP_VBAT_UNDER_VOLT, RTC_VBAT_UNDER_VOLT_TRIG_EN)) {
         s_config.wakeup_triggers &= ~RTC_VBAT_UNDER_VOLT_TRIG_EN;
-    }
 #endif
-    else {
+    } else {
         ESP_LOGE(TAG, "Incorrect wakeup source (%d) to disable.", (int) source);
         return ESP_ERR_INVALID_STATE;
     }
@@ -2292,18 +2296,27 @@ esp_err_t esp_sleep_enable_uart_wakeup(int uart_num)
         s_config.wakeup_triggers |= RTC_UART0_TRIG_EN;
     } else if (uart_num == UART_NUM_1) {
         s_config.wakeup_triggers |= RTC_UART1_TRIG_EN;
-#if SOC_PMU_SUPPORTED && (SOC_UART_HP_NUM > 2)
+#if (SOC_UART_HP_NUM > 2) && !SOC_PM_RTC_NOT_SUPPORT_UART2_WAKEUP
     } else if (uart_num == UART_NUM_2) {
         s_config.wakeup_triggers |= RTC_UART2_TRIG_EN;
 #endif
-#if SOC_PM_SUPPORT_LP_UART_WAKEUP
-    } else if (uart_num == LP_UART_NUM_0) {
-        s_config.wakeup_triggers |= PMU_LP_UART_WAKEUP_EN;
+#if (SOC_UART_HP_NUM > 3)
+    } else if (uart_num == UART_NUM_3) {
+        s_config.wakeup_triggers |= RTC_UART3_TRIG_EN;
 #endif
-    } else {
+#if (SOC_UART_HP_NUM > 4)
+    } else if (uart_num == UART_NUM_4) {
+        s_config.wakeup_triggers |= RTC_UART4_TRIG_EN;
+#endif
+    } else
+#if SOC_PM_SUPPORT_LP_UART_WAKEUP
+    if (uart_num == LP_UART_NUM_0) {
+        s_config.wakeup_triggers |= PMU_LP_UART_WAKEUP_EN;
+    } else
+#endif
+    {
         return ESP_ERR_INVALID_ARG;
     }
-
     return ESP_OK;
 }
 
@@ -2379,15 +2392,22 @@ esp_sleep_wakeup_cause_t esp_sleep_get_wakeup_cause(void)
     uint32_t wakeup_cause = rtc_cntl_ll_get_wakeup_cause();
 #endif
 
+    uint32_t uart_wakeup_mask = RTC_UART0_TRIG_EN | RTC_UART1_TRIG_EN;
+#if (SOC_UART_HP_NUM > 2) && !SOC_PM_RTC_NOT_SUPPORT_UART2_WAKEUP
+    uart_wakeup_mask |= RTC_UART2_TRIG_EN;
+#endif
+#if (SOC_UART_HP_NUM > 3)
+    uart_wakeup_mask |= RTC_UART3_TRIG_EN;
+#endif
+#if (SOC_UART_HP_NUM > 4)
+    uart_wakeup_mask |= RTC_UART4_TRIG_EN;
+#endif
+
     if (wakeup_cause & RTC_TIMER_TRIG_EN) {
         return ESP_SLEEP_WAKEUP_TIMER;
     } else if (wakeup_cause & RTC_GPIO_TRIG_EN) {
         return ESP_SLEEP_WAKEUP_GPIO;
-#if SOC_PMU_SUPPORTED && (SOC_UART_HP_NUM > 2)
-    } else if (wakeup_cause & (RTC_UART0_TRIG_EN | RTC_UART1_TRIG_EN | RTC_UART2_TRIG_EN)) {
-#else
-    } else if (wakeup_cause & (RTC_UART0_TRIG_EN | RTC_UART1_TRIG_EN)) {
-#endif
+    } else if (wakeup_cause & uart_wakeup_mask) {
         return ESP_SLEEP_WAKEUP_UART;
 #if SOC_PM_SUPPORT_EXT0_WAKEUP
     } else if (wakeup_cause & RTC_EXT0_TRIG_EN) {
@@ -2460,14 +2480,24 @@ uint32_t esp_sleep_get_wakeup_causes(void)
         wakeup_cause |= BIT(ESP_SLEEP_WAKEUP_GPIO);
     }
     if (wakeup_cause_raw & RTC_UART0_TRIG_EN) {
-        wakeup_cause |= BIT(ESP_SLEEP_WAKEUP_UART);
+        wakeup_cause |= BIT(ESP_SLEEP_WAKEUP_UART0);
     }
     if (wakeup_cause_raw & RTC_UART1_TRIG_EN) {
         wakeup_cause |= BIT(ESP_SLEEP_WAKEUP_UART1);
     }
-#if SOC_PMU_SUPPORTED && (SOC_UART_HP_NUM > 2)
+#if (SOC_UART_HP_NUM > 2) && !SOC_PM_RTC_NOT_SUPPORT_UART2_WAKEUP
     if (wakeup_cause_raw & RTC_UART2_TRIG_EN) {
         wakeup_cause |= BIT(ESP_SLEEP_WAKEUP_UART2);
+    }
+#endif
+#if (SOC_UART_HP_NUM > 3)
+    if (wakeup_cause_raw & RTC_UART3_TRIG_EN) {
+        wakeup_cause |= BIT(ESP_SLEEP_WAKEUP_UART3);
+    }
+#endif
+#if (SOC_UART_HP_NUM > 4)
+    if (wakeup_cause_raw & RTC_UART4_TRIG_EN) {
+        wakeup_cause |= BIT(ESP_SLEEP_WAKEUP_UART4);
     }
 #endif
 #if SOC_PM_SUPPORT_EXT0_WAKEUP

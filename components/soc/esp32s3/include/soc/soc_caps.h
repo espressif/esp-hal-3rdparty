@@ -397,6 +397,8 @@
 #define SOC_PM_MODEM_RETENTION_BY_BACKUPDMA     (1)
 #define SOC_PM_MODEM_PD_BY_SW                   (1)
 
+#define SOC_PM_RTC_NOT_SUPPORT_UART2_WAKEUP     (1)
+
 /*--------------------------- CLOCK SUBSYSTEM CAPS -------------------------- */
 #define SOC_CLK_RC_FAST_D256_SUPPORTED            (1)
 #define SOC_RTC_SLOW_CLK_SUPPORT_RC_FAST_D256     (1)

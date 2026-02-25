@@ -707,6 +707,10 @@ config SOC_PM_MODEM_PD_BY_SW
     bool
     default y
 
+config SOC_PM_RTC_NOT_SUPPORT_UART2_WAKEUP
+    bool
+    default y
+
 config SOC_CLK_APLL_SUPPORTED
     bool
     default y
