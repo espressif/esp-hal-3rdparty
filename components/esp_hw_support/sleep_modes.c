@@ -2154,8 +2154,10 @@ static void ext1_wakeup_prepare(void)
         rtcio_hal_function_select(rtc_pin, RTCIO_LL_FUNC_DIGITAL);
         // set input enable
         gpio_ll_input_enable(&GPIO, gpio);
+#if SOC_RTCIO_HOLD_SUPPORTED
         // hold rtc_pin to use it during sleep state
         rtcio_hal_hold_enable(rtc_pin);
+#endif
 #endif
         // Keep track of pins which are processed to bail out early
         rtc_gpio_mask &= ~BIT(rtc_pin);

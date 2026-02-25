@@ -239,7 +239,9 @@ void esp_deep_sleep_wakeup_io_reset(void)
         if ((rtc_io_mask & BIT(rtcio_num)) == 0) {
             continue;
         }
+#if SOC_RTCIO_HOLD_SUPPORTED
         rtcio_hal_hold_disable(rtcio_num);
+#endif
         rtc_io_mask &= ~BIT(rtcio_num);
     }
 #endif

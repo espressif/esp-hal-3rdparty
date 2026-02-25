@@ -146,7 +146,7 @@
 /*-------------------------- GDMA CAPS -------------------------------------*/
 #define SOC_AHB_GDMA_VERSION                2
 #define SOC_GDMA_SUPPORT_ETM                1
-#define SOC_GDMA_SUPPORT_SLEEP_RETENTION    1
+// #define SOC_GDMA_SUPPORT_SLEEP_RETENTION    1 // TODO: [ESP32S31] IDF-14760
 #define SOC_GDMA_EXT_MEM_ENC_ALIGNMENT   (16)
 
 /*-------------------------- APM CAPS ----------------------------------------*/
@@ -228,12 +228,12 @@
 
 /*--------------------------- TIMER GROUP CAPS ---------------------------------------*/
 #define SOC_TIMER_SUPPORT_ETM             (1)
-#define SOC_TIMER_SUPPORT_SLEEP_RETENTION (1)
+// #define SOC_TIMER_SUPPORT_SLEEP_RETENTION (1) // TODO: [ESP32S31] IDF-14746
 
 /*--------------------------- WATCHDOG CAPS ---------------------------------------*/
 // TODO: [ESP32S31] IDF-14656
 #define SOC_MWDT_SUPPORT_XTAL              (1)
-#define SOC_MWDT_SUPPORT_SLEEP_RETENTION   (1)
+// #define SOC_MWDT_SUPPORT_SLEEP_RETENTION   (1)
 
 /*-------------------------- eFuse CAPS----------------------------*/
 // TODO: [ESP32S31] IDF-14688
@@ -300,7 +300,7 @@
 #define SOC_PM_SUPPORT_RC32K_PD         (1)
 #define SOC_PM_SUPPORT_RC_FAST_PD       (1)
 #define SOC_PM_SUPPORT_VDDSDIO_PD       (1)
-#define SOC_PM_SUPPORT_TOP_PD           (1)
+// #define SOC_PM_SUPPORT_TOP_PD           (1)  // TODO: [ESP32S31] IDF-14647
 #define SOC_PM_SUPPORT_HP_AON_PD        (1)
 #define SOC_PM_SUPPORT_CNNT_PD          (1)
 #define SOC_PM_SUPPORT_RTC_PERIPH_PD    (1)

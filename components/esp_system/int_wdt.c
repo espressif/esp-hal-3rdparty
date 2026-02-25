@@ -24,7 +24,7 @@
 #include "esp_private/periph_ctrl.h"
 #include "esp_private/esp_int_wdt.h"
 
-#if CONFIG_PM_POWER_DOWN_PERIPHERAL_IN_LIGHT_SLEEP && SOC_TIMER_SUPPORT_SLEEP_RETENTION
+#if CONFIG_PM_POWER_DOWN_PERIPHERAL_IN_LIGHT_SLEEP && SOC_MWDT_SUPPORT_SLEEP_RETENTION
 #include "esp_private/sleep_retention.h"
 #endif
 
