@@ -6,7 +6,7 @@ from pytest_embedded_idf.utils import idf_parametrize
 
 
 @pytest.mark.generic
-@pytest.mark.eco5
+@pytest.mark.esp32h2_rev1_2
 @idf_parametrize('target', ['esp32h2'], indirect=['target'])
 def test_phy(dut: Dut) -> None:
     dut.run_all_single_board_cases()
