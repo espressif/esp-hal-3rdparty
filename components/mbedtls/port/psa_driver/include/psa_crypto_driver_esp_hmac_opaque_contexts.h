@@ -9,6 +9,7 @@
 #include "esp_types.h"
 #include "soc/soc_caps.h"
 #include "psa/crypto_driver_common.h"
+#include "hal/hmac_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,7 +25,7 @@ extern "C" {
  */
 typedef struct {
     bool use_km_key;                        /**< Use key deployed in the key manager */
-    uint8_t efuse_block;                    /**< eFuse block id for HMAC key */
+    hmac_key_id_t efuse_key_id;                    /**< eFuse key block id for HMAC key */
 } esp_hmac_opaque_key_t;
 
 /**

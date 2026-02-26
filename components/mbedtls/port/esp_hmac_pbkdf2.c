@@ -53,7 +53,7 @@ esp_err_t esp_hmac_derive_pbkdf2_key(hmac_key_id_t key_id, const uint8_t *salt, 
     // Create opaque key reference
     esp_hmac_opaque_key_t opaque_key = {
         .use_km_key = false,
-        .efuse_block = (uint8_t)(EFUSE_BLK_KEY0 + key_id),
+        .efuse_key_id = key_id,
     };
 
     // Import the opaque key
