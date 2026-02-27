@@ -44,7 +44,7 @@
 #define SOC_ETM_SUPPORTED               1
 // #define SOC_PARLIO_SUPPORTED            1      // TODO: [ESP32S31] IDF-14711
 #define SOC_ASYNC_MEMCPY_SUPPORTED      1
-// #define SOC_USB_OTG_SUPPORTED           1      // TODO: [ESP32S31] IDF-14701
+#define SOC_USB_OTG_SUPPORTED           1
 // #define SOC_USB_SERIAL_JTAG_SUPPORTED   1      // TODO: [ESP32S31] IDF-14788
 // #define SOC_TEMP_SENSOR_SUPPORTED       1      // TODO: [ESP32S31] IDF-14799
 // #define SOC_SUPPORTS_SECURE_DL_MODE     1      // TODO: [ESP32S31] IDF-14629
@@ -101,6 +101,11 @@
 // #define SOC_SIMD_INSTRUCTION_SUPPORTED  1      // TODO: [ESP32S31] IDF-14661
 #define SOC_CORDIC_SUPPORTED            1
 #define SOC_REGI2C_SUPPORTED            1
+
+/*-------------------------- USB CAPS ----------------------------------------*/
+#define SOC_USB_OTG_PERIPH_NUM          (1U)
+#define SOC_USB_FSLS_PHY_NUM            (0U)
+#define SOC_USB_UTMI_PHY_NUM            (1U)
 
 /*-------------------------- XTAL CAPS ---------------------------------------*/
 #define SOC_XTAL_SUPPORT_40M            1
