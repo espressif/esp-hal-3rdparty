@@ -413,9 +413,11 @@ esp_err_t SPI_COMMON_ISR_ATTR spicommon_dma_setup_priv_buffer(spi_host_device_t 
             alignment = MAX(dma_ctx->dma_align_rx_int, bus_attr->cache_align_int);
         }
     }
-    need_malloc |= (((uint32_t)buffer | len) & (alignment - 1));
+    // length also must be aligned if cache sync is required, otherwise don't need
+    need_malloc |= (use_psram || bus_attr->cache_align_int > 1) ? (((uint32_t)buffer | len) & (alignment - 1)) : (((uint32_t)buffer) & (alignment - 1));
     uint32_t align_len = (len + alignment - 1) & (~(alignment - 1));   // up align alignment
     ESP_EARLY_LOGV(SPI_TAG, "SPI%d %s %p, len %d, is_ptr_ext %d, use_psram: %d, alignment: %d, need_malloc: %d from %s", host_id + 1, is_tx ? "TX" : "RX", buffer, len, is_ptr_ext, use_psram, alignment, need_malloc, (mem_cap & MALLOC_CAP_SPIRAM) ? "psram" : "internal");
+
     if (need_malloc) {
         ESP_RETURN_ON_FALSE_ISR(auto_malloc, ESP_ERR_INVALID_STATE, SPI_TAG, "%s addr&len not align to %d, or not dma_capable, suggest use 'heap_caps_malloc' or enable auto_align", is_tx ? "TX" : "RX", alignment);
         uint32_t *temp = heap_caps_aligned_alloc(alignment, align_len, mem_cap);
