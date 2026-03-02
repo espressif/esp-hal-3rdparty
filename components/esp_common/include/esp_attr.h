@@ -205,16 +205,93 @@ FORCE_INLINE_ATTR TYPE& operator<<=(TYPE& a, int b) { a = a << b; return a; }
 //
 // Using unique sections also means --gc-sections can remove unused
 // data with a custom section type set
+#define _COUNTER_STRINGIFY(COUNTER) #COUNTER
+
 #ifndef CONFIG_IDF_TARGET_LINUX
 #define _SECTION_ATTR_IMPL(SECTION, COUNTER) __attribute__((section(SECTION "." _COUNTER_STRINGIFY(COUNTER))))
 #define _SECTION_FORCE_ATTR_IMPL(SECTION, COUNTER) __attribute__((noinline, section(SECTION "." _COUNTER_STRINGIFY(COUNTER))))
-#define _COUNTER_STRINGIFY(COUNTER) #COUNTER
 #else
 // Custom section attributes are generally not used in the port files for Linux target, but may be found
 // in the common header files. Don't declare custom sections in that case.
 #define _SECTION_ATTR_IMPL(SECTION, COUNTER)
 #define _SECTION_FORCE_ATTR_IMPL(SECTION, COUNTER)
 #endif
+
+/*
+ * Portable link-time section macros.
+ *
+ * Unlike _SECTION_ATTR_IMPL (which is a no-op on Linux), these macros emit
+ * real section attributes on every platform: embedded ELF, Linux ELF, and
+ * macOS Mach-O.  Use them when data MUST be placed in a custom section
+ * regardless of the target (e.g. error-code tables, init-function arrays).
+ *
+ * PLACE_IN_SECTION("name")
+ *   Place a variable into section "name" with used + aligned(4).
+ *   Section name is given WITHOUT a leading dot; the macro adds the
+ *   appropriate prefix ("." for ELF, "__DATA," for Mach-O).
+ *
+ * _SECTION_ATTR_IMPL_GENERIC("name", counter)
+ *   Like PLACE_IN_SECTION but appends a unique counter suffix so that
+ *   multiple definitions in the same translation unit get unique sub-sections
+ *   (enables SORT in the linker).
+ *
+ * _SECTION_ATTR_SYMBOL_DECL_GENERIC(TYPE, section_name)
+ *   Declare the start/end boundary symbols for iterating over all entries
+ *   placed in a section.  On ELF these are plain extern symbols provided
+ *   by the linker script; on macOS a constructor resolves them at runtime
+ *   via getsectiondata().
+ *
+ * _SECTION_START(section_name) / _SECTION_END(section_name)
+ *   Evaluate to a (const TYPE *) pointing to the first / past-the-last
+ *   entry — works uniformly across platforms.
+ */
+#if defined(__APPLE__) && defined(__MACH__)
+/* ---------- macOS (Mach-O) ---------- */
+#include <mach-o/getsect.h>
+#include <mach-o/dyld.h>
+
+#define PLACE_IN_SECTION(SECTION) \
+    __attribute__((used, aligned(4), section("__DATA," SECTION)))
+
+#define _SECTION_ATTR_IMPL_GENERIC(SECTION, COUNTER) \
+    __attribute__((aligned(4), section("__DATA," SECTION)))
+
+#define _SECTION_ATTR_SYMBOL_DECL_GENERIC(TYPE, SECTION_NAME) \
+    static const TYPE *_##SECTION_NAME##_start_ptr; \
+    static const TYPE *_##SECTION_NAME##_end_ptr; \
+    __attribute__((constructor)) \
+    static void _init_section_##SECTION_NAME(void) { \
+        unsigned long size = 0; \
+        const TYPE *s = (const TYPE *)getsectiondata( \
+            &_mh_execute_header, "__DATA", #SECTION_NAME, &size); \
+        if (s && size > 0) { \
+            _##SECTION_NAME##_start_ptr = s; \
+            _##SECTION_NAME##_end_ptr = s + (size / sizeof(TYPE)); \
+        } else { \
+            _##SECTION_NAME##_start_ptr = (const TYPE *)0; \
+            _##SECTION_NAME##_end_ptr = (const TYPE *)0; \
+        } \
+    }
+
+#define _SECTION_START(SECTION_NAME)  (_##SECTION_NAME##_start_ptr)
+#define _SECTION_END(SECTION_NAME)    (_##SECTION_NAME##_end_ptr)
+
+#else /* ELF targets (Linux and embedded) */
+
+#define PLACE_IN_SECTION(SECTION) \
+    __attribute__((used, aligned(4), section("." SECTION)))
+
+#define _SECTION_ATTR_IMPL_GENERIC(SECTION, COUNTER) \
+    __attribute__((aligned(4), section("." SECTION "." _COUNTER_STRINGIFY(COUNTER))))
+
+#define _SECTION_ATTR_SYMBOL_DECL_GENERIC(TYPE, SECTION_NAME) \
+    extern TYPE _##SECTION_NAME##_start; \
+    extern TYPE _##SECTION_NAME##_end;
+
+#define _SECTION_START(SECTION_NAME)  (&_##SECTION_NAME##_start)
+#define _SECTION_END(SECTION_NAME)    (&_##SECTION_NAME##_end)
+
+#endif /* platform selection */
 
 /* Use IDF_DEPRECATED attribute to mark anything deprecated from use in
    ESP-IDF's own source code, but not deprecated for external users.
