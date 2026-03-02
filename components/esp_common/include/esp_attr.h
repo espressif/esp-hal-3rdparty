@@ -248,13 +248,13 @@ FORCE_INLINE_ATTR TYPE& operator<<=(TYPE& a, int b) { a = a << b; return a; }
 #if defined(__APPLE__) && defined(__MACH__)
 /* ---------- macOS (Mach-O) ---------- */
 #include <mach-o/getsect.h>
+#include <mach-o/ldsyms.h>
 #include <mach-o/dyld.h>
 
-#define PLACE_IN_SECTION(SECTION) \
+#define _SECTION_ATTR_IMPL_GENERIC(SECTION, COUNTER) \
     __attribute__((used, aligned(4), section("__DATA," SECTION)))
 
-#define _SECTION_ATTR_IMPL_GENERIC(SECTION, COUNTER) \
-    __attribute__((aligned(4), section("__DATA," SECTION)))
+#define PLACE_IN_SECTION(SECTION) _SECTION_ATTR_IMPL_GENERIC(SECTION, __COUNTER__)
 
 #define _SECTION_ATTR_SYMBOL_DECL_GENERIC(TYPE, SECTION_NAME) \
     static const TYPE *_##SECTION_NAME##_start_ptr; \
@@ -278,11 +278,10 @@ FORCE_INLINE_ATTR TYPE& operator<<=(TYPE& a, int b) { a = a << b; return a; }
 
 #else /* ELF targets (Linux and embedded) */
 
-#define PLACE_IN_SECTION(SECTION) \
-    __attribute__((used, aligned(4), section("." SECTION)))
-
 #define _SECTION_ATTR_IMPL_GENERIC(SECTION, COUNTER) \
-    __attribute__((aligned(4), section("." SECTION "." _COUNTER_STRINGIFY(COUNTER))))
+    __attribute__((used, aligned(4), section("." SECTION "." _COUNTER_STRINGIFY(COUNTER))))
+
+#define PLACE_IN_SECTION(SECTION) _SECTION_ATTR_IMPL_GENERIC(SECTION, __COUNTER__)
 
 #define _SECTION_ATTR_SYMBOL_DECL_GENERIC(TYPE, SECTION_NAME) \
     extern TYPE _##SECTION_NAME##_start; \
