@@ -975,6 +975,10 @@ config SOC_FLASH_ENCRYPTION_XTS_AES_128
     bool
     default y
 
+config SOC_FLASH_ENCRYPTION_PAGE_CONFIGURABLE
+    bool
+    default y
+
 config SOC_APM_CTRL_FILTER_SUPPORTED
     bool
     default y
