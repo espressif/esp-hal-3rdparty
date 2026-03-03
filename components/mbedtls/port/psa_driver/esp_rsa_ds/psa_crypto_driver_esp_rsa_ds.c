@@ -17,6 +17,10 @@
 #include "esp_efuse.h"
 #include "soc/soc_caps.h"
 
+#if SOC_KEY_MANAGER_SUPPORTED
+#include "esp_key_mgr.h"
+#endif /* SOC_KEY_MANAGER_SUPPORTED */
+
 #define ESP_RSA_DS_TIMEOUT_BUFFER_MS 1000
 
 static const char *TAG = "PSA_RSA_DS";
@@ -79,10 +83,6 @@ static int esp_rsa_ds_validate_opaque_key(const esp_rsa_ds_opaque_key_t *opaque_
         return PSA_ERROR_INVALID_ARGUMENT;
     }
 
-    if ((opaque_key->ds_data_ctx->efuse_key_id + EFUSE_BLK_KEY0) >= EFUSE_BLK_KEY_MAX) {
-        return PSA_ERROR_INVALID_ARGUMENT;
-    }
-
     if (opaque_key->ds_data_ctx->rsa_length_bits % 32 != 0) {
         return PSA_ERROR_INVALID_ARGUMENT;
     }
@@ -96,10 +96,21 @@ static int esp_rsa_ds_validate_opaque_key(const esp_rsa_ds_opaque_key_t *opaque_
         return PSA_ERROR_INVALID_ARGUMENT;
     }
 
-    esp_efuse_purpose_t purpose = esp_efuse_get_key_purpose(EFUSE_BLK_KEY0 + opaque_key->ds_data_ctx->efuse_key_id);
-    if (purpose != ESP_EFUSE_KEY_PURPOSE_HMAC_DOWN_DIGITAL_SIGNATURE) {
-        return PSA_ERROR_NOT_PERMITTED;
+#if SOC_KEY_MANAGER_SUPPORTED
+    if (!opaque_key->key_recovery_info) {
+#endif /* SOC_KEY_MANAGER_SUPPORTED */
+        if ((opaque_key->ds_data_ctx->efuse_key_id + EFUSE_BLK_KEY0) >= EFUSE_BLK_KEY_MAX) {
+            return PSA_ERROR_INVALID_ARGUMENT;
+        }
+
+        esp_efuse_purpose_t purpose = esp_efuse_get_key_purpose(EFUSE_BLK_KEY0 + opaque_key->ds_data_ctx->efuse_key_id);
+        if (purpose != ESP_EFUSE_KEY_PURPOSE_HMAC_DOWN_DIGITAL_SIGNATURE) {
+            return PSA_ERROR_NOT_PERMITTED;
+        }
+#if SOC_KEY_MANAGER_SUPPORTED
     }
+#endif /* SOC_KEY_MANAGER_SUPPORTED */
+
     return PSA_SUCCESS;
 }
 
@@ -112,6 +123,8 @@ psa_status_t esp_rsa_ds_opaque_sign_hash_start(
     const uint8_t *hash,
     size_t hash_length)
 {
+    esp_err_t err = ESP_FAIL;
+
     if (!attributes || !key_buffer || !hash || !operation) {
         return PSA_ERROR_INVALID_ARGUMENT;
     }
@@ -175,10 +188,26 @@ psa_status_t esp_rsa_ds_opaque_sign_hash_start(
         sig_words[i] = SWAP_INT32(em_words[words_len - (i + 1)]);
     }
 
-    esp_err_t err = esp_ds_start_sign((const void *)operation->sig_buffer,
-                                        opaque_key->ds_data_ctx->esp_ds_data,
-                                        opaque_key->ds_data_ctx->efuse_key_id,
-                                        &operation->esp_rsa_ds_ctx);
+    hmac_key_id_t hmac_key_id = opaque_key->ds_data_ctx->efuse_key_id;
+
+#if SOC_KEY_MANAGER_SUPPORTED
+    esp_key_mgr_key_recovery_info_t *km_key_recovery_info = operation->esp_rsa_ds_opaque_key->key_recovery_info;
+    if (km_key_recovery_info) {
+        err = esp_key_mgr_activate_key(km_key_recovery_info);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to activate key: 0x%x", err);
+            status = PSA_ERROR_INVALID_HANDLE;
+            goto error;
+        }
+        hmac_key_id = HMAC_KEY_KM;
+        operation->is_km_key_active = true;
+    }
+#endif /* SOC_KEY_MANAGER_SUPPORTED */
+
+    err = esp_ds_start_sign((const void *)operation->sig_buffer,
+                            opaque_key->ds_data_ctx->esp_ds_data,
+                            hmac_key_id,
+                            &operation->esp_rsa_ds_ctx);
     if (err != ESP_OK) {
         status = PSA_ERROR_GENERIC_ERROR;
         goto error;
@@ -189,13 +218,7 @@ error:
         heap_caps_free(em);
         em = NULL;
     }
-    if (status != PSA_SUCCESS) {
-        if (operation->sig_buffer) {
-            heap_caps_free(operation->sig_buffer);
-            operation->sig_buffer = NULL;
-        }
-        esp_rsa_ds_release_ds_lock();
-    }
+
     return status;
 }
 
@@ -204,6 +227,10 @@ psa_status_t esp_rsa_ds_opaque_sign_hash_complete(
     uint8_t *signature, size_t signature_size,
     size_t *signature_length)
 {
+    if (!operation) {
+        return PSA_ERROR_INVALID_ARGUMENT;
+    }
+
     if (!signature || !signature_length || !operation) {
         return PSA_ERROR_INVALID_ARGUMENT;
     }
@@ -218,10 +245,8 @@ psa_status_t esp_rsa_ds_opaque_sign_hash_complete(
     }
 
     esp_err_t err = esp_ds_finish_sign((void *)operation->sig_buffer, operation->esp_rsa_ds_ctx);
+    operation->esp_rsa_ds_ctx = NULL;
     if (err != ESP_OK) {
-        memset(operation->sig_buffer, 0, operation->sig_buffer_size);
-        heap_caps_free(operation->sig_buffer);
-        esp_rsa_ds_release_ds_lock();
         return PSA_ERROR_GENERIC_ERROR;
     }
 
@@ -233,10 +258,15 @@ psa_status_t esp_rsa_ds_opaque_sign_hash_complete(
     }
 
     *signature_length = expected_signature_size;
-    memset(operation->sig_buffer, 0, operation->sig_buffer_size);
-    heap_caps_free(operation->sig_buffer);
-    operation->sig_buffer = NULL;
+
     esp_rsa_ds_release_ds_lock();
+
+    if (operation->sig_buffer) {
+        memset(operation->sig_buffer, 0, operation->sig_buffer_size);
+        heap_caps_free(operation->sig_buffer);
+        operation->sig_buffer = NULL;
+    }
+
     return PSA_SUCCESS;
 }
 
@@ -245,6 +275,24 @@ psa_status_t esp_rsa_ds_opaque_sign_hash_abort(
 {
     if (!operation) {
         return PSA_ERROR_INVALID_ARGUMENT;
+    }
+
+    if (operation->esp_rsa_ds_opaque_key) {
+#if SOC_KEY_MANAGER_SUPPORTED
+        esp_key_mgr_key_recovery_info_t *km_key_recovery_info = operation->esp_rsa_ds_opaque_key->key_recovery_info;
+        if (km_key_recovery_info && operation->is_km_key_active) {
+            esp_key_mgr_deactivate_key(km_key_recovery_info->key_type);
+            operation->is_km_key_active = false;
+        }
+#endif /* SOC_KEY_MANAGER_SUPPORTED */
+        operation->esp_rsa_ds_opaque_key = NULL;
+    }
+
+    if (operation->esp_rsa_ds_ctx) {
+#if !ESP_TEE_BUILD
+        free(operation->esp_rsa_ds_ctx);
+#endif
+        operation->esp_rsa_ds_ctx = NULL;
     }
 
     // Free allocated memory if exists
@@ -310,7 +358,7 @@ psa_status_t esp_rsa_ds_opaque_import_key(
     size_t *key_buffer_length,
     size_t *bits)
 {
-    if (!attributes || !data || data_length < 1 || !key_buffer || !key_buffer_length || !bits) {
+    if (!attributes || !data || data_length < sizeof(esp_rsa_ds_opaque_key_t) || !key_buffer || !key_buffer_length || !bits) {
         return PSA_ERROR_INVALID_ARGUMENT;
     }
 
@@ -365,6 +413,9 @@ psa_status_t esp_rsa_ds_opaque_asymmetric_decrypt(
 {
     (void)salt;
     (void)salt_length;
+
+    esp_err_t err = ESP_FAIL;
+
     if (!attributes || !key || key_length < sizeof(esp_rsa_ds_opaque_key_t) ||
         !input || input_length < 1 || !output || !output_length) {
         return PSA_ERROR_INVALID_ARGUMENT;
@@ -413,17 +464,47 @@ psa_status_t esp_rsa_ds_opaque_asymmetric_decrypt(
     operation.esp_rsa_ds_opaque_key = opaque_key;
     operation.sig_buffer = em_words;
 
-    esp_err_t err = esp_ds_start_sign((const void *)em_words,
-                                    opaque_key->ds_data_ctx->esp_ds_data,
-                                    opaque_key->ds_data_ctx->efuse_key_id,
-                                    &operation.esp_rsa_ds_ctx);
+    hmac_key_id_t hmac_key_id = opaque_key->ds_data_ctx->efuse_key_id;
+#if SOC_KEY_MANAGER_SUPPORTED
+    esp_key_mgr_key_recovery_info_t *km_key_recovery_info = opaque_key->key_recovery_info;
+    if (km_key_recovery_info) {
+        err = esp_key_mgr_activate_key(km_key_recovery_info);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to activate key: 0x%x", err);
+            heap_caps_free(em_words);
+            esp_rsa_ds_release_ds_lock();
+            return PSA_ERROR_INVALID_HANDLE;
+        }
+        hmac_key_id = HMAC_KEY_KM;
+        operation.is_km_key_active = true;
+    }
+#endif /* SOC_KEY_MANAGER_SUPPORTED */
+
+    err = esp_ds_start_sign((const void *)em_words,
+                            opaque_key->ds_data_ctx->esp_ds_data,
+                            hmac_key_id,
+                            &operation.esp_rsa_ds_ctx);
     if (err != ESP_OK) {
         heap_caps_free(em_words);
+#if SOC_KEY_MANAGER_SUPPORTED
+    if (km_key_recovery_info && operation.is_km_key_active) {
+        esp_key_mgr_deactivate_key(km_key_recovery_info->key_type);
+        operation.is_km_key_active = false;
+    }
+#endif /* SOC_KEY_MANAGER_SUPPORTED */
         esp_rsa_ds_release_ds_lock();
         return PSA_ERROR_GENERIC_ERROR;
     }
 
     err = esp_ds_finish_sign((void *)em_words, operation.esp_rsa_ds_ctx);
+
+#if SOC_KEY_MANAGER_SUPPORTED
+    if (km_key_recovery_info && operation.is_km_key_active) {
+        esp_key_mgr_deactivate_key(km_key_recovery_info->key_type);
+        operation.is_km_key_active = false;
+    }
+#endif /* SOC_KEY_MANAGER_SUPPORTED */
+
     if (err != ESP_OK) {
         heap_caps_free(em_words);
         esp_rsa_ds_release_ds_lock();
@@ -435,6 +516,7 @@ psa_status_t esp_rsa_ds_opaque_asymmetric_decrypt(
     // Remove padding
     uint32_t *out_tmp = heap_caps_malloc_prefer(sizeof(uint32_t) * data_len, 1, MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL, MALLOC_CAP_DEFAULT | MALLOC_CAP_INTERNAL);
     if (out_tmp == NULL) {
+        memset(em_words, 0, sizeof(uint32_t) * data_len);
         heap_caps_free(em_words);
         return PSA_ERROR_INSUFFICIENT_MEMORY;
     }
