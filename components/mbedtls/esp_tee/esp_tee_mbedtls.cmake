@@ -60,11 +60,12 @@ foreach(target ${mbedtls_targets})
         target_compile_options(${target} PRIVATE "-O2")
     endif()
     target_link_libraries(${target} PUBLIC idf::esp_hal_security)
+    target_link_libraries(${target} PRIVATE idf::esp_security)
 endforeach()
 
 target_link_libraries(${COMPONENT_LIB} INTERFACE ${mbedtls_targets})
 
-target_link_libraries(tfpsacrypto PRIVATE idf::esp_security)
+target_link_libraries(tfpsacrypto PUBLIC idf::esp_security)
 
 target_include_directories(tfpsacrypto PRIVATE ${crypto_port_inc_dirs})
 

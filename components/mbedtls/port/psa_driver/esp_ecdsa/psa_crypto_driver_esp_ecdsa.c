@@ -20,6 +20,10 @@
 #include "esp_efuse.h"
 #include "esp_efuse_chip.h"
 
+#if SOC_KEY_MANAGER_SUPPORTED
+#include "esp_key_mgr.h"
+#endif /* SOC_KEY_MANAGER_SUPPORTED */
+
 #if SOC_ECDSA_SUPPORTED
 #include "hal/ecdsa_types.h"
 #include "hal/ecdsa_hal.h"
@@ -358,8 +362,8 @@ psa_status_t esp_ecdsa_transparent_verify_hash(
  */
 static bool is_efuse_blk_valid(int high_blk, int low_blk)
 {
-    return (high_blk >= EFUSE_BLK0 && high_blk < EFUSE_BLK_MAX &&
-            low_blk >= EFUSE_BLK0 && low_blk < EFUSE_BLK_MAX);
+    return ((high_blk == 0 || (high_blk >= EFUSE_BLK_KEY0 && high_blk < EFUSE_BLK_KEY_MAX)) &&
+            (low_blk >= EFUSE_BLK_KEY0 && low_blk < EFUSE_BLK_KEY_MAX));
 }
 #endif /* SOC_ECDSA_SUPPORT_CURVE_P384 */
 
@@ -442,15 +446,18 @@ static psa_status_t validate_ecdsa_opaque_key_attributes(const psa_key_attribute
 {
     esp_ecdsa_curve_t expected_curve = psa_bits_to_ecdsa_curve(PSA_BITS_TO_BYTES(psa_get_key_bits(attributes)));
 
-    if (expected_curve != opaque_key->curve) {
+    if (expected_curve == ESP_ECDSA_CURVE_MAX || expected_curve != opaque_key->curve) {
         return PSA_ERROR_INVALID_ARGUMENT;
     }
 
 #if CONFIG_MBEDTLS_HARDWARE_ECDSA_SIGN
-    if (!(opaque_key->use_km_key
+    if (!(0
+#if SOC_KEY_MANAGER_SUPPORTED
+        || opaque_key->key_recovery_info
+#endif /* SOC_KEY_MANAGER_SUPPORTED */
 #if CONFIG_MBEDTLS_TEE_SEC_STG_ECDSA_SIGN
         || opaque_key->tee_key_id
-#endif
+#endif /* CONFIG_MBEDTLS_TEE_SEC_STG_ECDSA_SIGN */
     )) {
         psa_status_t status = esp_ecdsa_validate_efuse_block(opaque_key->curve, opaque_key->efuse_block);
         if (status != PSA_SUCCESS) {
@@ -625,6 +632,17 @@ psa_status_t esp_ecdsa_opaque_sign_hash_complete(
 
         uint8_t zeroes[MAX_ECDSA_COMPONENT_LEN] = {0};
 
+#if SOC_KEY_MANAGER_SUPPORTED
+        esp_key_mgr_key_recovery_info_t *key_recovery_info = operation->opaque_key->key_recovery_info;
+        if (key_recovery_info) {
+            esp_err_t err = esp_key_mgr_activate_key(key_recovery_info);
+            if (err != ESP_OK) {
+                ESP_LOGE(TAG, "Failed to activate key: 0x%x", err);
+                return PSA_ERROR_INVALID_HANDLE;
+            }
+        }
+#endif /* SOC_KEY_MANAGER_SUPPORTED */
+
         // Acquire hardware
         esp_ecdsa_acquire_hardware();
 
@@ -648,10 +666,13 @@ psa_status_t esp_ecdsa_opaque_sign_hash_complete(
             }
 #endif /* CONFIG_MBEDTLS_ECDSA_DETERMINISTIC && !SOC_ECDSA_SUPPORT_HW_DETERMINISTIC_LOOP */
 
+#if SOC_KEY_MANAGER_SUPPORTED
             // Set key source (consistent with esp_ecdsa_pk_conf_t)
-            if (operation->opaque_key->use_km_key) {
+            if (key_recovery_info) {
                 conf.use_km_key = 1;
-            } else {
+            } else
+#endif /* SOC_KEY_MANAGER_SUPPORTED */
+            {
                 conf.efuse_key_blk = operation->opaque_key->efuse_block;
             }
 
@@ -682,6 +703,12 @@ psa_status_t esp_ecdsa_opaque_sign_hash_complete(
         } while (process_again);
 
         esp_ecdsa_release_hardware();
+
+#if SOC_KEY_MANAGER_SUPPORTED
+        if (key_recovery_info) {
+            esp_key_mgr_deactivate_key(key_recovery_info->key_type);
+        }
+#endif /* SOC_KEY_MANAGER_SUPPORTED */
 
         // Convert r from little-endian to big-endian and copy to output
         change_endianess(operation->r, signature, component_len);
@@ -814,9 +841,18 @@ psa_status_t esp_ecdsa_opaque_export_public_key(
             .curve = opaque_key->curve,
         };
 
-        if (opaque_key->use_km_key) {
+#if SOC_KEY_MANAGER_SUPPORTED
+        esp_key_mgr_key_recovery_info_t *key_recovery_info = opaque_key->key_recovery_info;
+        if (key_recovery_info) {
+            esp_err_t err = esp_key_mgr_activate_key(key_recovery_info);
+            if (err != ESP_OK) {
+                ESP_LOGE(TAG, "Failed to activate key: 0x%x", err);
+                return PSA_ERROR_INVALID_HANDLE;
+            }
             conf.use_km_key = 1;
-        } else {
+        } else
+#endif /* SOC_KEY_MANAGER_SUPPORTED */
+        {
             conf.efuse_key_blk = opaque_key->efuse_block;
         }
 
@@ -833,6 +869,12 @@ psa_status_t esp_ecdsa_opaque_export_public_key(
         } while (process_again);
 
         esp_ecdsa_release_hardware();
+
+#if SOC_KEY_MANAGER_SUPPORTED
+        if (key_recovery_info) {
+            esp_key_mgr_deactivate_key(key_recovery_info->key_type);
+        }
+#endif /* SOC_KEY_MANAGER_SUPPORTED */
 
         // Format: uncompressed point (ECDSA_UNCOMPRESSED_POINT_FORMAT byte followed by x and y coordinates)
         data[0] = ECDSA_UNCOMPRESSED_POINT_FORMAT;

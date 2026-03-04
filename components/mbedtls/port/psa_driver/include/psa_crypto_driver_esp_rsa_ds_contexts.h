@@ -12,6 +12,11 @@
 #include "esp_ds.h"
 #include "hal/hmac_types.h"
 
+#include "soc/soc_caps.h"
+#if SOC_KEY_MANAGER_SUPPORTED
+#include "esp_key_mgr.h"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -42,12 +47,18 @@ typedef struct {
 
 typedef struct {
     esp_ds_data_ctx_t *ds_data_ctx;
+#if SOC_KEY_MANAGER_SUPPORTED
+    esp_key_mgr_key_recovery_info_t *key_recovery_info;        /**< Pointer to the key recovery info for DS key */
+#endif /* SOC_KEY_MANAGER_SUPPORTED */
 } esp_rsa_ds_opaque_key_t;
 
 #if !(__DOXYGEN__) // No need to document these structures, these are internal to the driver
 /* The buffers are stored in the little-endian format */
 typedef struct {
     const esp_rsa_ds_opaque_key_t *esp_rsa_ds_opaque_key; /**< Pointer to the esp ds opaque key */
+#if SOC_KEY_MANAGER_SUPPORTED
+    bool is_km_key_active;                          /**< Flag indicating if the Key Manager key is active for this operation */
+#endif /* SOC_KEY_MANAGER_SUPPORTED */
     psa_algorithm_t alg;                            /**< Algorithm used in the sign operation */
     uint32_t *sig_buffer;                           /**< Buffer to hold the signature */
     size_t sig_buffer_size;                         /**< Size of the signature buffer */

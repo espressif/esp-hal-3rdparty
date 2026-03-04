@@ -301,7 +301,7 @@ const uint8_t k1_ecdsa192_encrypt[] = {
    0xde, 0xe9, 0x9c, 0x89, 0xf2, 0x3b, 0x29, 0xb7, 0x9e, 0x33, 0xec, 0x76, 0x75, 0x2f, 0x3e, 0xab, 0x61, 0x06, 0x4d, 0xea, 0x05, 0x2c, 0xc3, 0x29, 0x1c, 0x7f, 0xb7, 0x3d, 0xb8, 0x1c, 0xb2, 0x17,
 };
 
-void test_ecdsa_sign(esp_ecdsa_curve_t curve, const uint8_t *hash, const uint8_t *pub_x, const uint8_t *pub_y, bool is_deterministic, int efuse_key_block)
+void test_ecdsa_sign(esp_ecdsa_curve_t curve, const uint8_t *hash, const uint8_t *pub_x, const uint8_t *pub_y, bool is_deterministic, int efuse_key_block, void *key_recovery_info)
 {
     size_t hash_len = HASH_LEN;
     uint8_t signature[2 * MAX_ECDSA_COMPONENT_LEN];
@@ -331,13 +331,15 @@ void test_ecdsa_sign(esp_ecdsa_curve_t curve, const uint8_t *hash, const uint8_t
     psa_key_id_t priv_key_id = 0;
     psa_key_attributes_t priv_attr = PSA_KEY_ATTRIBUTES_INIT;
 
-    esp_ecdsa_opaque_key_t opaque_key = {
-        .curve = curve,
-    };
+    esp_ecdsa_opaque_key_t opaque_key = { 0 };
+    opaque_key.curve = curve;
 
-    if (efuse_key_block == USE_ECDSA_KEY_FROM_KEY_MANAGER) {
-        opaque_key.use_km_key = true;
-    } else {
+#if SOC_KEY_MANAGER_SUPPORTED
+    if (key_recovery_info) {
+        opaque_key.key_recovery_info = (esp_key_mgr_key_recovery_info_t *) key_recovery_info;
+    } else
+#endif /* SOC_KEY_MANAGER_SUPPORTED */
+    {
         opaque_key.efuse_block = efuse_key_block;
     }
 
@@ -373,7 +375,7 @@ TEST_CASE("mbedtls ECDSA signature generation on SECP256R1", "[mbedtls][efuse_ke
     if (!ecdsa_ll_is_supported()) {
         TEST_IGNORE_MESSAGE("ECDSA is not supported");
     }
-    test_ecdsa_sign(ESP_ECDSA_CURVE_SECP256R1, sha, ecdsa256_pub_x, ecdsa256_pub_y, false, SECP256R1_EFUSE_BLOCK);
+    test_ecdsa_sign(ESP_ECDSA_CURVE_SECP256R1, sha, ecdsa256_pub_x, ecdsa256_pub_y, false, SECP256R1_EFUSE_BLOCK, NULL);
 }
 
 #ifdef SOC_ECDSA_SUPPORT_CURVE_P384
@@ -383,14 +385,14 @@ TEST_CASE("mbedtls ECDSA signature generation on SECP384R1", "[mbedtls][efuse_ke
         TEST_IGNORE_MESSAGE("ECDSA is not supported");
     }
     uint8_t efuse_key_block = HAL_ECDSA_COMBINE_KEY_BLOCKS(SECP384R1_EFUSE_BLOCK_HIGH, SECP384R1_EFUSE_BLOCK_LOW);
-    test_ecdsa_sign(ESP_ECDSA_CURVE_SECP384R1, sha, ecdsa384_pub_x, ecdsa384_pub_y, false, efuse_key_block);
+    test_ecdsa_sign(ESP_ECDSA_CURVE_SECP384R1, sha, ecdsa384_pub_x, ecdsa384_pub_y, false, efuse_key_block, NULL);
 }
 #endif /* SOC_ECDSA_SUPPORT_CURVE_P384 */
 
 
 
 #if SOC_KEY_MANAGER_SUPPORTED
-static void deploy_key_in_key_manager(const uint8_t *k1_encrypted, esp_key_mgr_key_type_t key_type, esp_key_mgr_key_len_t key_len) {
+static void deploy_key_in_key_manager(const uint8_t *k1_encrypted, esp_key_mgr_key_type_t key_type, esp_key_mgr_key_len_t key_len, esp_key_mgr_key_recovery_info_t *key_recovery_info) {
     esp_key_mgr_aes_key_config_t *key_config = NULL;
     key_config = heap_caps_calloc(1, sizeof(esp_key_mgr_aes_key_config_t), MALLOC_CAP_INTERNAL);
     TEST_ASSERT_NOT_NULL(key_config);
@@ -402,16 +404,10 @@ static void deploy_key_in_key_manager(const uint8_t *k1_encrypted, esp_key_mgr_k
     memcpy(key_config->k1_encrypted[0], (uint8_t*) k1_encrypted, KEY_MGR_K1_ENCRYPTED_SIZE);
     memcpy(key_config->sw_init_key, (uint8_t*) init_key, KEY_MGR_SW_INIT_KEY_SIZE);
 
-    esp_key_mgr_key_recovery_info_t *key_info = NULL;
-    key_info = heap_caps_calloc(1, sizeof(esp_key_mgr_key_recovery_info_t), MALLOC_CAP_INTERNAL);
-    TEST_ASSERT_NOT_NULL(key_info);
-
-    esp_key_mgr_deploy_key_in_aes_mode(key_config, key_info);
+    TEST_ASSERT_EQUAL(ESP_OK, esp_key_mgr_deploy_key_in_aes_mode(key_config, key_recovery_info));
 
     ESP_LOGI(TAG, "Key deployed successfully");
-    esp_key_mgr_activate_key(key_info);
 
-    free(key_info);
     free(key_config);
 }
 
@@ -424,9 +420,13 @@ TEST_CASE("mbedtls ECDSA signature generation on SECP256R1", "[mbedtls][key_mana
         TEST_IGNORE_MESSAGE("Key manager is not supported");
     }
 
-    deploy_key_in_key_manager(k1_ecdsa256_encrypt, ESP_KEY_MGR_ECDSA_KEY, ESP_KEY_MGR_ECDSA_LEN_256);
-    test_ecdsa_sign(ESP_ECDSA_CURVE_SECP256R1, sha, ecdsa256_pub_x, ecdsa256_pub_y, false, USE_ECDSA_KEY_FROM_KEY_MANAGER);
-    esp_key_mgr_deactivate_key(ESP_KEY_MGR_ECDSA_KEY);
+    esp_key_mgr_key_recovery_info_t *key_recovery_info;
+    key_recovery_info = heap_caps_calloc(1, sizeof(esp_key_mgr_key_recovery_info_t), MALLOC_CAP_INTERNAL);
+    TEST_ASSERT_NOT_NULL(key_recovery_info);
+
+    deploy_key_in_key_manager(k1_ecdsa256_encrypt, ESP_KEY_MGR_ECDSA_KEY, ESP_KEY_MGR_ECDSA_LEN_256, key_recovery_info);
+    test_ecdsa_sign(ESP_ECDSA_CURVE_SECP256R1, sha, ecdsa256_pub_x, ecdsa256_pub_y, false, USE_ECDSA_KEY_FROM_KEY_MANAGER, (void *) key_recovery_info);
+    free(key_recovery_info);
 }
 #endif /* SOC_KEY_MANAGER_SUPPORTED */
 
@@ -440,7 +440,7 @@ TEST_CASE("mbedtls ECDSA deterministic signature generation on SECP256R1", "[mbe
     if (!ecdsa_ll_is_deterministic_mode_supported()) {
         ESP_LOGI(TAG, "Skipping test because ECDSA deterministic mode is not supported.");
     } else {
-        test_ecdsa_sign(ESP_ECDSA_CURVE_SECP256R1, sha, ecdsa256_pub_x, ecdsa256_pub_y, true, SECP256R1_EFUSE_BLOCK);
+        test_ecdsa_sign(ESP_ECDSA_CURVE_SECP256R1, sha, ecdsa256_pub_x, ecdsa256_pub_y, true, SECP256R1_EFUSE_BLOCK, NULL);
     }
 }
 
@@ -451,7 +451,7 @@ TEST_CASE("mbedtls ECDSA deterministic signature generation on SECP384R1", "[mbe
         TEST_IGNORE_MESSAGE("ECDSA is not supported");
     }
     uint8_t efuse_key_block = HAL_ECDSA_COMBINE_KEY_BLOCKS(SECP384R1_EFUSE_BLOCK_HIGH, SECP384R1_EFUSE_BLOCK_LOW);
-    test_ecdsa_sign(ESP_ECDSA_CURVE_SECP384R1, sha, ecdsa384_pub_x, ecdsa384_pub_y, true, efuse_key_block);
+    test_ecdsa_sign(ESP_ECDSA_CURVE_SECP384R1, sha, ecdsa384_pub_x, ecdsa384_pub_y, true, efuse_key_block, NULL);
 }
 #endif /* SOC_ECDSA_SUPPORT_CURVE_P384 */
 
@@ -469,16 +469,20 @@ TEST_CASE("mbedtls ECDSA deterministic signature generation on SECP256R1", "[mbe
     if (!ecdsa_ll_is_deterministic_mode_supported()) {
         ESP_LOGI(TAG, "Skipping test because ECDSA deterministic mode is not supported.");
     } else {
-        deploy_key_in_key_manager(k1_ecdsa256_encrypt, ESP_KEY_MGR_ECDSA_KEY, ESP_KEY_MGR_ECDSA_LEN_256);
-        test_ecdsa_sign(ESP_ECDSA_CURVE_SECP256R1, sha, ecdsa256_pub_x, ecdsa256_pub_y, true, USE_ECDSA_KEY_FROM_KEY_MANAGER);
-        esp_key_mgr_deactivate_key(ESP_KEY_MGR_ECDSA_KEY);
+        esp_key_mgr_key_recovery_info_t *key_recovery_info;
+        key_recovery_info = heap_caps_calloc(1, sizeof(esp_key_mgr_key_recovery_info_t), MALLOC_CAP_INTERNAL);
+        TEST_ASSERT_NOT_NULL(key_recovery_info);
+
+        deploy_key_in_key_manager(k1_ecdsa256_encrypt, ESP_KEY_MGR_ECDSA_KEY, ESP_KEY_MGR_ECDSA_LEN_256, key_recovery_info);
+        test_ecdsa_sign(ESP_ECDSA_CURVE_SECP256R1, sha, ecdsa256_pub_x, ecdsa256_pub_y, true, USE_ECDSA_KEY_FROM_KEY_MANAGER, (void *) key_recovery_info);
+        free(key_recovery_info);
     }
 }
 #endif /* SOC_KEY_MANAGER_SUPPORTED */
 #endif /* SOC_ECDSA_SUPPORT_DETERMINISTIC_MODE */
 
 #ifdef SOC_ECDSA_SUPPORT_EXPORT_PUBKEY
-void test_ecdsa_export_pubkey(esp_ecdsa_curve_t curve, const uint8_t *pub_x, const uint8_t *pub_y, int efuse_key_block)
+void test_ecdsa_export_pubkey(esp_ecdsa_curve_t curve, const uint8_t *pub_x, const uint8_t *pub_y, int efuse_key_block, void *key_recovery_info)
 {
     uint8_t export_pub_key[1 + 2 * MAX_ECDSA_COMPONENT_LEN] = {0};
     size_t len = 0;
@@ -486,9 +490,8 @@ void test_ecdsa_export_pubkey(esp_ecdsa_curve_t curve, const uint8_t *pub_x, con
     psa_key_id_t priv_key_id = 0;
     psa_key_attributes_t key_attr = PSA_KEY_ATTRIBUTES_INIT;
 
-    esp_ecdsa_opaque_key_t opaque_key = {
-        .curve = curve,
-    };
+    esp_ecdsa_opaque_key_t opaque_key = { 0 };
+    opaque_key.curve = curve;
 
     size_t plen = 0;
     psa_algorithm_t sha_alg = 0;
@@ -510,9 +513,12 @@ void test_ecdsa_export_pubkey(esp_ecdsa_curve_t curve, const uint8_t *pub_x, con
     }
     size_t plen_bytes = plen / 8;
 
-    if (efuse_key_block == USE_ECDSA_KEY_FROM_KEY_MANAGER) {
-        opaque_key.use_km_key = true;
-    } else {
+#if SOC_KEY_MANAGER_SUPPORTED
+    if (key_recovery_info) {
+        opaque_key.key_recovery_info = (esp_key_mgr_key_recovery_info_t *) key_recovery_info;
+    } else
+#endif
+    {
         opaque_key.efuse_block = efuse_key_block;
     }
     // Set attributes for opaque private key
@@ -545,7 +551,7 @@ TEST_CASE("mbedtls ECDSA export public key on SECP256R1", "[mbedtls][efuse_key]"
     if (!ecdsa_ll_is_supported()) {
         TEST_IGNORE_MESSAGE("ECDSA is not supported");
     }
-    test_ecdsa_export_pubkey(ESP_ECDSA_CURVE_SECP256R1, ecdsa256_pub_x, ecdsa256_pub_y,  SECP256R1_EFUSE_BLOCK);
+    test_ecdsa_export_pubkey(ESP_ECDSA_CURVE_SECP256R1, ecdsa256_pub_x, ecdsa256_pub_y,  SECP256R1_EFUSE_BLOCK, NULL);
 }
 
 #ifdef SOC_ECDSA_SUPPORT_CURVE_P384
@@ -555,7 +561,7 @@ TEST_CASE("mbedtls ECDSA export public key on SECP384R1", "[mbedtls][efuse_key]"
         TEST_IGNORE_MESSAGE("ECDSA is not supported");
     }
     uint8_t efuse_key_block = HAL_ECDSA_COMBINE_KEY_BLOCKS(SECP384R1_EFUSE_BLOCK_HIGH, SECP384R1_EFUSE_BLOCK_LOW);
-    test_ecdsa_export_pubkey(ESP_ECDSA_CURVE_SECP384R1, ecdsa384_pub_x, ecdsa384_pub_y, efuse_key_block);
+    test_ecdsa_export_pubkey(ESP_ECDSA_CURVE_SECP384R1, ecdsa384_pub_x, ecdsa384_pub_y, efuse_key_block, NULL);
 }
 #endif /* SOC_ECDSA_SUPPORT_CURVE_P384 */
 
@@ -570,9 +576,13 @@ TEST_CASE("mbedtls ECDSA export public key on SECP256R1", "[mbedtls][key_manager
         TEST_IGNORE_MESSAGE("Key manager is not supported");
     }
 
-    deploy_key_in_key_manager(k1_ecdsa256_encrypt, ESP_KEY_MGR_ECDSA_KEY, ESP_KEY_MGR_ECDSA_LEN_256);
-    test_ecdsa_export_pubkey(ESP_ECDSA_CURVE_SECP256R1, ecdsa256_pub_x, ecdsa256_pub_y,  USE_ECDSA_KEY_FROM_KEY_MANAGER);
-    esp_key_mgr_deactivate_key(ESP_KEY_MGR_ECDSA_KEY);
+    esp_key_mgr_key_recovery_info_t *key_recovery_info;
+    key_recovery_info = heap_caps_calloc(1, sizeof(esp_key_mgr_key_recovery_info_t), MALLOC_CAP_INTERNAL);
+    TEST_ASSERT_NOT_NULL(key_recovery_info);
+
+    deploy_key_in_key_manager(k1_ecdsa256_encrypt, ESP_KEY_MGR_ECDSA_KEY, ESP_KEY_MGR_ECDSA_LEN_256, key_recovery_info);
+    test_ecdsa_export_pubkey(ESP_ECDSA_CURVE_SECP256R1, ecdsa256_pub_x, ecdsa256_pub_y,  USE_ECDSA_KEY_FROM_KEY_MANAGER, (void *) key_recovery_info);
+    free(key_recovery_info);
 }
 #endif
 
