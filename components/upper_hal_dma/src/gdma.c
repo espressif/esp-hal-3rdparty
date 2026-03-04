@@ -412,9 +412,22 @@ esp_err_t gdma_config_transfer(gdma_channel_handle_t dma_chan, const gdma_transf
     }
     uint32_t max_data_burst_size = config->max_data_burst_size;
     if (max_data_burst_size) {
+#if defined(GDMA_LL_SUPPORTED_BURST_SIZES_ARRAY)
+        uint32_t supported_burst_sizes[] = GDMA_LL_SUPPORTED_BURST_SIZES_ARRAY;
+        bool valid = false;
+        for (size_t i = 0; i < sizeof(supported_burst_sizes) / sizeof(supported_burst_sizes[0]); i++) {
+            if (supported_burst_sizes[i] == max_data_burst_size) {
+                valid = true;
+                break;
+            }
+        }
+        ESP_RETURN_ON_FALSE(valid, ESP_ERR_INVALID_ARG, TAG,
+                            "invalid max_data_burst_size (%" PRIu32 "), supported: %s", max_data_burst_size, GDMA_LL_SUPPORTED_BURST_SIZES_STR);
+#else
         // burst size must be power of 2
         ESP_RETURN_ON_FALSE((max_data_burst_size & (max_data_burst_size - 1)) == 0, ESP_ERR_INVALID_ARG,
-                            TAG, "invalid max_data_burst_size: %"PRIu32, max_data_burst_size);
+                            TAG, "invalid max_data_burst_size: %" PRIu32, max_data_burst_size);
+#endif
 #if GDMA_LL_GET(AHB_PSRAM_CAPABLE) || GDMA_LL_GET(AXI_PSRAM_CAPABLE) || GDMA_LL_GET(LP_AHB_PSRAM_CAPABLE)
         if (config->access_ext_mem) {
             ESP_RETURN_ON_FALSE(max_data_burst_size <= GDMA_LL_MAX_BURST_SIZE_PSRAM, ESP_ERR_INVALID_ARG,
