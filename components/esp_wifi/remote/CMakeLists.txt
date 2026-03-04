@@ -1,4 +1,13 @@
 # CMakeLists.txt remote functionality for esp_wifi component
+#
+# On linux, esp_wifi is registered with idf_component_register() and no sources, so the
+# build system creates an INTERFACE library. None of the logic below (includes, sources,
+# optional_requires) applies to INTERFACE-only targets, so return early and skip it.
+get_target_property(component_lib_type ${COMPONENT_LIB} TYPE)
+if(component_lib_type STREQUAL "INTERFACE_LIBRARY")
+    return()
+endif()
+
 target_include_directories(${COMPONENT_LIB} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 if(NOT CONFIG_ESP_WIFI_ENABLED AND NOT CONFIG_ESP_HOST_WIFI_ENABLED)
