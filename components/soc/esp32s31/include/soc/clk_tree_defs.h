@@ -358,6 +358,20 @@ typedef enum {
     CLK_CAL_LP_PLL,                                  /*!< Select to calculate frequency of LP_PLL_CLK */
 } soc_clk_freq_calculation_src_t;
 
+//////////////////////////////////////////////////CORDIC///////////////////////////////////////////////////////////
+
+/**
+ * @brief Array initializer for all supported clock sources of CORDIC
+ */
+#define SOC_CORDIC_CLKS {SOC_MOD_CLK_XTAL, SOC_MOD_CLK_RC_FAST, SOC_MOD_CLK_PLL_F160M}
+
+typedef enum {
+    CORDIC_CLK_SRC_XTAL = SOC_MOD_CLK_XTAL,
+    CORDIC_CLK_SRC_PLL_F160M = SOC_MOD_CLK_PLL_F160M,
+    CORDIC_CLK_SRC_RC_FAST = SOC_MOD_CLK_RC_FAST,
+    CORDIC_CLK_SRC_DEFAULT = SOC_MOD_CLK_PLL_F160M,
+} soc_periph_cordic_clk_src_t;
+
 #ifdef __cplusplus
 }
 #endif
