@@ -86,7 +86,7 @@
 // #define SOC_CLK_TREE_SUPPORTED          1      // TODO: [ESP32S31] IDF-14733
 // #define SOC_ASSIST_DEBUG_SUPPORTED      1      // TODO: [ESP32S31] IDF-14675
 // #define SOC_DEBUG_PROBE_SUPPORTED       1      // TODO: [ESP32S31] IDF-14798
-// #define SOC_WDT_SUPPORTED               1      // TODO: [ESP32S31] IDF-14656
+#define SOC_WDT_SUPPORTED               1
 #define SOC_SPI_FLASH_SUPPORTED         1         // TODO: [ESP32S31] IDF-14777
 // #define SOC_TOUCH_SENSOR_SUPPORTED      1      // TODO: [ESP32S31] IDF-14796
 // #define SOC_RNG_SUPPORTED               1      // TODO: [ESP32S31] IDF-14632
@@ -231,7 +231,6 @@
 #define SOC_TIMER_SUPPORT_SLEEP_RETENTION (1)
 
 /*--------------------------- WATCHDOG CAPS ---------------------------------------*/
-// TODO: [ESP32S31] IDF-14656
 #define SOC_MWDT_SUPPORT_XTAL              (1)
 #define SOC_MWDT_SUPPORT_SLEEP_RETENTION   (1)
 

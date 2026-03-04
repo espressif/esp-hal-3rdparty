@@ -26,7 +26,7 @@ esp_err_t bootloader_init(void)
     esp_err_t ret = ESP_OK;
 
     // bootloader_hardware_init();       // TODO: IDF-14696
-    // bootloader_super_wdt_auto_feed();   // TODO: IDF-14656
+    // bootloader_super_wdt_auto_feed();   // TODO: IDF-14678
 
 // In RAM_APP, memory will be initialized in `call_start_cpu0`
 #if !CONFIG_APP_BUILD_TYPE_RAM
@@ -81,7 +81,7 @@ esp_err_t bootloader_init(void)
 #endif // !CONFIG_APP_BUILD_TYPE_RAM
 
     // check whether a WDT reset happened
-    // bootloader_check_wdt_reset();     // TODO: IDF-14656
+    // bootloader_check_wdt_reset();     // TODO: IDF-14678
     // config WDT
     bootloader_config_wdt();
     // enable RNG early entropy source
