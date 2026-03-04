@@ -512,7 +512,7 @@ psa_status_t esp_ecdsa_opaque_sign_hash_start(
         return PSA_ERROR_INVALID_ARGUMENT;
     }
 
-    esp_ecdsa_opaque_key_t *opaque_key = (esp_ecdsa_opaque_key_t *) key_buffer;
+    const esp_ecdsa_opaque_key_t *opaque_key = (const esp_ecdsa_opaque_key_t *) key_buffer;
     psa_status_t status = validate_ecdsa_opaque_key_attributes(attributes, opaque_key);
     if (status != PSA_SUCCESS) {
         return status;
@@ -579,7 +579,7 @@ psa_status_t esp_ecdsa_opaque_sign_hash_complete(
     }
 
 #if CONFIG_MBEDTLS_TEE_SEC_STG_ECDSA_SIGN
-    esp_ecdsa_opaque_key_t *opaque_key = operation->opaque_key;
+    const esp_ecdsa_opaque_key_t *opaque_key = operation->opaque_key;
     if (opaque_key->tee_key_id) {
         esp_tee_sec_storage_type_t tee_sec_storage_type = esp_ecdsa_curve_to_tee_sec_storage_type(opaque_key->curve);
         if (tee_sec_storage_type == (esp_tee_sec_storage_type_t) -1) {

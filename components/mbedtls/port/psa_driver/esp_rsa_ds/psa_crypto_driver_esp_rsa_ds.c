@@ -65,33 +65,38 @@ void esp_rsa_ds_release_ds_lock(void)
     }
 }
 
-static int esp_rsa_ds_validate_opaque_key(const esp_ds_data_ctx_t *opaque_key)
+static int esp_rsa_ds_validate_opaque_key(const esp_rsa_ds_opaque_key_t *opaque_key)
 {
     if (opaque_key == NULL) {
         return PSA_ERROR_INVALID_ARGUMENT;
     }
-    if (opaque_key->esp_ds_data == NULL) {
+
+    if (opaque_key->ds_data_ctx == NULL) {
         return PSA_ERROR_INVALID_ARGUMENT;
     }
 
-    if (EFUSE_BLK_KEY0 + opaque_key->efuse_key_id >= EFUSE_BLK_KEY_MAX) {
+    if (opaque_key->ds_data_ctx->esp_ds_data == NULL) {
         return PSA_ERROR_INVALID_ARGUMENT;
     }
 
-    if (opaque_key->rsa_length_bits % 32 != 0) {
+    if ((opaque_key->ds_data_ctx->efuse_key_id + EFUSE_BLK_KEY0) >= EFUSE_BLK_KEY_MAX) {
         return PSA_ERROR_INVALID_ARGUMENT;
     }
 
-    if (opaque_key->rsa_length_bits < 1024 || opaque_key->rsa_length_bits > SOC_DS_SIGNATURE_MAX_BIT_LEN) {
+    if (opaque_key->ds_data_ctx->rsa_length_bits % 32 != 0) {
+        return PSA_ERROR_INVALID_ARGUMENT;
+    }
+
+    if (opaque_key->ds_data_ctx->rsa_length_bits < 1024 || opaque_key->ds_data_ctx->rsa_length_bits > SOC_DS_SIGNATURE_MAX_BIT_LEN) {
         return PSA_ERROR_INVALID_ARGUMENT;
     }
 
     /* DS data rsa_length must match rsa_length_bits so we can use the key's data directly in sign operations */
-    if (opaque_key->esp_ds_data->rsa_length != (opaque_key->rsa_length_bits / 32) - 1) {
+    if (opaque_key->ds_data_ctx->esp_ds_data->rsa_length != (opaque_key->ds_data_ctx->rsa_length_bits / 32) - 1) {
         return PSA_ERROR_INVALID_ARGUMENT;
     }
 
-    esp_efuse_purpose_t purpose = esp_efuse_get_key_purpose(EFUSE_BLK_KEY0 + opaque_key->efuse_key_id);
+    esp_efuse_purpose_t purpose = esp_efuse_get_key_purpose(EFUSE_BLK_KEY0 + opaque_key->ds_data_ctx->efuse_key_id);
     if (purpose != ESP_EFUSE_KEY_PURPOSE_HMAC_DOWN_DIGITAL_SIGNATURE) {
         return PSA_ERROR_NOT_PERMITTED;
     }
@@ -111,7 +116,7 @@ psa_status_t esp_rsa_ds_opaque_sign_hash_start(
         return PSA_ERROR_INVALID_ARGUMENT;
     }
 
-    if (key_buffer_size < sizeof(esp_ds_data_ctx_t)) {
+    if (key_buffer_size < sizeof(esp_rsa_ds_opaque_key_t)) {
         return PSA_ERROR_INVALID_ARGUMENT;
     }
 
@@ -121,7 +126,7 @@ psa_status_t esp_rsa_ds_opaque_sign_hash_start(
 
     operation->alg = alg;
 
-    const esp_ds_data_ctx_t *opaque_key = (const esp_ds_data_ctx_t *)key_buffer;
+    const esp_rsa_ds_opaque_key_t *opaque_key = (const esp_rsa_ds_opaque_key_t *)key_buffer;
     operation->esp_rsa_ds_opaque_key = opaque_key;
 
     if (esp_rsa_ds_validate_opaque_key(opaque_key) != PSA_SUCCESS) {
@@ -141,7 +146,7 @@ psa_status_t esp_rsa_ds_opaque_sign_hash_start(
 
     psa_algorithm_t hash_alg = PSA_ALG_SIGN_GET_HASH(operation->alg);
 
-    const size_t words_len = (opaque_key->rsa_length_bits / 32);
+    const size_t words_len = (opaque_key->ds_data_ctx->rsa_length_bits / 32);
     const size_t rsa_len_bytes = words_len * 4;
     operation->sig_buffer_size = rsa_len_bytes;
     operation->sig_buffer = NULL;
@@ -171,9 +176,9 @@ psa_status_t esp_rsa_ds_opaque_sign_hash_start(
     }
 
     esp_err_t err = esp_ds_start_sign((const void *)operation->sig_buffer,
-                            opaque_key->esp_ds_data,
-                            (hmac_key_id_t) opaque_key->efuse_key_id,
-                            &operation->esp_rsa_ds_ctx);
+                                        opaque_key->ds_data_ctx->esp_ds_data,
+                                        opaque_key->ds_data_ctx->efuse_key_id,
+                                        &operation->esp_rsa_ds_ctx);
     if (err != ESP_OK) {
         status = PSA_ERROR_GENERIC_ERROR;
         goto error;
@@ -207,7 +212,7 @@ psa_status_t esp_rsa_ds_opaque_sign_hash_complete(
         return PSA_ERROR_BAD_STATE;
     }
 
-    int expected_signature_size = operation->esp_rsa_ds_opaque_key->rsa_length_bits / 8;
+    int expected_signature_size = operation->esp_rsa_ds_opaque_key->ds_data_ctx->rsa_length_bits / 8;
     if (signature_size < expected_signature_size) {
         return PSA_ERROR_BUFFER_TOO_SMALL;
     }
@@ -309,22 +314,22 @@ psa_status_t esp_rsa_ds_opaque_import_key(
         return PSA_ERROR_INVALID_ARGUMENT;
     }
 
-    if (key_buffer_size < sizeof(esp_ds_data_ctx_t)) {
+    if (key_buffer_size < sizeof(esp_rsa_ds_opaque_key_t)) {
         return PSA_ERROR_BUFFER_TOO_SMALL;
     }
 
-    const esp_ds_data_ctx_t *opaque_key = (const esp_ds_data_ctx_t *)data;
+    const esp_rsa_ds_opaque_key_t *opaque_key = (const esp_rsa_ds_opaque_key_t *)data;
     int ret = esp_rsa_ds_validate_opaque_key(opaque_key);
     if (ret != PSA_SUCCESS) {
         return ret;
     }
 
     /* Shallow copy: key buffer holds the context; esp_ds_data points to the caller's data.
-     * The key material (esp_ds_data_ctx_t and the esp_ds_data_t it points to) must remain
+     * The key material (esp_rsa_ds_opaque_key_t and the esp_ds_data_t it points to) must remain
      * valid until psa_destroy_key() is called on this key. */
-    memcpy(key_buffer, opaque_key, sizeof(esp_ds_data_ctx_t));
-    *key_buffer_length = sizeof(esp_ds_data_ctx_t);
-    *bits = opaque_key->rsa_length_bits;
+    memcpy(key_buffer, opaque_key, sizeof(esp_rsa_ds_opaque_key_t));
+    *key_buffer_length = sizeof(esp_rsa_ds_opaque_key_t);
+    *bits = opaque_key->ds_data_ctx->rsa_length_bits;
     return PSA_SUCCESS;
 }
 
@@ -335,7 +340,7 @@ size_t esp_rsa_ds_opaque_size_function(
     (void)key_type;
     (void)key_bits;
 
-    return sizeof(esp_ds_data_ctx_t);
+    return sizeof(esp_rsa_ds_opaque_key_t);
 }
 
 void esp_rsa_ds_opaque_set_session_timeout(int timeout_ms)
@@ -360,7 +365,7 @@ psa_status_t esp_rsa_ds_opaque_asymmetric_decrypt(
 {
     (void)salt;
     (void)salt_length;
-    if (!attributes || !key || key_length < sizeof(esp_ds_data_ctx_t) ||
+    if (!attributes || !key || key_length < sizeof(esp_rsa_ds_opaque_key_t) ||
         !input || input_length < 1 || !output || !output_length) {
         return PSA_ERROR_INVALID_ARGUMENT;
     }
@@ -369,13 +374,13 @@ psa_status_t esp_rsa_ds_opaque_asymmetric_decrypt(
         return PSA_ERROR_NOT_SUPPORTED;
     }
 
-    const esp_ds_data_ctx_t *opaque_key = (const esp_ds_data_ctx_t *)key;
+    const esp_rsa_ds_opaque_key_t *opaque_key = (const esp_rsa_ds_opaque_key_t *)key;
 
     if (esp_rsa_ds_validate_opaque_key(opaque_key) != PSA_SUCCESS) {
         return PSA_ERROR_INVALID_ARGUMENT;
     }
 
-    size_t key_bits = opaque_key->rsa_length_bits;
+    size_t key_bits = opaque_key->ds_data_ctx->rsa_length_bits;
     if (input_length != (key_bits / 8)) {
         return PSA_ERROR_INVALID_ARGUMENT;
     }
@@ -409,9 +414,9 @@ psa_status_t esp_rsa_ds_opaque_asymmetric_decrypt(
     operation.sig_buffer = em_words;
 
     esp_err_t err = esp_ds_start_sign((const void *)em_words,
-                            opaque_key->esp_ds_data,
-                            (hmac_key_id_t) opaque_key->efuse_key_id,
-                            &operation.esp_rsa_ds_ctx);
+                                    opaque_key->ds_data_ctx->esp_ds_data,
+                                    opaque_key->ds_data_ctx->efuse_key_id,
+                                    &operation.esp_rsa_ds_ctx);
     if (err != ESP_OK) {
         heap_caps_free(em_words);
         esp_rsa_ds_release_ds_lock();

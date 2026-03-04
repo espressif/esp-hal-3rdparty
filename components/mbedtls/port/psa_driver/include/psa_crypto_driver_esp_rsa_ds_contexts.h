@@ -10,6 +10,7 @@
 #if defined(ESP_RSA_DS_DRIVER_ENABLED)
 #include "psa/crypto_driver_common.h"
 #include "esp_ds.h"
+#include "hal/hmac_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,14 +36,18 @@ typedef enum {
  */
 typedef struct {
     esp_ds_data_t *esp_ds_data;     /**< Pointer to the esp ds data */
-    uint8_t efuse_key_id;           /**< efuse block id in which DS_KEY is stored e.g. 0,1*/
+    hmac_key_id_t efuse_key_id;     /**< efuse block id in which the HMAC key for the DS peripheral is stored e.g. 0,1*/
     uint16_t rsa_length_bits;       /**< length of RSA private key in bits e.g. 2048 */
 } esp_ds_data_ctx_t;
+
+typedef struct {
+    esp_ds_data_ctx_t *ds_data_ctx;
+} esp_rsa_ds_opaque_key_t;
 
 #if !(__DOXYGEN__) // No need to document these structures, these are internal to the driver
 /* The buffers are stored in the little-endian format */
 typedef struct {
-    const esp_ds_data_ctx_t *esp_rsa_ds_opaque_key; /**< Pointer to the esp ds opaque key */
+    const esp_rsa_ds_opaque_key_t *esp_rsa_ds_opaque_key; /**< Pointer to the esp ds opaque key */
     psa_algorithm_t alg;                            /**< Algorithm used in the sign operation */
     uint32_t *sig_buffer;                           /**< Buffer to hold the signature */
     size_t sig_buffer_size;                         /**< Size of the signature buffer */
