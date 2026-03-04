@@ -144,8 +144,6 @@ extern "C" {
 #define USB_INT_PHY0_DM_GPIO_NUM      17
 #define USB_INT_PHY0_DP_GPIO_NUM      18
 
-#define MAX_RTC_GPIO_NUM             11             // GPIO5~11 are the pads with LP function
-
 
 #define REG_IO_MUX_BASE DR_REG_IO_MUX_BASE
 
