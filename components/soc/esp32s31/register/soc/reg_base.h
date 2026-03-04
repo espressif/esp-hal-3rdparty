@@ -73,7 +73,7 @@
 #define DR_REG_IO_MUX_BASE                        0x20582000
 #define DR_REG_GPIO_BASE                          0x20583000
 #define DR_REG_GPIO_EXT_BASE                      0x20583E00
-#define DR_REG_MSPI_IOMUX_BASE                    0x20584000
+#define DR_REG_IOMUX_MSPI_PIN_BASE                0x20584000
 #define DR_REG_INTR0_BASE                         0x20585000
 #define DR_REG_HP_SYS_BASE                        0x20586000
 #define DR_REG_HP_SYS_CLKRST_BASE                 0x20587000
