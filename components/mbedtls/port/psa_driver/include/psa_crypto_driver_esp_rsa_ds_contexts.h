@@ -35,7 +35,7 @@ typedef enum {
  * @brief ESP DS data context
  * This context is used to store the ESP DS data.
  *
- * When passed to psa_import_key() for PSA_KEY_LIFETIME_ESP_RSA_DS, the key material
+ * When passed to psa_import_key() for PSA_KEY_LIFETIME_ESP_RSA_DS_VOLATILE, the key material
  * (this struct and the esp_ds_data_t pointed to by esp_ds_data) must remain valid
  * until psa_destroy_key() is called on the imported key.
  */

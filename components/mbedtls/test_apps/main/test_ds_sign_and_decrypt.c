@@ -68,7 +68,7 @@ TEST_CASE("ds sign test pkcs1_v15 PSA validation", "[ds_rsa_psa]")
     psa_set_key_bits(&attributes, rsa_ds_opaque_key.ds_data_ctx->rsa_length_bits);
     psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_SIGN_HASH);
     psa_set_key_algorithm(&attributes, alg);
-    psa_set_key_lifetime(&attributes, PSA_KEY_LIFETIME_ESP_RSA_DS);
+    psa_set_key_lifetime(&attributes, PSA_KEY_LIFETIME_ESP_RSA_DS_VOLATILE);
     status = psa_import_key(&attributes,
                             (const uint8_t *)&rsa_ds_opaque_key,
                             sizeof(rsa_ds_opaque_key),
@@ -112,7 +112,7 @@ TEST_CASE("ds sign test pkcs1_v15 PSA", "[ds_rsa_psa]")
     psa_set_key_bits(&attributes, rsa_ds_opaque_key.ds_data_ctx->rsa_length_bits);
     psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_SIGN_HASH);
     psa_set_key_algorithm(&attributes, alg);
-    psa_set_key_lifetime(&attributes, PSA_KEY_LIFETIME_ESP_RSA_DS);
+    psa_set_key_lifetime(&attributes, PSA_KEY_LIFETIME_ESP_RSA_DS_VOLATILE);
     status = psa_import_key(&attributes,
                             (const uint8_t *)&rsa_ds_opaque_key,
                             sizeof(rsa_ds_opaque_key),
@@ -180,7 +180,7 @@ TEST_CASE("ds sign test pkcs1_v21 PSA", "[ds_rsa_psa]")
     psa_set_key_bits(&attributes, rsa_ds_opaque_key.ds_data_ctx->rsa_length_bits);
     psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_SIGN_HASH);
     psa_set_key_algorithm(&attributes, alg);
-    psa_set_key_lifetime(&attributes, PSA_KEY_LIFETIME_ESP_RSA_DS);
+    psa_set_key_lifetime(&attributes, PSA_KEY_LIFETIME_ESP_RSA_DS_VOLATILE);
     status = psa_import_key(&attributes,
                             (const uint8_t *)&rsa_ds_opaque_key,
                             sizeof(rsa_ds_opaque_key),
@@ -246,7 +246,7 @@ TEST_CASE("ds decrypt test pkcs1_v21 PSA", "[ds_rsa]")
     psa_set_key_bits(&attributes, rsa_ds_opaque_key.ds_data_ctx->rsa_length_bits);
     psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_DECRYPT);
     psa_set_key_algorithm(&attributes, alg);
-    psa_set_key_lifetime(&attributes, PSA_KEY_LIFETIME_ESP_RSA_DS);
+    psa_set_key_lifetime(&attributes, PSA_KEY_LIFETIME_ESP_RSA_DS_VOLATILE);
     status = psa_import_key(&attributes,
                             (const uint8_t *)&rsa_ds_opaque_key,
                             sizeof(rsa_ds_opaque_key),
@@ -309,7 +309,7 @@ TEST_CASE("ds decrypt test pkcs1_v15 PSA", "[ds_rsa]")
     psa_set_key_bits(&attributes, rsa_ds_opaque_key.ds_data_ctx->rsa_length_bits);
     psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_DECRYPT);
     psa_set_key_algorithm(&attributes, alg);
-    psa_set_key_lifetime(&attributes, PSA_KEY_LIFETIME_ESP_RSA_DS);
+    psa_set_key_lifetime(&attributes, PSA_KEY_LIFETIME_ESP_RSA_DS_VOLATILE);
     status = psa_import_key(&attributes,
                             (const uint8_t *)&rsa_ds_opaque_key,
                             sizeof(rsa_ds_opaque_key),
