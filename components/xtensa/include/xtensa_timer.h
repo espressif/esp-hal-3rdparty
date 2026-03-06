@@ -51,8 +51,10 @@
 #include    <xtensa/coreasm.h>
 #endif
 
+#ifndef __NuttX__
 #include    <xtensa/corebits.h>
 #include    <xtensa/config/system.h>
+#endif
 
 #include    "xtensa_rtos.h"     /* in case this wasn't included directly */
 

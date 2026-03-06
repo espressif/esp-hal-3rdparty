@@ -29,8 +29,9 @@
 #ifndef XTENSA_CACHE_H
 #define XTENSA_CACHE_H
 
+#ifndef __NuttX__
 #include <xtensa/config/core.h>
-
+#endif
 /*  Only define things for C code.  */
 #if !defined(_ASMLANGUAGE) && !defined(_NOCLANGUAGE) && !defined(__ASSEMBLER__)
 

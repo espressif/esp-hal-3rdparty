@@ -55,8 +55,10 @@
 #include    <xtensa/config/core.h>
 #endif
 
+#ifndef __NuttX__
 #include    <xtensa/corebits.h>
 #include    <xtensa/config/system.h>
+#endif
 
 /*
 Include any RTOS specific definitions that are needed by this header.

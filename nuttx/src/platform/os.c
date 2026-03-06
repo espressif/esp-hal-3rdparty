@@ -13,22 +13,155 @@
 
 #include <debug.h>
 #include <errno.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <clock/clock.h>
 
+#include <nuttx/config.h>
 #include <nuttx/mutex.h>
 #include <nuttx/spinlock.h>
 #include <nuttx/irq.h>
 #include <nuttx/queue.h>
 #include <nuttx/mqueue.h>
 #include <nuttx/kmalloc.h>
+#include <semaphore.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <nuttx/sched.h>
+#include <nuttx/mm/mm.h>
 
 #include "sdkconfig.h"
 
 #include "esp_irq.h"
+#ifdef CONFIG_PM
+#include "espressif/esp_pm.h"
+#endif
+#include "esp_hr_timer.h"
 
 #include "esp_private/critical_section.h"
+#include "esp_sleep.h"
 
 #include "platform/os.h"
+
+#if CONFIG_IDF_TARGET_ARCH_XTENSA
+unsigned _xt_tick_divisor = 0;  /* cached number of cycles per tick */
+#endif
+
+/****************************************************************************
+ * Name: esp_errno_to_esp_err
+ *
+ * Description:
+ *   Convert a NuttX/posix errno-style return value to esp_err_t.
+ *   See platform/os.h for full documentation.
+ *
+ ****************************************************************************/
+
+esp_err_t esp_errno_to_esp_err(int errno_value)
+{
+  if (errno_value == 0)
+    {
+      return ESP_OK;
+    }
+
+  if (errno_value == -EINVAL)
+    {
+      return ESP_ERR_INVALID_ARG;
+    }
+
+  if (errno_value == -ENOMEM)
+    {
+      return ESP_ERR_NO_MEM;
+    }
+
+  if (errno_value == -EALREADY || errno_value == -EBUSY)
+    {
+      return ESP_ERR_INVALID_STATE;
+    }
+
+  return ESP_FAIL;
+}
+
+#ifdef CONFIG_IDF_TARGET_ARCH_RISCV
+#  include "esp_timer.h"
+
+/****************************************************************************
+ * RISC-V only: esp_timer API adapter layer
+ *
+ * Adapts esp_hr_timer (NuttX) to the esp_timer (IDF) API: argument types
+ * and return codes (int/errno vs esp_err_t). Temporary until a full
+ * esp_timer replacement is available for RISC-V.
+ ****************************************************************************/
+
+uint64_t esp_timer_get_time(void)
+{
+  return esp_hr_timer_time_us();
+}
+
+esp_err_t esp_timer_create(const esp_timer_create_args_t *create_args,
+                           esp_timer_handle_t *out_handle)
+{
+  struct esp_hr_timer_args_s args;
+
+  args.callback = create_args->callback;
+  args.arg = create_args->arg;
+  args.name = create_args->name;
+  args.skip_unhandled_events = create_args->skip_unhandled_events;
+
+  struct esp_hr_timer_s *handle = NULL;
+  int ret = esp_hr_timer_create(&args, &handle);
+
+  if (ret != 0)
+    {
+      return esp_errno_to_esp_err(ret);
+    }
+
+  *out_handle = (esp_timer_handle_t)handle;
+  return ESP_OK;
+}
+
+esp_err_t esp_timer_start_once(esp_timer_handle_t timer, uint64_t timeout_us)
+{
+  int ret = esp_hr_timer_start_once((struct esp_hr_timer_s *)timer,
+                                    timeout_us);
+  return esp_errno_to_esp_err(ret);
+}
+
+esp_err_t esp_timer_start_periodic(esp_timer_handle_t timer, uint64_t period_us)
+{
+  int ret = esp_hr_timer_start_periodic((struct esp_hr_timer_s *)timer,
+                                        period_us);
+  return esp_errno_to_esp_err(ret);
+}
+
+esp_err_t esp_timer_stop(esp_timer_handle_t timer)
+{
+  int ret = esp_hr_timer_stop((struct esp_hr_timer_s *)timer);
+  return esp_errno_to_esp_err(ret);
+}
+
+esp_err_t esp_timer_delete(esp_timer_handle_t timer)
+{
+  int ret = esp_hr_timer_delete((struct esp_hr_timer_s *)timer);
+  return esp_errno_to_esp_err(ret);
+}
+
+void esp_timer_private_set(uint64_t new_us)
+{
+  esp_hr_timer_set(new_us);
+}
+
+void esp_timer_private_lock(void)
+{
+  esp_hr_timer_lock();
+}
+
+void esp_timer_private_unlock(void)
+{
+  esp_hr_timer_unlock();
+}
+
+#endif /* CONFIG_IDF_TARGET_ARCH_RISCV */
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -135,6 +268,8 @@ static esp_err_t esp_os_queue_send_generic(esp_os_queue_handle_t queue,
                                            int prio);
 
 void esp_os_include_impl(void);
+extern uint32_t up_get_idletime(void);
+extern void vApplicationSleep(TickType_t xExpectedIdleTime);
 
 /****************************************************************************
  * Private Functions
@@ -739,6 +874,39 @@ bool IRAM_ATTR esp_os_scheduler_started(void)
 }
 
 /****************************************************************************
+ * Name: esp_os_application_sleep
+ *
+ * Description:
+ *   Convert NuttX idle time (microseconds) into OS ticks and forward it to
+ *   vApplicationSleep(), which expects the idle duration in tick units.
+ *
+ ****************************************************************************/
+
+void esp_os_application_sleep(void)
+{
+#ifdef CONFIG_PM
+  uint32_t idle_us;
+  TickType_t idle_ticks;
+
+  /* The device can sleep for a maximum of CONFIG_PM_ALARM_SEC seconds
+   * plus CONFIG_PM_ALARM_NSEC nanoseconds. This doesn't mean that this is
+   * the actual time that the device will sleep. `vApplicationSleep` also
+   * takes into account the time may wake up early due to an existing timer
+   * alarm.
+   */
+
+  idle_us = CONFIG_PM_ALARM_SEC * 1000000 +
+            CONFIG_PM_ALARM_NSEC / 1000000;
+  idle_ticks = (TickType_t)(idle_us / OS_TICK_PERIOD_US);
+
+  if (idle_ticks > 0)
+    {
+      vApplicationSleep(idle_ticks);
+    }
+#endif
+}
+
+/****************************************************************************
  * Name: nuttx_enter_critical
  *
  * Description:
@@ -809,4 +977,363 @@ void nuttx_exit_critical(void)
     {
       up_irq_restore(g_int_flags[cpu]);
     }
+}
+
+/****************************************************************************
+ * Task Management Implementation
+ *
+ * Per-task notification mechanism: each task created through
+ * esp_os_create_task_pinned_to_core gets its own semaphore entry in a
+ * dynamically allocated singly-linked list keyed by TID.  This allows
+ * esp_os_task_notify_take() and esp_os_task_notify_give_from_isr() to
+ * target the correct task without sharing a single global semaphore and
+ * without an arbitrary upper bound on the number of concurrent tasks.
+ *
+ * The list head is protected with irqsave/restore so it can be safely
+ * traversed from both task and ISR contexts.  Allocation (kmm_malloc) and
+ * semaphore initialisation always happen outside the critical section.
+ *
+ ****************************************************************************/
+
+struct task_notify_entry_s
+{
+  pid_t                          tid;  /* Owner task TID                 */
+  sem_t                          sem;  /* Per-task counting semaphore    */
+  FAR struct task_notify_entry_s *next; /* Next entry in list            */
+};
+
+/* Singly-linked list of active entries, protected by irqsave/restore. */
+
+static FAR struct task_notify_entry_s *g_task_notify_head;
+
+/****************************************************************************
+ * Name: task_notify_find_locked
+ *
+ * Description:
+ *   Return the list entry for `tid`, or NULL if not found.
+ *   Caller MUST hold interrupts disabled (up_irq_save).
+ *
+ ****************************************************************************/
+
+static FAR struct task_notify_entry_s *
+task_notify_find_locked(pid_t tid)
+{
+  FAR struct task_notify_entry_s *entry;
+
+  for (entry = g_task_notify_head; entry != NULL; entry = entry->next)
+    {
+      if (entry->tid == tid)
+        {
+          return entry;
+        }
+    }
+
+  return NULL;
+}
+
+/****************************************************************************
+ * Name: task_notify_register
+ *
+ * Description:
+ *   Allocate a new list entry for `tid` and initialise its semaphore.
+ *   Safe to call from task context only (uses kmm_malloc).
+ *   If `tid` is already registered the existing entry is returned.
+ *
+ * Returned Value:
+ *   Pointer to the entry, or NULL on allocation failure.
+ *
+ ****************************************************************************/
+
+static FAR struct task_notify_entry_s *
+task_notify_register(pid_t tid)
+{
+  FAR struct task_notify_entry_s *entry;
+  FAR struct task_notify_entry_s *existing;
+  irqstate_t flags;
+
+  /* Allocate and initialise outside the critical section so that kmm_malloc
+   * and nxsem_init are not called with IRQs disabled.
+   */
+
+  entry = kmm_malloc(sizeof(*entry));
+  if (entry == NULL)
+    {
+      return NULL;
+    }
+
+  entry->tid = tid;
+  nxsem_init(&entry->sem, 0, 0);
+
+  flags = up_irq_save();
+
+  /* Guard against a duplicate that could arise from a lazy-register race. */
+
+  existing = task_notify_find_locked(tid);
+  if (existing != NULL)
+    {
+      up_irq_restore(flags);
+      nxsem_destroy(&entry->sem);
+      kmm_free(entry);
+      return existing;
+    }
+
+  entry->next       = g_task_notify_head;
+  g_task_notify_head = entry;
+
+  up_irq_restore(flags);
+  return entry;
+}
+
+/* Wrapper to adapt FreeRTOS-style void(*)(void*) to NuttX int(*)(int, char**) */
+
+struct task_wrapper_args_s
+{
+  void (*func)(void *);
+  void *arg;
+};
+
+static int task_wrapper_entry(int argc, FAR char *argv[])
+{
+  FAR struct task_wrapper_args_s *wrapper_args;
+  uintptr_t ptr;
+
+  /* argv[0] is the task name; argv[1] is the wrapper_args pointer as string */
+
+  if (argc < 2 || argv[1] == NULL)
+    {
+      return -EINVAL;
+    }
+
+  ptr = (uintptr_t)strtoul(argv[1], NULL, 0);
+  wrapper_args = (FAR struct task_wrapper_args_s *)ptr;
+
+  wrapper_args->func(wrapper_args->arg);
+  kmm_free(wrapper_args);
+  return 0;
+}
+
+int esp_os_create_task_pinned_to_core(esp_os_task_function_t task_func,
+                                      const char *name,
+                                      uint32_t stack_size,
+                                      void *arg,
+                                      int priority,
+                                      esp_os_task_handle_t *task_handle,
+                                      int core_id)
+{
+  FAR struct tcb_s *tcb;
+  FAR struct task_wrapper_args_s *wrapper_args;
+  FAR char *argv[2];
+  char ptr_buf[32];
+  int ret;
+
+  wrapper_args = kmm_zalloc(sizeof(struct task_wrapper_args_s));
+  if (wrapper_args == NULL)
+    {
+      return -1;
+    }
+
+  wrapper_args->func = (void (*)(void *))task_func;
+  wrapper_args->arg  = arg;
+
+  snprintf(ptr_buf, sizeof(ptr_buf), "%p", (FAR void *)wrapper_args);
+  argv[0] = ptr_buf;
+  argv[1] = NULL;
+
+  tcb = kmm_zalloc(sizeof(struct tcb_s));
+  if (tcb == NULL)
+    {
+      kmm_free(wrapper_args);
+      return -1;
+    }
+
+  tcb->flags = TCB_FLAG_TTYPE_KERNEL | TCB_FLAG_FREE_TCB;
+
+  ret = nxtask_init(tcb, name, priority,
+                    NULL, stack_size,
+                    task_wrapper_entry, argv, NULL, NULL);
+  if (ret < 0)
+    {
+      kmm_free(wrapper_args);
+      kmm_free(tcb);
+      return -1;
+    }
+
+#ifdef CONFIG_SMP
+  if (core_id >= 0)
+    {
+      cpu_set_t cpuset;
+      CPU_ZERO(&cpuset);
+      CPU_SET(core_id, &cpuset);
+      tcb->affinity = cpuset;
+    }
+#endif
+
+  if (task_notify_register(tcb->pid) == NULL)
+    {
+      _warn("esp_os_create_task: out of memory for notify entry '%s'\n",
+            name);
+    }
+
+  if (task_handle != NULL)
+    {
+      *task_handle = (esp_os_task_handle_t)tcb->pid;
+    }
+
+  nxtask_activate(tcb);
+  return 0;
+}
+
+void esp_os_task_delete(esp_os_task_handle_t handle)
+{
+  FAR struct task_notify_entry_s *entry;
+  FAR struct task_notify_entry_s *prev;
+  irqstate_t flags;
+
+  if (handle > 0)
+    {
+      /* Unlink the entry under IRQ lock so that the slot is immediately
+       * unreachable from ISR context, then destroy the semaphore and free
+       * the memory outside the lock (kmm_free is not ISR-safe).
+       */
+
+      flags = up_irq_save();
+
+      prev  = NULL;
+      entry = g_task_notify_head;
+      while (entry != NULL)
+        {
+          if (entry->tid == (pid_t)handle)
+            {
+              if (prev != NULL)
+                {
+                  prev->next = entry->next;
+                }
+              else
+                {
+                  g_task_notify_head = entry->next;
+                }
+
+              break;
+            }
+
+          prev  = entry;
+          entry = entry->next;
+        }
+
+      up_irq_restore(flags);
+
+      if (entry != NULL)
+        {
+          nxsem_destroy(&entry->sem);
+          kmm_free(entry);
+        }
+
+      nxtask_delete((pid_t)handle);
+    }
+}
+
+uint32_t esp_os_task_notify_take(bool clear_on_exit, uint32_t wait_ticks)
+{
+  FAR struct task_notify_entry_s *entry;
+  irqstate_t flags;
+  pid_t tid;
+  int ret;
+
+  tid = gettid();
+
+  /* Look up our own entry; register lazily for tasks not created through
+   * esp_os_create_task_pinned_to_core.
+   */
+
+  flags = up_irq_save();
+  entry = task_notify_find_locked(tid);
+  up_irq_restore(flags);
+
+  if (entry == NULL)
+    {
+      entry = task_notify_register(tid);
+    }
+
+  if (entry == NULL)
+    {
+      _err("esp_os_task_notify_take: out of memory – cannot wait\n");
+      return 0;
+    }
+
+  /* Wait for a notification. */
+
+  if (wait_ticks == OS_PORT_MAX_DELAY)
+    {
+      ret = nxsem_wait(&entry->sem);
+    }
+  else
+    {
+      struct timespec abstime;
+      struct timespec ts;
+
+      clock_gettime(CLOCK_REALTIME, &abstime);
+      clock_ticks2time(&ts, wait_ticks);
+      clock_timespec_add(&abstime, &ts, &abstime);
+
+      ret = nxsem_timedwait(&entry->sem, &abstime);
+    }
+
+  /* Binary-semaphore semantics: drain any extra counts accumulated while
+   * this task was executing its callback.
+   */
+
+  if (ret == OK && clear_on_exit)
+    {
+      while (nxsem_trywait(&entry->sem) == OK)
+        {
+          /* drain */
+        }
+    }
+
+  return (ret == OK) ? 1 : 0;
+}
+
+int esp_os_task_notify_give_from_isr(esp_os_task_handle_t task,
+                                      FAR int *higher_priority_woken)
+{
+  FAR struct task_notify_entry_s *entry;
+  irqstate_t flags;
+  int ret = -ENOENT;
+
+  flags = up_irq_save();
+  entry = task_notify_find_locked((pid_t)task);
+  up_irq_restore(flags);
+
+  if (entry != NULL)
+    {
+      ret = nxsem_post(&entry->sem);
+    }
+  else
+    {
+      _warn("notify_give_from_isr: no entry for task %d\n", (int)task);
+    }
+
+  if (higher_priority_woken != NULL)
+    {
+      *higher_priority_woken = 0;
+    }
+
+  return ret;
+}
+
+esp_os_task_handle_t esp_os_task_get_current_handle(void)
+{
+  return gettid();
+}
+
+void esp_os_task_delay_ms(uint32_t ms)
+{
+  usleep(ms * 1000);
+}
+
+uint32_t esp_os_task_get_tick_count(void)
+{
+  struct timespec ts;
+  clock_gettime(CLOCK_REALTIME, &ts);
+  return (uint32_t)((ts.tv_sec * 1000) + (ts.tv_nsec / 1000000));
 }

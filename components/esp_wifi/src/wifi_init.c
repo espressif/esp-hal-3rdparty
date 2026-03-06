@@ -10,14 +10,11 @@
 #include "esp_private/wifi.h"
 #include "esp_private/adc_share_hw_ctrl.h"
 #include "esp_private/sleep_modem.h"
-#ifndef __NuttX__
 #include "esp_pm.h"
-#endif
 #include "esp_sleep.h"
 #include "esp_check.h"
-#ifndef __NuttX__
+#include "platform/os.h"
 #include "esp_private/pm_impl.h"
-#endif
 #include "esp_private/esp_clk.h"
 #include "esp_wpa.h"
 #ifndef __NuttX__

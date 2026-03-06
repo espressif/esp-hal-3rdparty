@@ -214,9 +214,7 @@ static void update_ccompare(void);
 static const char* TAG = "pm";
 
 static void do_switch(pm_mode_t new_mode);
-#ifndef __NuttX__
 static void leave_idle(void);
-#endif
 static void on_freq_update(uint32_t old_ticks_per_us, uint32_t ticks_per_us);
 
 pm_mode_t esp_pm_impl_get_mode(esp_pm_lock_type_t type, int arg)
@@ -261,7 +259,7 @@ typedef struct _esp_pm_sleep_cb_config_t esp_pm_sleep_cb_config_t;
 
 static esp_pm_sleep_cb_config_t *s_light_sleep_enter_cb_config;
 static esp_pm_sleep_cb_config_t *s_light_sleep_exit_cb_config;
-static portMUX_TYPE s_sleep_pm_cb_mutex = portMUX_INITIALIZER_UNLOCKED;
+DEFINE_CRIT_SECTION_LOCK_STATIC(s_sleep_pm_cb_mutex);
 
 esp_err_t esp_pm_light_sleep_register_cbs(esp_pm_sleep_cbs_register_config_t *cbs_conf)
 {
@@ -751,7 +749,6 @@ static __attribute__((optimize("-O2"))) void IRAM_ATTR update_ccompare(void)
 }
 #endif // CONFIG_FREERTOS_SYSTICK_USES_CCOUNT
 
-#ifndef __NuttX__
 static void IRAM_ATTR leave_idle(void)
 {
     int core_id = OS_PORT_GET_CORE_ID();
@@ -761,7 +758,6 @@ static void IRAM_ATTR leave_idle(void)
         s_core_idle[core_id] = false;
     }
 }
-#endif
 
 #if CONFIG_FREERTOS_USE_TICKLESS_IDLE
 
@@ -810,7 +806,7 @@ static inline bool IRAM_ATTR periph_should_skip_light_sleep(void)
     return false;
 }
 
-static inline bool IRAM_ATTR should_skip_light_sleep(int core_id)
+bool IRAM_ATTR should_skip_light_sleep(int core_id)
 {
 #if CONFIG_FREERTOS_NUMBER_OF_CORES == 2
     if (s_skip_light_sleep[core_id]) {
@@ -838,7 +834,7 @@ static inline void IRAM_ATTR other_core_should_skip_light_sleep(int core_id)
 // Adjust RTOS tick count based on the amount of time spent in sleep.
 FORCE_INLINE_ATTR void pm_step_tick(int64_t slept_us, TickType_t xExpectedIdleTime)
 {
-    uint32_t slept_ticks = slept_us / (portTICK_PERIOD_MS * 1000LL);
+    uint32_t slept_ticks = slept_us / (OS_TICK_PERIOD_US);
     if (slept_ticks) {
 #if CONFIG_PM_LIGHTSLEEP_TICK_OVERFLOW_PROTECTION
         /* Limit slept_ticks when oversleep is within tolerance to prevent assertion failure */
@@ -852,11 +848,13 @@ FORCE_INLINE_ATTR void pm_step_tick(int64_t slept_us, TickType_t xExpectedIdleTi
                      (uint32_t)xExpectedIdleTime, slept_ticks);
         }
         /* Adjust RTOS tick count based on the amount of time spent in sleep */
-        vTaskStepTick(slept_ticks);
+        /* TODO: The following line is commented out because it is pending verificarion/validation on NuttX */
+        /*        What function should we use to adjust the tick count?*/
+        // vTaskStepTick(slept_ticks);
 
 #ifdef CONFIG_FREERTOS_SYSTICK_USES_CCOUNT
         /* Trigger tick interrupt, since sleep time was longer
-        * than portTICK_PERIOD_MS. Note that setting INTSET does not
+        * than OS_TICK_PERIOD_MS. Note that setting INTSET does not
         * work for timer interrupt, and changing CCOMPARE would clear
         * the interrupt flag.
         */
@@ -879,7 +877,7 @@ void vApplicationSleep( TickType_t xExpectedIdleTime )
         int64_t next_esp_timer_alarm = esp_timer_get_next_alarm_for_wake_up();
         int64_t now = esp_timer_get_time();
         int64_t time_until_next_alarm = next_esp_timer_alarm - now;
-        int64_t wakeup_delay_us = portTICK_PERIOD_MS * 1000LL * xExpectedIdleTime;
+        int64_t wakeup_delay_us = OS_TICK_PERIOD_US * xExpectedIdleTime;
         int64_t sleep_time_us = MIN(wakeup_delay_us, time_until_next_alarm);
         int64_t slept_us = 0;
 #if CONFIG_PM_LIGHT_SLEEP_CALLBACKS
@@ -887,7 +885,7 @@ void vApplicationSleep( TickType_t xExpectedIdleTime )
         esp_pm_execute_enter_sleep_callbacks(sleep_time_us);
         sleep_time_us -= (esp_cpu_get_cycle_count() - cycle) / (esp_clk_cpu_freq() / 1000000ULL);
 #endif
-        if (sleep_time_us >= configEXPECTED_IDLE_TIME_BEFORE_SLEEP * portTICK_PERIOD_MS * 1000LL) {
+        if (sleep_time_us >= configEXPECTED_IDLE_TIME_BEFORE_SLEEP * OS_TICK_PERIOD_US) {
             esp_sleep_enable_timer_wakeup(sleep_time_us - LIGHT_SLEEP_EARLY_WAKEUP_US);
             /* Enter sleep */
             ESP_PM_TRACE_ENTER(SLEEP, core_id);
@@ -1041,14 +1039,13 @@ void esp_pm_impl_init(void)
 #endif //CONFIG_PM_DFS_INIT_AUTO
 }
 
-#ifndef __NuttX__
 void esp_pm_impl_idle_hook(void)
 {
     int core_id = OS_PORT_GET_CORE_ID();
 #if CONFIG_FREERTOS_SMP
     uint32_t state = portDISABLE_INTERRUPTS();
 #else
-    uint32_t state = portSET_INTERRUPT_MASK_FROM_ISR();
+    uint32_t state = OS_SET_INTERRUPT_MASK_FROM_ISR();
 #endif
     if (!s_core_idle[core_id]
 #ifdef CONFIG_FREERTOS_USE_TICKLESS_IDLE
@@ -1061,13 +1058,11 @@ void esp_pm_impl_idle_hook(void)
 #if CONFIG_FREERTOS_SMP
     portRESTORE_INTERRUPTS(state);
 #else
-    portCLEAR_INTERRUPT_MASK_FROM_ISR(state);
+    OS_CLEAR_INTERRUPT_MASK_FROM_ISR(state);
 #endif
     ESP_PM_TRACE_ENTER(IDLE, core_id);
 }
-#endif
 
-#ifndef __NuttX__
 void IRAM_ATTR esp_pm_impl_isr_hook(void)
 {
     int core_id = OS_PORT_GET_CORE_ID();
@@ -1078,7 +1073,7 @@ void IRAM_ATTR esp_pm_impl_isr_hook(void)
 #if CONFIG_FREERTOS_SMP
     uint32_t state = portDISABLE_INTERRUPTS();
 #else
-    uint32_t state = portSET_INTERRUPT_MASK_FROM_ISR();
+    uint32_t state = OS_SET_INTERRUPT_MASK_FROM_ISR();
 #endif
 #if defined(CONFIG_FREERTOS_SYSTICK_USES_CCOUNT) && (CONFIG_FREERTOS_NUMBER_OF_CORES == 2)
     if (s_need_update_ccompare[core_id]) {
@@ -1093,13 +1088,11 @@ void IRAM_ATTR esp_pm_impl_isr_hook(void)
 #if CONFIG_FREERTOS_SMP
     portRESTORE_INTERRUPTS(state);
 #else
-    portCLEAR_INTERRUPT_MASK_FROM_ISR(state);
+    OS_CLEAR_INTERRUPT_MASK_FROM_ISR(state);
 #endif
     ESP_PM_TRACE_EXIT(ISR_HOOK, core_id);
 }
-#endif
 
-#ifndef __NuttX__
 void esp_pm_impl_waiti(void)
 {
 #if CONFIG_FREERTOS_USE_TICKLESS_IDLE
@@ -1117,7 +1110,6 @@ void esp_pm_impl_waiti(void)
     esp_cpu_wait_for_intr();
 #endif // CONFIG_FREERTOS_USE_TICKLESS_IDLE
 }
-#endif
 
 #if CONFIG_PM_WORKAROUND_FREQ_LIMIT_ENABLED && CONFIG_PM_ENABLE
 void esp_pm_impl_cpu_max_freq_force_init(uint32_t limit_freq_mhz)

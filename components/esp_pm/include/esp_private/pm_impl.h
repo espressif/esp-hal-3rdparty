@@ -16,6 +16,7 @@
 #include "soc/rtc.h"
 #include "esp_pm.h"
 #include "sdkconfig.h"
+#include "esp_attr.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -139,6 +140,8 @@ esp_err_t esp_pm_register_skip_light_sleep_callback(skip_light_sleep_cb_t cb);
   *   - ESP_ERR_INVALID_STATE if the given callback hasn't been registered before
   */
 esp_err_t esp_pm_unregister_skip_light_sleep_callback(skip_light_sleep_cb_t cb);
+
+bool IRAM_ATTR should_skip_light_sleep(int core_id);
 
 #ifdef CONFIG_PM_PROFILING
 #define WITH_PROFILING

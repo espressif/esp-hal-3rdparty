@@ -10,25 +10,26 @@
 #include "esp_pm.h"
 #include "esp_system.h"
 #include "sys/queue.h"
-#include "freertos/FreeRTOS.h"
+#include "platform/os.h"
+#include "esp_private/critical_section.h"
 #include "esp_private/pm_impl.h"
 #include "esp_timer.h"
 #include "sdkconfig.h"
 
 
 typedef struct esp_pm_lock {
-    esp_pm_lock_type_t type;        /*!< type passed to esp_pm_lock_create */
-    int arg;                        /*!< argument passed to esp_pm_lock_create */
-    pm_mode_t mode;                 /*!< implementation-defined mode for this type of lock*/
-    const char* name;               /*!< used to identify the lock */
-    SLIST_ENTRY(esp_pm_lock) next;  /*!< linked list pointer */
-    size_t count;                   /*!< lock count */
-    portMUX_TYPE spinlock;          /*!< spinlock used when operating on 'count' */
+    esp_pm_lock_type_t type;                        /*!< type passed to esp_pm_lock_create */
+    int arg;                                        /*!< argument passed to esp_pm_lock_create */
+    pm_mode_t mode;                                 /*!< implementation-defined mode for this type of lock*/
+    const char* name;                               /*!< used to identify the lock */
+    SLIST_ENTRY(esp_pm_lock) next;                  /*!< linked list pointer */
+    size_t count;                                   /*!< lock count */
+    DECLARE_CRIT_SECTION_LOCK_IN_STRUCT(spinlock)   /*!< spinlock used when operating on 'count' */
 #ifdef WITH_PROFILING
-    pm_time_t last_taken;           /*!< time what the lock was taken (valid if count > 0) */
-    pm_time_t time_held;            /*!< total time the lock was taken.
-                                         If count > 0, this doesn't include the time since last_taken */
-    size_t times_taken;             /*!< number of times the lock was ever taken */
+    pm_time_t last_taken;                           /*!< time what the lock was taken (valid if count > 0) */
+    pm_time_t time_held;                            /*!< total time the lock was taken.
+                                                         If count > 0, this doesn't include the time since last_taken */
+    size_t times_taken;                             /*!< number of times the lock was ever taken */
 #endif
 } esp_pm_lock_t;
 
@@ -64,7 +65,7 @@ esp_err_t esp_pm_lock_create(esp_pm_lock_type_t lock_type, int arg,
     new_lock->arg = arg;
     new_lock->mode = esp_pm_impl_get_mode(lock_type, arg);
     new_lock->name = name;
-    new_lock->spinlock = (portMUX_TYPE) portMUX_INITIALIZER_UNLOCKED;
+    INIT_CRIT_SECTION_LOCK_RUNTIME(&new_lock->spinlock);
     *out_handle = new_lock;
 
     _lock_acquire(&s_list_lock);
@@ -103,7 +104,7 @@ esp_err_t IRAM_ATTR esp_pm_lock_acquire(esp_pm_lock_handle_t handle)
         return ESP_ERR_INVALID_ARG;
     }
 
-    portENTER_CRITICAL_SAFE(&handle->spinlock);
+    esp_os_enter_critical_safe(&handle->spinlock);
     if (handle->count++ == 0) {
         pm_time_t now = 0;
 #ifdef WITH_PROFILING
@@ -115,7 +116,7 @@ esp_err_t IRAM_ATTR esp_pm_lock_acquire(esp_pm_lock_handle_t handle)
         handle->times_taken++;
 #endif
     }
-    portEXIT_CRITICAL_SAFE(&handle->spinlock);
+    esp_os_exit_critical_safe(&handle->spinlock);
     return ESP_OK;
 }
 
@@ -129,7 +130,7 @@ esp_err_t IRAM_ATTR esp_pm_lock_release(esp_pm_lock_handle_t handle)
         return ESP_ERR_INVALID_ARG;
     }
     esp_err_t ret = ESP_OK;
-    portENTER_CRITICAL_SAFE(&handle->spinlock);
+    esp_os_enter_critical_safe(&handle->spinlock);
     if (handle->count == 0) {
         ret = ESP_ERR_INVALID_STATE;
         goto out;
@@ -143,7 +144,7 @@ esp_err_t IRAM_ATTR esp_pm_lock_release(esp_pm_lock_handle_t handle)
         esp_pm_impl_switch_mode(handle->mode, MODE_UNLOCK, now);
     }
 out:
-    portEXIT_CRITICAL_SAFE(&handle->spinlock);
+    esp_os_exit_critical_safe(&handle->spinlock);
     return ret;
 }
 
@@ -197,7 +198,7 @@ esp_err_t esp_pm_lock_get_stats(esp_pm_lock_handle_t handle, esp_pm_lock_instanc
     stats->time_held = 0;
 #endif
 
-    portENTER_CRITICAL(&handle->spinlock);
+    esp_os_exit_critical(&handle->spinlock);
     stats->acquired = handle->count;
 #ifdef WITH_PROFILING
     stats->times_taken = handle->times_taken;
@@ -208,7 +209,7 @@ esp_err_t esp_pm_lock_get_stats(esp_pm_lock_handle_t handle, esp_pm_lock_instanc
         stats->time_held += now - handle->last_taken;
     }
 #endif
-    portEXIT_CRITICAL(&handle->spinlock);
+    esp_os_exit_critical(&handle->spinlock);
 
     return ESP_OK;
 }
@@ -243,7 +244,7 @@ esp_err_t esp_pm_dump_locks(FILE* stream)
         size_t len = sizeof(line);
         size_t cb;
 
-        portENTER_CRITICAL(&it->spinlock);
+        esp_os_exit_critical(&it->spinlock);
         if (it->name == NULL) {
             cb = snprintf(buf, len, "lock@%p ", it);
         } else {
@@ -264,7 +265,7 @@ esp_err_t esp_pm_dump_locks(FILE* stream)
 #else
         snprintf(buf, len, "%-14s  %-5d  %-8d\n", s_lock_type_names[it->type], it->arg, it->count);
 #endif // WITH_PROFILING
-        portEXIT_CRITICAL(&it->spinlock);
+        esp_os_exit_critical(&it->spinlock);
         fputs(line, stream);
     }
     _lock_release(&s_list_lock);

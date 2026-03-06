@@ -17,6 +17,8 @@
 #include "sdkconfig.h"
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
+#include <semaphore.h>
 #include <nuttx/clock.h>
 #include <nuttx/sched.h>
 #include <nuttx/init.h>
@@ -27,28 +29,12 @@
 #include "esp_heap_caps.h"
 #include "esp_err.h"
 
-#ifdef __NuttX__
-#  ifdef CONFIG_IDF_TARGET_ESP32
-#    include "esp32_rt_timer.h"
-#    define esp_timer_get_time rt_timer_time_us
-#  elif defined(CONFIG_IDF_TARGET_ESP32S3)
-#    include "esp32s3_rt_timer.h"
-#    define esp_timer_get_time esp32s3_rt_timer_time_us
-#  elif defined(CONFIG_IDF_TARGET_ESP32S2)
-#    include "esp32s2_rt_timer.h"
-#    define esp_timer_get_time rt_timer_time_us
-#  else
-#    include "esp_hr_timer.h"
-#    define esp_timer_get_time esp_hr_timer_time_us
-#    define esp_timer_create esp_hr_timer_create
-#    define esp_timer_start_once esp_hr_timer_start_once
-#    define esp_timer_start_periodic esp_hr_timer_start_periodic
-#    define esp_timer_stop esp_hr_timer_stop
-#    define esp_timer_delete esp_hr_timer_delete
-#    define esp_timer_private_set esp_hr_timer_set
-#    define esp_timer_private_lock esp_hr_timer_lock
-#    define esp_timer_private_unlock esp_hr_timer_unlock
-#  endif
+#ifdef CONFIG_IDF_TARGET_ARCH_RISCV
+/* RISC-V: esp_timer API is implemented by the adapter layer in platform/os.c,
+ * which wraps esp_hr_timer (NuttX) and adapts arguments and return codes.
+ * esp_hr_timer.h is included only for internal use by the adapter.
+ */
+#  include "esp_hr_timer.h"
 #endif
 
 /****************************************************************************
@@ -80,6 +66,7 @@
 #define OS_BASE_TYPE                int
 #define OS_FALSE                    FALSE
 #define OS_TRUE                     TRUE
+#define OS_PASS                     TRUE
 #define traceISR_ENTER(param1)
 #define traceISR_EXIT(param1)
 #define os_task_switch_is_pended(_cpu_) (false)
@@ -89,6 +76,7 @@
 #define OS_TASK_DELAY(ticks)        esp_os_task_delay_adapter(ticks)
 #define OS_SCHEDULER_RUNNING()      OSINIT_OS_READY()
 #define OS_TICK_PERIOD_MS           (CONFIG_USEC_PER_TICK / 1000)
+#define OS_TICK_PERIOD_US           (CONFIG_USEC_PER_TICK)
 #define OS_IN_ISR()                 up_interrupt_context()
 #define OS_TASK_PRIO_MAX            (SCHED_PRIORITY_MAX)
 #define OS_TASK_PRIO_MIN            (SCHED_PRIORITY_MIN)
@@ -96,6 +84,10 @@
 #define OS_SPINLOCK_TYPE            rspinlock_t
 #define OS_SPINLOCK_INITIALIZER     RSPINLOCK_INITIALIZER
 #define OS_SPINLOCK_INIT(lock)      esp_os_spinlock_initialize(lock)
+#define OS_SET_INTERRUPT_MASK_FROM_ISR          up_irq_save
+#define OS_CLEAR_INTERRUPT_MASK_FROM_ISR(flags) up_irq_restore(flags)
+#define OS_SET_INTERRUPT_MASK_FROM              up_irq_save
+#define OS_CLEAR_INTERRUPT_MASK_FROM(flags)     up_irq_restore(flags)
 
 #if OS_SPINLOCK == 1
 #  define OS_ENTER_CRITICAL_WITH_LOCK(lock)      nuttx_enter_critical(lock)
@@ -112,6 +104,10 @@
 #  define OS_ENTER_CRITICAL_NO_LOCK_SAFE()       nuttx_enter_critical()
 #  define OS_EXIT_CRITICAL_NO_LOCK_SAFE()        nuttx_exit_critical()
 #endif
+
+/* Expected idle time before sleep in ticks */
+
+#define configEXPECTED_IDLE_TIME_BEFORE_SLEEP    (800 / OS_TICK_PERIOD_US)
 
 /* FreeRTOS compatibility macros for NuttX. */
 
@@ -152,6 +148,36 @@ typedef uint32_t esp_os_tick_type_t;
 typedef intr_handler_t esp_os_intr_handler_t;
 typedef rmutex_t esp_os_recursive_mutex_t;
 
+/* Task management types */
+
+typedef pid_t esp_os_task_handle_t;
+typedef void (*esp_os_task_function_t)(void *);
+
+/* Task notification structure (wraps semaphore) */
+
+struct esp_os_task_notify_s
+{
+  sem_t sem;
+  esp_os_task_handle_t task;
+};
+
+typedef struct esp_os_task_notify_s esp_os_task_notify_t;
+
+#define pdPASS  0
+#define portMAX_DELAY 0xfffffffful
+
+#ifdef CONFIG_SMP
+#  define portNUM_PROCESSORS CONFIG_SMP_NCPUS
+#else
+#  define portNUM_PROCESSORS 1
+#endif
+
+/* Spinlock initialization for static array initialization */
+#define portMUX_INITIALIZER_UNLOCKED {}
+
+/* Tick type for timeout calculations */
+typedef uint32_t TickType_t;
+
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
@@ -160,6 +186,29 @@ typedef rmutex_t esp_os_recursive_mutex_t;
 extern "C"
 {
 #endif
+
+/****************************************************************************
+ * Name: esp_errno_to_esp_err
+ *
+ * Description:
+ *   Convert a NuttX/posix errno-style return value (0 for success, negated
+ *   errno on failure) to an ESP-IDF esp_err_t. Use this when wrapping NuttX
+ *   or other POSIX-style APIs that return int with 0 or -errno.
+ *
+ * Input Parameters:
+ *   errno_value - Return value from a NuttX/POSIX API: 0 for success, or
+ *                 a negated errno value (e.g. -EINVAL, -ENOMEM) on failure.
+ *
+ * Returned Value:
+ *   ESP_OK on success (errno_value == 0).
+ *   ESP_ERR_INVALID_ARG when errno_value == -EINVAL.
+ *   ESP_ERR_NO_MEM when errno_value == -ENOMEM.
+ *   ESP_ERR_INVALID_STATE when errno_value == -EALREADY or -EBUSY.
+ *   ESP_FAIL for any other error.
+ *
+ ****************************************************************************/
+
+esp_err_t esp_errno_to_esp_err(int errno_value);
 
 /* IRQ allocation functions */
 
@@ -216,6 +265,31 @@ void esp_os_scheduler_disable(void);
 void esp_os_scheduler_enable(void);
 
 bool esp_os_scheduler_started(void);
+
+/* Task management functions */
+
+int esp_os_create_task_pinned_to_core(esp_os_task_function_t task_func,
+                                       FAR const char *name,
+                                       uint32_t stack_depth,
+                                       FAR void *arg,
+                                       int priority,
+                                       FAR esp_os_task_handle_t *handle,
+                                       int core_id);
+
+void esp_os_task_delete(esp_os_task_handle_t handle);
+
+uint32_t esp_os_task_notify_take(bool clear_on_exit, uint32_t wait_ticks);
+
+int esp_os_task_notify_give_from_isr(esp_os_task_handle_t task,
+                                      FAR int *higher_priority_woken);
+
+esp_os_task_handle_t esp_os_task_get_current_handle(void);
+
+void esp_os_task_delay_ms(uint32_t ms);
+
+uint32_t esp_os_task_get_tick_count(void);
+
+void esp_os_application_sleep(void);
 
 #ifdef __cplusplus
 }

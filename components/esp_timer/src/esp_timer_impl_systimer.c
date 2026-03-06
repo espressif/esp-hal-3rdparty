@@ -96,23 +96,23 @@ static void ESP_TIMER_IRAM_ATTR timer_alarm_isr(void *arg)
     static volatile uint32_t processed_by = NOT_USED;
     static volatile bool pending_alarm = false;
     /* CRITICAL section ensures the read/clear is atomic between cores */
-    portENTER_CRITICAL_ISR(&s_time_update_lock);
+    esp_os_enter_critical_isr(&s_time_update_lock);
     if (systimer_ll_is_alarm_int_fired(systimer_hal.dev, SYSTIMER_ALARM_ESPTIMER)) {
         // Clear interrupt status
         systimer_ll_clear_alarm_int(systimer_hal.dev, SYSTIMER_ALARM_ESPTIMER);
         // Is the other core already processing a previous alarm?
         if (processed_by == NOT_USED) {
             // Current core is not processing an alarm yet
-            processed_by = xPortGetCoreID();
+            processed_by = OS_PORT_GET_CORE_ID();
             do {
                 pending_alarm = false;
                 // Clear interrupt status
                 systimer_ll_clear_alarm_int(systimer_hal.dev, SYSTIMER_ALARM_ESPTIMER);
-                portEXIT_CRITICAL_ISR(&s_time_update_lock);
+                esp_os_exit_critical_isr(&s_time_update_lock);
 
                 (*s_alarm_handler)(arg);
 
-                portENTER_CRITICAL_ISR(&s_time_update_lock);
+                esp_os_enter_critical_isr(&s_time_update_lock);
                 // Another alarm could have occurred while were handling the previous alarm.
                 // Check if we need to call the s_alarm_handler again:
                 //   1) if the alarm has already been fired, it helps to handle it immediately without an additional ISR call.
@@ -126,7 +126,7 @@ static void ESP_TIMER_IRAM_ATTR timer_alarm_isr(void *arg)
             pending_alarm = true;
         }
     }
-    portEXIT_CRITICAL_ISR(&s_time_update_lock);
+    esp_os_exit_critical_isr(&s_time_update_lock);
 #endif // ISR_HANDLERS != 1
 }
 
@@ -184,7 +184,7 @@ esp_err_t esp_timer_impl_early_init(void)
 
 esp_err_t esp_timer_impl_init(intr_handler_t alarm_handler)
 {
-    if (s_timer_interrupt_handle[(ISR_HANDLERS == 1) ? 0 : xPortGetCoreID()] != NULL) {
+    if (s_timer_interrupt_handle[(ISR_HANDLERS == 1) ? 0 : OS_PORT_GET_CORE_ID()] != NULL) {
         ESP_EARLY_LOGE(TAG, "timer ISR is already initialized");
         return ESP_ERR_INVALID_STATE;
     }
@@ -199,9 +199,9 @@ esp_err_t esp_timer_impl_init(intr_handler_t alarm_handler)
 #endif
                     ;
 
-    esp_err_t err = esp_intr_alloc(ETS_SYSTIMER_TARGET2_INTR_SOURCE, isr_flags,
-                                   &timer_alarm_isr, NULL,
-                                   &s_timer_interrupt_handle[(ISR_HANDLERS == 1) ? 0 : xPortGetCoreID()]);
+    esp_err_t err = esp_os_intr_alloc(ETS_SYSTIMER_TARGET2_INTR_SOURCE, isr_flags,
+                                      &timer_alarm_isr, NULL,
+                                      &s_timer_interrupt_handle[(ISR_HANDLERS == 1) ? 0 : OS_PORT_GET_CORE_ID()]);
     if (err != ESP_OK) {
         ESP_EARLY_LOGE(TAG, "esp_intr_alloc failed (0x%x)", err);
         return err;
@@ -216,7 +216,7 @@ esp_err_t esp_timer_impl_init(intr_handler_t alarm_handler)
         systimer_hal_enable_alarm_int(&systimer_hal, SYSTIMER_ALARM_ESPTIMER);
     }
 
-    err = esp_intr_enable(s_timer_interrupt_handle[(ISR_HANDLERS == 1) ? 0 : xPortGetCoreID()]);
+    err = esp_intr_enable(s_timer_interrupt_handle[(ISR_HANDLERS == 1) ? 0 : OS_PORT_GET_CORE_ID()]);
     if (err != ESP_OK) {
         ESP_EARLY_LOGE(TAG, "Can not enable ISR (0x%0x)", err);
     }

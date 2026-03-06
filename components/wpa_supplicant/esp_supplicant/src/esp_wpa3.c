@@ -462,13 +462,13 @@ int wpa3_hostap_post_evt(uint32_t evt_id, uint32_t data)
     }
     if (evt.id == SIG_WPA3_RX_CONFIRM || evt.id == SIG_TASK_DEL) {
         /* prioritising confirm for completing handshake for committed sta */
-        if (os_queue_send_to_front(g_wpa3_hostap_evt_queue, &evt, 0) != pdPASS) {
+        if (os_queue_send_to_front(g_wpa3_hostap_evt_queue, &evt, 0) != OS_PASS) {
             WPA3_HOSTAP_AUTH_API_UNLOCK();
             wpa_printf(MSG_DEBUG, "failed to add msg to queue front");
             return ESP_FAIL;
         }
     } else {
-        if (os_queue_send(g_wpa3_hostap_evt_queue, &evt, 0) != pdPASS) {
+        if (os_queue_send(g_wpa3_hostap_evt_queue, &evt, 0) != OS_PASS) {
             WPA3_HOSTAP_AUTH_API_UNLOCK();
             wpa_printf(MSG_DEBUG, "failed to send msg to queue");
             return ESP_FAIL;
@@ -656,7 +656,7 @@ int wpa3_hostap_auth_init(void *data)
     if (os_task_create(esp_wpa3_hostap_task, "esp_wpa3_hostap_task",
                        WPA3_HOSTAP_HANDLE_AUTH_TASK_STACK_SIZE, NULL,
                        WPA3_HOSTAP_HANDLE_AUTH_TASK_PRIORITY,
-                       &g_wpa3_hostap_task_hdl) != pdPASS) {
+                       &g_wpa3_hostap_task_hdl) != OS_PASS) {
         wpa_printf(MSG_ERROR, "wpa3_hostap_auth_init: failed to create task");
         os_queue_delete(g_wpa3_hostap_evt_queue);
         g_wpa3_hostap_evt_queue = NULL;
