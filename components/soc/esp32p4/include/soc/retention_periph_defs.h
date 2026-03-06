@@ -64,10 +64,13 @@ typedef enum periph_retention_module {
     SLEEP_RETENTION_MODULE_JPEG         = 38,
     SLEEP_RETENTION_MODULE_LCDCAM       = 39,
 
+    /* PMU REGDMA clock icg */
+    SLEEP_RETENTION_MODULE_CLOCK_ICG    = SOC_PM_RETENTION_MODULE_NUM - 2,
+
     SLEEP_RETENTION_MODULE_MAX          = SOC_PM_RETENTION_MODULE_NUM - 1
 } periph_retention_module_t;
 
-#define is_top_domain_module(m)     (m <= SLEEP_RETENTION_MODULE_LCDCAM)
+#define is_top_domain_module(m)     (((m) <= SLEEP_RETENTION_MODULE_LCDCAM) || ((m) == SLEEP_RETENTION_MODULE_CLOCK_ICG))
 
 #ifdef __cplusplus
 }

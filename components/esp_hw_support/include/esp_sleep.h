@@ -112,9 +112,18 @@ typedef enum {
     ESP_SLEEP_WAKEUP_TOUCHPAD,          //!< Wakeup caused by touchpad
     ESP_SLEEP_WAKEUP_ULP,               //!< Wakeup caused by ULP program
     ESP_SLEEP_WAKEUP_GPIO,              //!< Wakeup caused by GPIO (light sleep only on ESP32, S2 and S3)
-    ESP_SLEEP_WAKEUP_UART,              //!< Wakeup caused by UART0 (light sleep only)
+    ESP_SLEEP_WAKEUP_UART0,             //!< Wakeup caused by UART0 (light sleep only)
+    ESP_SLEEP_WAKEUP_UART = ESP_SLEEP_WAKEUP_UART0,
     ESP_SLEEP_WAKEUP_UART1,             //!< Wakeup caused by UART1 (light sleep only)
+#if (SOC_UART_HP_NUM > 2) && !SOC_PM_RTC_NOT_SUPPORT_UART2_WAKEUP
     ESP_SLEEP_WAKEUP_UART2,             //!< Wakeup caused by UART2 (light sleep only)
+#endif
+#if (SOC_UART_HP_NUM > 3)
+    ESP_SLEEP_WAKEUP_UART3,             //!< Wakeup caused by UART3 (light sleep only)
+#endif
+#if (SOC_UART_HP_NUM > 4)
+    ESP_SLEEP_WAKEUP_UART4,             //!< Wakeup caused by UART4 (light sleep only)
+#endif
     ESP_SLEEP_WAKEUP_WIFI,              //!< Wakeup caused by WIFI (light sleep only)
     ESP_SLEEP_WAKEUP_COCPU,             //!< Wakeup caused by COCPU int
     ESP_SLEEP_WAKEUP_COCPU_TRAP_TRIG,   //!< Wakeup caused by COCPU crash
