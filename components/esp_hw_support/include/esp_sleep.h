@@ -522,13 +522,14 @@ esp_err_t esp_sleep_enable_gpio_wakeup(void);
 /**
  * @brief Enable wakeup from light sleep using UART
  *
- * Use uart_set_wakeup_threshold function to configure UART wakeup threshold.
+ * Use uart_wakeup_setup function to configure UART wakeup mode and parameters.
  *
  * Wakeup from light sleep takes some time, so not every character sent
  * to the UART can be received by the application.
  *
  * @note 1. ESP32 does not support wakeup from UART2.
- *       2. If PM_POWER_DOWN_PERIPHERAL_IN_LIGHT_SLEEP is enabled (if target supported),
+ *       2. Wakeup mode 0(Active threshold) don't need source clock, but other modes need.
+ *       3. If PM_POWER_DOWN_PERIPHERAL_IN_LIGHT_SLEEP is enabled (if target supported),
  *          this API is unavailable since the UART module is powered down during sleep.
  *
  * @param uart_num  UART port to wake up from

@@ -833,7 +833,8 @@ esp_err_t uart_get_collision_flag(uart_port_t uart_num, bool* collision_flag);
  *      - ESP_ERR_INVALID_ARG if uart_num is incorrect or wakeup_threshold is
  *        outside of [3, 0x3ff] range.
  */
-esp_err_t uart_set_wakeup_threshold(uart_port_t uart_num, int wakeup_threshold);
+esp_err_t uart_set_wakeup_threshold(uart_port_t uart_num, int wakeup_threshold)
+__attribute__((deprecated("use uart_wakeup_setup instead")));
 
 /**
  * @brief Get the number of RX pin signal edges for light sleep wakeup.
@@ -848,7 +849,8 @@ esp_err_t uart_set_wakeup_threshold(uart_port_t uart_num, int wakeup_threshold);
  *      - ESP_OK on success
  *      - ESP_ERR_INVALID_ARG if out_wakeup_threshold is NULL
  */
-esp_err_t uart_get_wakeup_threshold(uart_port_t uart_num, int* out_wakeup_threshold);
+esp_err_t uart_get_wakeup_threshold(uart_port_t uart_num, int* out_wakeup_threshold)
+__attribute__((deprecated));
 
 /**
   * @brief Wait until UART tx memory empty and the last char send ok (polling mode).

@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2022-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2022-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -1112,8 +1112,10 @@ FORCE_INLINE_ATTR void uart_ll_set_dtr_active_level(uart_dev_t *hw, int level)
  */
 FORCE_INLINE_ATTR void uart_ll_set_wakeup_edge_thrd(uart_dev_t *hw, uint32_t wakeup_thrd)
 {
-    // System would wakeup when the number of positive edges of RxD signal is larger than or equal to (UART_ACTIVE_THRESHOLD+3)
-    hw->sleep_conf2.active_threshold = wakeup_thrd - UART_LL_WAKEUP_EDGE_THRED_MIN;
+    // System would wakeup when the number of positive edges of RxD signal is larger than or equal to (UART_ACTIVE_THRESHOLD+offset)
+    // HP UART: offset is 6, LP UART: offset is 3
+    uint32_t offset = (hw == &LP_UART) ? UART_LL_WAKEUP_EDGE_THRED_MIN : UART_LL_WAKEUP_EDGE_THRED_MIN + 3;
+    hw->sleep_conf2.active_threshold = wakeup_thrd - offset;
 }
 
 /**
@@ -1421,7 +1423,9 @@ FORCE_INLINE_ATTR void uart_ll_get_at_cmd_char(uart_dev_t *hw, uint8_t *cmd_char
  */
 FORCE_INLINE_ATTR uint32_t uart_ll_get_wakeup_edge_thrd(uart_dev_t *hw)
 {
-    return hw->sleep_conf2.active_threshold + UART_LL_WAKEUP_EDGE_THRED_MIN;
+    // HP UART: offset is 6, LP UART: offset is 3
+    uint32_t offset = (hw == &LP_UART) ? UART_LL_WAKEUP_EDGE_THRED_MIN : UART_LL_WAKEUP_EDGE_THRED_MIN + 3;
+    return hw->sleep_conf2.active_threshold + offset;
 }
 
 /**
