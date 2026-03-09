@@ -72,6 +72,9 @@ typedef struct {
     gdma_event_callback_t on_recv_eof;  /*!< Invoked when RX engine meets EOF descriptor */
     gdma_event_callback_t on_descr_err; /*!< Invoked when DMA encounters a descriptor error */
     gdma_event_callback_t on_recv_done; /*!< Invoked when finished to receive one RX descriptor */
+    gdma_event_callback_t on_descr_empty; /*!< Invoked when RX has no more descriptor space for incoming data.
+                                              This event is abnormal and non-recoverable for the current transfer;
+                                              software should fix descriptor/buffer sizing and restart DMA. */
 } gdma_rx_event_callbacks_t;
 
 /**
