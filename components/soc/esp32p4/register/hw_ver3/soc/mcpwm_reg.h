@@ -11,6 +11,8 @@
 extern "C" {
 #endif
 
+#define REG_MCPWM_BASE(i)       (DR_REG_MCPWM_BASE + (i) * 0x1000)
+
 /** MCPWM_CLK_CFG_REG register
  *  PWM clock prescaler register.
  */

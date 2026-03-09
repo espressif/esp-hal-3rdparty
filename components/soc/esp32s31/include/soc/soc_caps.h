@@ -39,7 +39,7 @@
 // #define SOC_LCDCAM_CAM_SUPPORTED        1      // TODO: [ESP32S31] IDF-14722
 // #define SOC_LCDCAM_I80_LCD_SUPPORTED    1      // TODO: [ESP32S31] IDF-14722
 // #define SOC_LCDCAM_RGB_LCD_SUPPORTED    1      // TODO: [ESP32S31] IDF-14722
-// #define SOC_MCPWM_SUPPORTED             1      // TODO: [ESP32S31] IDF-14756
+#define SOC_MCPWM_SUPPORTED             1
 // #define SOC_TWAI_SUPPORTED              1      // TODO: [ESP32S31] IDF-14719
 // #define SOC_ETM_SUPPORTED               1      // TODO: [ESP32S31] IDF-14724
 // #define SOC_PARLIO_SUPPORTED            1      // TODO: [ESP32S31] IDF-14711
@@ -326,3 +326,10 @@
 #define SOC_LP_TIMER_BIT_WIDTH_LO           32 // Bit width of lp_timer low part
 #define SOC_LP_TIMER_BIT_WIDTH_HI           16 // Bit width of lp_timer high part
 #define SOC_RTC_TIMER_V3                    1
+
+/*-------------------------- MCPWM CAPS --------------------------------------*/
+#define SOC_MCPWM_SWSYNC_CAN_PROPAGATE       (1)    ///< Software sync event can be routed to its output
+#define SOC_MCPWM_SUPPORT_ETM                (1)    ///< Support ETM (Event Task Matrix)
+#define SOC_MCPWM_SUPPORT_EVENT_COMPARATOR   (1)    ///< Support event comparator (based on ETM)
+#define SOC_MCPWM_CAPTURE_CLK_FROM_GROUP     (1)    ///< Capture timer shares clock with other PWM timers
+// #define SOC_MCPWM_SUPPORT_SLEEP_RETENTION    (1)    ///< Support back up registers before sleep
