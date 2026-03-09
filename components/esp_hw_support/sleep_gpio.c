@@ -250,19 +250,19 @@ static void esp_deep_sleep_wakeup_io_reset(void)
 #endif
 
 #if SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP
-    uint32_t dl_io_mask = SOC_GPIO_HP_PERIPH_PD_SLEEP_WAKEABLE_MASK;
+    uint64_t dslp_io_mask = SOC_GPIO_HP_PERIPH_PD_SLEEP_WAKEABLE_MASK;
     gpio_hal_context_t gpio_hal = {
         .dev = GPIO_HAL_GET_HW(GPIO_PORT_0)
     };
-    while (dl_io_mask) {
-        int gpio_num = __builtin_ffs(dl_io_mask) - 1;
+    while (dslp_io_mask) {
+        int gpio_num = __builtin_ctzll(dslp_io_mask);
         bool wakeup_io_enabled = gpio_hal_wakeup_is_enabled_on_hp_periph_powerdown_sleep(&gpio_hal, gpio_num);
         if (wakeup_io_enabled) {
             // Disable the wakeup before releasing hold, such that wakeup status can reflect the correct wakeup pin
             gpio_hal_wakeup_disable_on_hp_periph_powerdown_sleep(&gpio_hal, gpio_num);
             gpio_hal_hold_dis(&gpio_hal, gpio_num);
         }
-        dl_io_mask &= ~BIT(gpio_num);
+        dslp_io_mask &= dslp_io_mask - 1;
     }
 #endif
 }

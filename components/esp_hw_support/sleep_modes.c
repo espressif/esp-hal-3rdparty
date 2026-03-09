@@ -293,8 +293,8 @@ typedef struct {
     uint32_t ext0_rtc_gpio_num : 5;
 #endif
 #if SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP
-    uint32_t gpio_wakeup_mask : SOC_GPIO_HP_PERIPH_PD_SLEEP_WAKEABLE_PIN_CNT;
-    uint32_t gpio_trigger_mode : SOC_GPIO_HP_PERIPH_PD_SLEEP_WAKEABLE_PIN_CNT;
+    uint64_t gpio_wakeup_mask;
+    uint64_t gpio_trigger_mode;
 #endif
     uint32_t sleep_time_adjustment;
     uint32_t ccount_ticks_record;
@@ -2252,11 +2252,9 @@ uint64_t esp_sleep_get_gpio_wakeup_status(void)
 
 static void esp_sleep_gpio_wakeup_prepare_on_hp_periph_powerdown(void)
 {
-    uint32_t valid_wake_io_mask = SOC_GPIO_HP_PERIPH_PD_SLEEP_WAKEABLE_MASK;
-    for (gpio_num_t gpio_idx = __builtin_ctz(valid_wake_io_mask); valid_wake_io_mask >> gpio_idx; gpio_idx++) {
-        if ((s_config.gpio_wakeup_mask & BIT64(gpio_idx)) == 0) {
-            continue;
-        }
+    uint64_t valid_wake_io_mask = s_config.gpio_wakeup_mask & SOC_GPIO_HP_PERIPH_PD_SLEEP_WAKEABLE_MASK;
+    while (valid_wake_io_mask) {
+        int gpio_idx = __builtin_ctzll(valid_wake_io_mask);
 #if SOC_LP_IO_CLOCK_IS_INDEPENDENT
         // To suppress build errors about spinlock's __DECLARE_RCC_ATOMIC_ENV
         int __DECLARE_RCC_ATOMIC_ENV __attribute__ ((unused));
@@ -2272,6 +2270,7 @@ static void esp_sleep_gpio_wakeup_prepare_on_hp_periph_powerdown(void)
         }
 #endif
         ESP_ERROR_CHECK(gpio_hold_en(gpio_idx));
+        valid_wake_io_mask &= valid_wake_io_mask - 1;
     }
     // Clear state from previous wakeup
     rtc_hal_gpio_clear_wakeup_status();
@@ -2298,19 +2297,17 @@ esp_err_t esp_sleep_enable_gpio_wakeup_on_hp_periph_powerdown(uint64_t gpio_pin_
             }
         }
     }
-
-    for (gpio_num_t gpio_idx = __builtin_ctzll(gpio_pin_mask); gpio_pin_mask >> gpio_idx; gpio_idx++) {
-        if ((gpio_pin_mask & BIT64(gpio_idx)) == 0) {
-            continue;
-        }
+    while (gpio_pin_mask) {
+        int gpio_idx = __builtin_ctzll(gpio_pin_mask);
         err = gpio_wakeup_enable_on_hp_periph_powerdown_sleep(gpio_idx, intr_type);
         if (err != ESP_OK) return err;
-        s_config.gpio_wakeup_mask |= BIT(gpio_idx);
+        s_config.gpio_wakeup_mask |= BIT64(gpio_idx);
         if (mode == ESP_GPIO_WAKEUP_GPIO_HIGH) {
-            s_config.gpio_trigger_mode |= BIT(gpio_idx);
+            s_config.gpio_trigger_mode |= BIT64(gpio_idx);
         } else {
-            s_config.gpio_trigger_mode &= ~BIT(gpio_idx);
+            s_config.gpio_trigger_mode &= ~BIT64(gpio_idx);
         }
+        gpio_pin_mask &= gpio_pin_mask - 1;
     }
     s_config.wakeup_triggers |= RTC_GPIO_TRIG_EN;
     return err;

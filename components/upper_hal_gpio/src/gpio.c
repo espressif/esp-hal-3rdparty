@@ -777,7 +777,6 @@ esp_err_t gpio_get_drive_capability(gpio_num_t gpio_num, gpio_drive_cap_t *stren
 
 esp_err_t gpio_hold_en(gpio_num_t gpio_num)
 {
-    GPIO_CHECK(GPIO_IS_VALID_OUTPUT_GPIO(gpio_num), "Only output-capable GPIO support this function", ESP_ERR_NOT_SUPPORTED);
     int ret = ESP_OK;
 
     if (rtc_gpio_is_valid_gpio(gpio_num)) {
@@ -785,6 +784,7 @@ esp_err_t gpio_hold_en(gpio_num_t gpio_num)
         ret = rtc_gpio_hold_en(gpio_num);
 #endif
     } else if (GPIO_HOLD_MASK[gpio_num]) {
+        GPIO_CHECK(GPIO_IS_VALID_OUTPUT_GPIO(gpio_num), "Only output-capable GPIO support this function", ESP_ERR_NOT_SUPPORTED);
         portENTER_CRITICAL(&gpio_context.gpio_spinlock);
         gpio_hal_hold_en(gpio_context.gpio_hal, gpio_num);
         portEXIT_CRITICAL(&gpio_context.gpio_spinlock);
@@ -797,7 +797,6 @@ esp_err_t gpio_hold_en(gpio_num_t gpio_num)
 
 esp_err_t gpio_hold_dis(gpio_num_t gpio_num)
 {
-    GPIO_CHECK(GPIO_IS_VALID_OUTPUT_GPIO(gpio_num), "Only output-capable GPIO support this function", ESP_ERR_NOT_SUPPORTED);
     int ret = ESP_OK;
 
     if (rtc_gpio_is_valid_gpio(gpio_num)) {
@@ -805,6 +804,7 @@ esp_err_t gpio_hold_dis(gpio_num_t gpio_num)
         ret = rtc_gpio_hold_dis(gpio_num);
 #endif
     } else if (GPIO_HOLD_MASK[gpio_num]) {
+        GPIO_CHECK(GPIO_IS_VALID_OUTPUT_GPIO(gpio_num), "Only output-capable GPIO support this function", ESP_ERR_NOT_SUPPORTED);
         portENTER_CRITICAL(&gpio_context.gpio_spinlock);
         gpio_hal_hold_dis(gpio_context.gpio_hal, gpio_num);
         portEXIT_CRITICAL(&gpio_context.gpio_spinlock);
