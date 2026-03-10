@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2015-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -22,10 +22,6 @@
 #include "hal/wdt_hal.h"
 #include "hal/uart_types.h"
 #include "hal/uart_ll.h"
-
-#if CONFIG_SW_COEXIST_ENABLE || CONFIG_EXTERNAL_COEX_ENABLE
-#include "private/esp_coexist_internal.h"
-#endif
 
 #if CONFIG_PM_ENABLE || CONFIG_PM_WORKAROUND_FREQ_LIMIT_ENABLED
 #include "esp_pm.h"
@@ -126,15 +122,6 @@ ESP_SYSTEM_INIT_FN(init_apb_dma, SECONDARY, BIT(0), 203)
     return ESP_OK;
 }
 #endif
-
-#if CONFIG_SW_COEXIST_ENABLE || CONFIG_EXTERNAL_COEX_ENABLE
-ESP_SYSTEM_INIT_FN(init_coexist, SECONDARY, BIT(0), 204)
-{
-    esp_coex_adapter_register(&g_coex_adapter_funcs);
-    coex_pre_init();
-    return ESP_OK;
-}
-#endif // CONFIG_SW_COEXIST_ENABLE || CONFIG_EXTERNAL_COEX_ENABLE
 
 #if SOC_RECOVERY_BOOTLOADER_SUPPORTED
 ESP_SYSTEM_INIT_FN(init_bootloader_offset, SECONDARY, BIT(0), 205)

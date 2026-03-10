@@ -149,10 +149,6 @@ if(CONFIG_VFS_SUPPORT_IO)
     idf_component_optional_requires(PRIVATE vfs)
 endif()
 
-if(CONFIG_SW_COEXIST_ENABLE OR CONFIG_EXTERNAL_COEX_ENABLE)
-    idf_component_optional_requires(PRIVATE esp_coex)
-endif()
-
 if(NOT BOOTLOADER_BUILD)
     if(CONFIG_SPIRAM)
         idf_component_optional_requires(PRIVATE esp_psram)
