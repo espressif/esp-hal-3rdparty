@@ -17,6 +17,7 @@
 #include "pmu_param.h"
 #include "esp_private/esp_pmu.h"
 #include "esp_hw_log.h"
+#include "hal/regi2c_ctrl_ll.h"
 
 ESP_HW_LOG_ATTR_TAG(TAG, "pmu_init");
 
@@ -205,4 +206,6 @@ void pmu_init(void)
     pmu_hp_system_init_default(PMU_instance());
     pmu_lp_system_init_default(PMU_instance());
     pmu_power_domain_force_default(PMU_instance());
+
+    regi2c_ctrl_ll_i2c_sar_periph_enable(); // TODO: IDF-14733
 }
