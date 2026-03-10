@@ -62,13 +62,13 @@
 // #define SOC_ISP_SUPPORTED               1      // TODO: [ESP32S31] IDF-14769
 // #define SOC_I2C_SUPPORTED               1      // TODO: [ESP32S31] IDF-14726
 #define SOC_SYSTIMER_SUPPORTED          1         // TODO: [ESP32S31] IDF-14693
-// #define SOC_AES_SUPPORTED               1      // TODO: [ESP32S31] IDF-14633
-// #define SOC_MPI_SUPPORTED               1      // TODO: [ESP32S31] IDF-14633
-// #define SOC_SHA_SUPPORTED               1      // TODO: [ESP32S31] IDF-14630
+#define SOC_AES_SUPPORTED               1
+#define SOC_MPI_SUPPORTED               1
+#define SOC_SHA_SUPPORTED               1
 // #define SOC_HMAC_SUPPORTED              1      // TODO: [ESP32S31] IDF-14621
 // #define SOC_DIG_SIGN_SUPPORTED          1      // TODO: [ESP32S31] IDF-14624
-// #define SOC_ECC_SUPPORTED               1      // TODO: [ESP32S31] IDF-14631
-// #define SOC_ECC_EXTENDED_MODES_SUPPORTED   1   // TODO: [ESP32S31] IDF-14631
+#define SOC_ECC_SUPPORTED               1
+#define SOC_ECC_EXTENDED_MODES_SUPPORTED   1
 // #define SOC_FLASH_ENC_SUPPORTED         1         // TODO: [ESP32S31] IDF-14628
 // #define SOC_SECURE_BOOT_SUPPORTED       1      // TODO: [ESP32S31] IDF-14629
 // #define SOC_BOD_SUPPORTED               1      // TODO: [ESP32S31] IDF-14658
@@ -266,6 +266,37 @@
 /*--------------------------- WATCHDOG CAPS ---------------------------------------*/
 #define SOC_MWDT_SUPPORT_XTAL              (1)
 // #define SOC_MWDT_SUPPORT_SLEEP_RETENTION   (1)
+
+/*-------------------------- AES CAPS ----------------------------------------*/
+#define SOC_AES_GDMA                            (1)
+#define SOC_AES_SUPPORT_DMA                     (1)
+#define SOC_AES_SUPPORT_AES_128                 (1)
+#define SOC_AES_SUPPORT_AES_256                 (1)
+// TODO: [ESP32S31] IDF-14633 SOC_AES_SUPPORT_GCM not enabled: GCM control registers (AAD_BLOCK_NUM, REMAINDER_BIT_NUM, CONTINUE) non-functional on v0.0 silicon
+#define SOC_AES_SUPPORT_PSEUDO_ROUND_FUNCTION   (1)
+
+/*-------------------------- SHA CAPS ----------------------------------------*/
+#define SOC_SHA_GDMA                    (1)
+#define SOC_SHA_DMA_MAX_BUFFER_SIZE     (3968)
+#define SOC_SHA_SUPPORT_DMA             (1)
+#define SOC_SHA_SUPPORT_RESUME          (1)
+#define SOC_SHA_SUPPORT_SHA1            (1)
+#define SOC_SHA_SUPPORT_SHA224          (1)
+#define SOC_SHA_SUPPORT_SHA256          (1)
+#define SOC_SHA_SUPPORT_SHA384          (1)
+#define SOC_SHA_SUPPORT_SHA512          (1)
+#define SOC_SHA_SUPPORT_SHA512_224      (1)
+#define SOC_SHA_SUPPORT_SHA512_256      (1)
+#define SOC_SHA_SUPPORT_SHA512_T        (1)
+
+/*-------------------------- MPI/RSA CAPS ----------------------------------------*/
+#define SOC_MPI_MEM_BLOCKS_NUM          (4)
+#define SOC_MPI_OPERATIONS_NUM          (3)
+#define SOC_RSA_MAX_BIT_LEN             (4096)
+
+/*-------------------------- ECC CAPS ----------------------------------------*/
+#define SOC_ECC_CONSTANT_TIME_POINT_MUL           1
+#define SOC_ECC_SUPPORT_CURVE_P384      (1)
 
 /*-------------------------- eFuse CAPS----------------------------*/
 // TODO: [ESP32S31] IDF-14688
