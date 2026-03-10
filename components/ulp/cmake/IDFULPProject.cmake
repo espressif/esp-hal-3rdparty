@@ -49,7 +49,7 @@ function(ulp_apply_default_sources ulp_app_name)
     list(APPEND ULP_PREPRO_ARGS -I${sdkconfig_dir})
     list(APPEND ULP_PREPRO_ARGS -I${IDF_PATH}/components/esp_system/ld)
 
-    target_include_directories(${ulp_app_name} PRIVATE ${COMPONENT_INCLUDES})
+    target_include_directories(${ulp_app_name} PRIVATE ${COMPONENT_INCLUDES} ${sdkconfig_dir})
 
     # Pre-process the linker script
     if(CONFIG_ULP_COPROC_TYPE_RISCV)
