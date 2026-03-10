@@ -36,7 +36,7 @@ typedef enum {
     RESET_REASON_CPU_MWDT          = 0x0B, // MWDT HP CPU 0/1 reset
     RESET_REASON_CPU_SW            = 0x0C, // Software resets HP CPU 0/1
     RESET_REASON_CPU0_SW           = 0x0C, // Software resets HP CPU 0, kept to be compatible with older chips
-    RESET_REASON_CPU_RWDT          = 0x0D, // RWDT resets digital core
+    RESET_REASON_CPU_RWDT          = 0x0D, // RWDT resets HP CPU 0/1
     RESET_REASON_SYS_BROWN_OUT     = 0x0F, // VDD voltage is not stable and resets the digital core
     RESET_REASON_SYS_RWDT          = 0x10, // RWDT system reset
     RESET_REASON_SYS_SUPER_WDT     = 0x12, // Super watch dog resets the digital core and rtc module

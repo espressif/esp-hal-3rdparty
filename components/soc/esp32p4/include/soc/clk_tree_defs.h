@@ -166,8 +166,8 @@ typedef enum {
     SOC_MOD_CLK_PLL_F25M,                      /*!< PLL_F25M_CLK is derived from MPLL (clock gating + configurable divider), it will have a frequency of 25MHz */
     SOC_MOD_CLK_PLL_F50M,                      /*!< PLL_F50M_CLK is derived from MPLL (clock gating + configurable divider 10), it will have a frequency of 50MHz */
     SOC_MOD_CLK_PLL_F80M,                      /*!< PLL_F80M_CLK is derived from SPLL (clock gating + default divider 6), its default frequency is 80MHz */
-    SOC_MOD_CLK_PLL_F160M,                     /*!< PLL_F160M_CLK is derived from SPLL (clock gating + default divider 3), its default frequency is 160MHz */
     SOC_MOD_CLK_PLL_F120M,                     /*!< PLL_F120M_CLK is derived from SPLL (clock gating + default divider 4), its default frequency is 120MHz */
+    SOC_MOD_CLK_PLL_F160M,                     /*!< PLL_F160M_CLK is derived from SPLL (clock gating + default divider 3), its default frequency is 160MHz */
     SOC_MOD_CLK_PLL_F240M,                     /*!< PLL_F240M_CLK is derived from SPLL (clock gating + default divider 2), its default frequency is 240MHz */
     SOC_MOD_CLK_CPLL,                          /*!< CPLL is from 40MHz XTAL oscillator frequency multipliers */
     SOC_MOD_CLK_SPLL,                          /*!< SPLL is from 40MHz XTAL oscillator frequency multipliers, its default frequency is 480MHz */
