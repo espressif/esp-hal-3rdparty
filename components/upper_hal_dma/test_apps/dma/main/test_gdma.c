@@ -456,6 +456,98 @@ static bool test_gdma_m2m_unaligned_rx_eof_callback(gdma_channel_handle_t dma_ch
     return task_woken == pdTRUE;
 }
 
+static bool test_gdma_m2m_desc_empty_callback(gdma_channel_handle_t dma_chan, gdma_event_data_t *event_data, void *user_data)
+{
+    BaseType_t task_woken = pdFALSE;
+    SemaphoreHandle_t desc_empty_sem = (SemaphoreHandle_t)user_data;
+    xSemaphoreGiveFromISR(desc_empty_sem, &task_woken);
+    return task_woken == pdTRUE;
+}
+
+static void test_gdma_m2m_desc_empty_event(gdma_channel_handle_t tx_chan, gdma_channel_handle_t rx_chan)
+{
+    gdma_link_list_handle_t tx_link_list = NULL;
+    gdma_link_list_handle_t rx_link_list = NULL;
+    test_gdma_config_link_list(tx_chan, rx_chan, &tx_link_list, &rx_link_list, 16, false);
+
+    uint8_t *src_data = heap_caps_aligned_calloc(16, 1, 128, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    uint8_t *dst_data = heap_caps_aligned_calloc(16, 1, 64, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    TEST_ASSERT_NOT_NULL(src_data);
+    TEST_ASSERT_NOT_NULL(dst_data);
+    for (int i = 0; i < 128; i++) {
+        src_data[i] = i;
+    }
+
+    gdma_buffer_mount_config_t tx_buf_mount_config = {
+        .buffer = src_data,
+        .buffer_alignment = 16,
+        .length = 128,
+        .flags = {
+            .mark_eof = true,
+            .mark_final = GDMA_FINAL_LINK_TO_NULL,
+        },
+    };
+    TEST_ESP_OK(gdma_link_mount_buffers(tx_link_list, 0, &tx_buf_mount_config, 1, NULL));
+
+    gdma_buffer_mount_config_t rx_buf_mount_config = {
+        .buffer = dst_data,
+        .buffer_alignment = 16,
+        .length = 64,
+        .flags = {
+            .mark_final = GDMA_FINAL_LINK_TO_NULL,
+        },
+    };
+    TEST_ESP_OK(gdma_link_mount_buffers(rx_link_list, 0, &rx_buf_mount_config, 1, NULL));
+
+    SemaphoreHandle_t desc_empty_sem = xSemaphoreCreateBinary();
+    TEST_ASSERT_NOT_NULL(desc_empty_sem);
+    gdma_rx_event_callbacks_t rx_cbs = {
+        .on_descr_empty = test_gdma_m2m_desc_empty_callback,
+    };
+    TEST_ESP_OK(gdma_register_rx_event_callbacks(rx_chan, &rx_cbs, desc_empty_sem));
+
+    TEST_ESP_OK(gdma_start(rx_chan, gdma_link_get_head_addr(rx_link_list)));
+    TEST_ESP_OK(gdma_start(tx_chan, gdma_link_get_head_addr(tx_link_list)));
+
+    TEST_ASSERT_EQUAL(pdTRUE, xSemaphoreTake(desc_empty_sem, pdMS_TO_TICKS(1000)));
+
+    TEST_ESP_OK(gdma_stop(tx_chan));
+    TEST_ESP_OK(gdma_stop(rx_chan));
+    TEST_ESP_OK(gdma_del_link_list(tx_link_list));
+    TEST_ESP_OK(gdma_del_link_list(rx_link_list));
+    vSemaphoreDelete(desc_empty_sem);
+    free(src_data);
+    free(dst_data);
+}
+
+TEST_CASE("GDMA M2M RX desc empty callback", "[GDMA][M2M]")
+{
+    gdma_channel_handle_t tx_chan = NULL;
+    gdma_channel_handle_t rx_chan = NULL;
+    gdma_channel_alloc_config_t chan_alloc_config = {};
+
+#if SOC_HAS(AHB_GDMA)
+    TEST_ESP_OK(gdma_new_ahb_channel(&chan_alloc_config, &tx_chan, &rx_chan));
+    test_gdma_m2m_desc_empty_event(tx_chan, rx_chan);
+    TEST_ESP_OK(gdma_del_channel(tx_chan));
+    TEST_ESP_OK(gdma_del_channel(rx_chan));
+#endif // SOC_HAS(AHB_GDMA)
+
+#if SOC_HAS(AXI_GDMA)
+    TEST_ESP_OK(gdma_new_axi_channel(&chan_alloc_config, &tx_chan, &rx_chan));
+    test_gdma_m2m_desc_empty_event(tx_chan, rx_chan);
+    TEST_ESP_OK(gdma_del_channel(tx_chan));
+    TEST_ESP_OK(gdma_del_channel(rx_chan));
+#endif // SOC_HAS(AXI_GDMA)
+
+#if SOC_HAS(LP_AHB_GDMA)
+    TEST_ESP_OK(gdma_new_lp_ahb_channel(&chan_alloc_config, &tx_chan, &rx_chan));
+    test_gdma_m2m_desc_empty_event(tx_chan, rx_chan);
+    TEST_ESP_OK(gdma_del_channel(tx_chan));
+    TEST_ESP_OK(gdma_del_channel(rx_chan));
+#endif // SOC_HAS(LP_AHB_GDMA)
+}
+
 static void test_gdma_m2m_unaligned_buffer_test(uint8_t *dst_data, uint8_t *src_data, size_t data_length, size_t offset_len)
 {
     TEST_ASSERT_NOT_NULL(src_data);
