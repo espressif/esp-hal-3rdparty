@@ -352,6 +352,32 @@ static inline __attribute__((always_inline)) void clk_ll_cpll_set_config(uint32_
 }
 
 /**
+ * @brief Start CPLL self-calibration
+ */
+static inline __attribute__((always_inline)) void clk_ll_cpll_calibration_start(void)
+{
+    CLEAR_PERI_REG_MASK(HP_SYS_CLKRST_ANA_PLL_CTRL0_REG, HP_SYS_CLKRST_REG_CPU_PLL_CAL_STOP);
+}
+
+/**
+ * @brief Stop CPLL self-calibration
+ */
+static inline __attribute__((always_inline)) void clk_ll_cpll_calibration_stop(void)
+{
+    SET_PERI_REG_MASK(HP_SYS_CLKRST_ANA_PLL_CTRL0_REG, HP_SYS_CLKRST_REG_CPU_PLL_CAL_STOP);
+}
+
+/**
+ * @brief Check whether CPLL calibration is done
+ *
+ * @return True if calibration is done; otherwise false
+ */
+static inline __attribute__((always_inline)) bool clk_ll_cpll_calibration_is_done(void)
+{
+    return REG_GET_BIT(HP_SYS_CLKRST_ANA_PLL_CTRL0_REG, HP_SYS_CLKRST_REG_CPU_PLL_CAL_END);
+}
+
+/**
  * @brief Get MPLL_CLK frequency (only reliable when MPLL power is on)
  *
  * @param xtal_freq_mhz XTAL frequency, in MHz
@@ -374,6 +400,32 @@ static inline __attribute__((always_inline)) uint32_t clk_ll_mpll_get_freq_mhz(u
 static inline __attribute__((always_inline)) void clk_ll_mpll_set_config(uint32_t mpll_freq_mhz, uint32_t xtal_freq_mhz)
 {
     // TODO: [ESP32S31] IDF-14733
+}
+
+/**
+ * @brief Start MPLL self-calibration
+ */
+static inline __attribute__((always_inline)) void clk_ll_mpll_calibration_start(void)
+{
+    CLEAR_PERI_REG_MASK(HP_SYS_CLKRST_ANA_PLL_CTRL0_REG, HP_SYS_CLKRST_REG_MSPI_CAL_STOP);
+}
+
+/**
+ * @brief Stop MPLL self-calibration
+ */
+static inline __attribute__((always_inline)) void clk_ll_mpll_calibration_stop(void)
+{
+    SET_PERI_REG_MASK(HP_SYS_CLKRST_ANA_PLL_CTRL0_REG, HP_SYS_CLKRST_REG_MSPI_CAL_STOP);
+}
+
+/**
+ * @brief Check whether MPLL calibration is done
+ *
+ * @return True if calibration is done; otherwise false
+ */
+static inline __attribute__((always_inline)) bool clk_ll_mpll_calibration_is_done(void)
+{
+    return REG_GET_BIT(HP_SYS_CLKRST_ANA_PLL_CTRL0_REG, HP_SYS_CLKRST_REG_MSPI_CAL_END);
 }
 
 /**

@@ -71,12 +71,7 @@ entries:
         periph_ctrl: wifi_module_enable (noflash)
         periph_ctrl: wifi_module_disable (noflash)
     if ESP_REGI2C_CTRL_FUNC_IN_IRAM = y:
-        regi2c_ctrl:regi2c_ctrl_read_reg (noflash)
-        regi2c_ctrl:regi2c_ctrl_read_reg_mask (noflash)
-        regi2c_ctrl:regi2c_ctrl_write_reg (noflash)
-        regi2c_ctrl:regi2c_ctrl_write_reg_mask (noflash)
-        regi2c_ctrl:regi2c_enter_critical (noflash)
-        regi2c_ctrl:regi2c_exit_critical (noflash)
+        regi2c_ctrl (noflash)
     if SOC_SYSTIMER_SUPPORTED = y:
         systimer (noflash)
     if SOC_ADC_SHARED_POWER = y:
@@ -106,3 +101,7 @@ archive: libesp_hal_ana_conv.a
 entries:
     if PM_SLP_IRAM_OPT = y && SOC_TEMP_SENSOR_SUPPORTED = y:
         temperature_sensor_periph:temperature_sensor_attributes (noflash)
+        if SOC_TEMPERATURE_SENSOR_SUPPORT_SLEEP_RETENTION = y:
+            temperature_sensor_hal: dac_offset_regi2c (noflash)
+            temperature_sensor_hal: temperature_sensor_hal_i2c_saradc_reg_backup (noflash)
+            temperature_sensor_hal: temperature_sensor_hal_i2c_saradc_reg_restore (noflash)
