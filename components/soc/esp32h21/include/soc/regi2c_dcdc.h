@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025-2026 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  */
@@ -34,3 +34,7 @@
 #define I2C_DCDC_VCM_PCUR_LIMIT0        10
 #define I2C_DCDC_VCM_PCUR_LIMIT0_MSB    7
 #define I2C_DCDC_VCM_PCUR_LIMIT0_LSB    5
+
+#define I2C_DCDC_PD_DBRNO        13
+#define I2C_DCDC_PD_DBRNO_MSB    7
+#define I2C_DCDC_PD_DBRNO_LSB    7

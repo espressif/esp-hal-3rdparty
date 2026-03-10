@@ -186,7 +186,7 @@ static void rtc_clk_cpu_freq_to_rc_fast(void)
     clk_ll_cpu_set_divider(1);
     clk_ll_cpu_set_src(SOC_CPU_CLK_SRC_RC_FAST);
     clk_ll_bus_update();
-    esp_rom_set_cpu_ticks_per_us(8);
+    esp_rom_set_cpu_ticks_per_us(20);
 }
 
 /**
@@ -356,7 +356,7 @@ void rtc_clk_cpu_freq_get_config(rtc_cpu_freq_config_t *out_config)
         break;
     }
     case SOC_CPU_CLK_SRC_RC_FAST:
-        source_freq_mhz = 8;
+        source_freq_mhz = 20;
         break;
     case SOC_CPU_CLK_SRC_XTAL_X2:
         source_freq_mhz = clk_ll_xtal_x2_get_freq_mhz();
@@ -447,7 +447,7 @@ static uint32_t rtc_clk_ahb_freq_get(void)
         soc_root_freq_mhz = clk_ll_bbpll_get_freq_mhz();
         break;
     case SOC_CPU_CLK_SRC_RC_FAST:
-        soc_root_freq_mhz = 8;
+        soc_root_freq_mhz = 20;
         break;
     case SOC_CPU_CLK_SRC_XTAL_X2:
         soc_root_freq_mhz = clk_ll_xtal_x2_get_freq_mhz();

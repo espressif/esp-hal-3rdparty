@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2025-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -13,13 +13,12 @@
 #include "hal/pmu_hal.h"
 #include "pmu_param.h"
 #include "esp_private/esp_pmu.h"
-#include "soc/regi2c_pmu.h"
 #include "regi2c_ctrl.h"
-#include "esp_private/ocode_init.h"
-#include "esp_rom_sys.h"
-#include "esp_hw_log.h"
+#include "soc/rtc.h"
+#include "soc/regi2c_lp_bias.h"
+#include "soc/lp_aon_reg.h"
 
-ESP_HW_LOG_ATTR_TAG(TAG, "pmu_init");
+static __attribute__((unused)) const char *TAG = "pmu_init";
 
 typedef struct {
     const pmu_hp_system_power_param_t     *power;
@@ -193,7 +192,7 @@ static inline void pmu_hp_system_param_default(pmu_hp_mode_t mode, pmu_hp_system
     param->retent = pmu_hp_system_retention_param_default(mode);
 
     if (mode == PMU_MODE_HP_ACTIVE || mode == PMU_MODE_HP_MODEM) {
-        param->analog->regulator0.dbias = get_act_hp_dbias();
+        param->analog->regulator1.drv_b = get_act_hp_drvb();
     }
 }
 
@@ -216,10 +215,6 @@ static inline void pmu_lp_system_param_default(pmu_lp_mode_t mode, pmu_lp_system
 
     param->power = pmu_lp_system_power_param_default(mode);
     *param->analog = *pmu_lp_system_analog_param_default(mode); //copy default value
-
-    if (mode == PMU_MODE_LP_ACTIVE) {
-        param->analog->regulator0.dbias = get_act_lp_dbias();
-    }
 }
 
 static void pmu_lp_system_init_default(pmu_context_t *ctx)
@@ -234,27 +229,75 @@ static void pmu_lp_system_init_default(pmu_context_t *ctx)
     }
 }
 
-void pmu_init()
+uint32_t get_ulp_ocode()
 {
+    uint32_t ulp_ocode = 0;
+    bool ulp_force_flag = REGI2C_READ_MASK(I2C_ULP, I2C_ULP_IR_FORCE_CODE);
+    if (ulp_force_flag)
+        ulp_ocode = REGI2C_READ_MASK(I2C_ULP, I2C_ULP_EXT_CODE);
+    else
+        ulp_ocode = REGI2C_READ_MASK(I2C_ULP, I2C_ULP_OCODE);
+    return ulp_ocode;
+}
+
+void pmu_init(void)
+{
+    WRITE_PERI_REG(PMU_POWER_PD_TOP_CNTL_REG, 0);
+    WRITE_PERI_REG(PMU_POWER_PD_HPAON_CNTL_REG, 0);
+    WRITE_PERI_REG(PMU_POWER_PD_HPCPU_CNTL_REG, 0);
+    WRITE_PERI_REG(PMU_POWER_PD_HPPERI_RESERVE_REG, 0);
+    WRITE_PERI_REG(PMU_POWER_PD_HPWIFI_CNTL_REG, 0);
+    WRITE_PERI_REG(PMU_POWER_PD_LPPERI_CNTL_REG, 0);
+    WRITE_PERI_REG(PMU_POWER_PD_MEM_CNTL_REG, 0);
+
+    /* Peripheral reg i2c power up */
+    SET_PERI_REG_MASK(PMU_RF_PWC_REG, PMU_XPD_PERIF_I2C);
+    SET_PERI_REG_MASK(PMU_RF_PWC_REG, PMU_XPD_RFTX_I2C);
+    SET_PERI_REG_MASK(PMU_RF_PWC_REG, PMU_XPD_RFRX_I2C);
+
     pmu_hp_system_init_default(PMU_instance());
     pmu_lp_system_init_default(PMU_instance());
 
     pmu_power_domain_force_default(PMU_instance());
-    /* No peripheral reg i2c power up required on the target */
-#if !CONFIG_IDF_ENV_FPGA
-    REGI2C_WRITE_MASK(I2C_PMU, I2C_PMU_EN_I2C_RTC_DREG, 0);
-    REGI2C_WRITE_MASK(I2C_PMU, I2C_PMU_EN_I2C_DIG_DREG, 0);
-    REGI2C_WRITE_MASK(I2C_PMU, I2C_PMU_EN_I2C_RTC_DREG_SLP, 0);
-    REGI2C_WRITE_MASK(I2C_PMU, I2C_PMU_EN_I2C_DIG_DREG_SLP, 0);
-    REGI2C_WRITE_MASK(I2C_PMU, I2C_PMU_OR_XPD_RTC_REG, 0);
-    REGI2C_WRITE_MASK(I2C_PMU, I2C_PMU_OR_XPD_DIG_REG, 0);
-    REGI2C_WRITE_MASK(I2C_PMU, I2C_PMU_OR_XPD_TRX, 0);
-#endif
 
-#if !CONFIG_IDF_ENV_FPGA
-    // TODO: IDF-11548
+// #if !CONFIG_IDF_ENV_FPGA
+    // TODO: IDF-12313
     // if (esp_rom_get_reset_reason(0) == RESET_REASON_CHIP_POWER_ON) {
     //     esp_ocode_calib_init();
     // }
-#endif
+// #endif
+    uint32_t ulp_ocode = get_ulp_ocode();
+    REG_SET_FIELD(PMU_BLE_BANDGAP_CTRL_REG, PMU_EXT_OCODE, ulp_ocode);
+    SET_PERI_REG_MASK(PMU_BLE_BANDGAP_CTRL_REG, PMU_EXT_FORCE_OCODE);
+
+    //For dcdc ldo mode when VDD is low than about a certion value, eg 2.6v
+    CLEAR_PERI_REG_MASK(LP_AON_DATE_REG, LP_AON_DREG_LDO_HW);
+    REG_SET_FIELD(LP_AON_DATE_REG, LP_AON_DREG_LDO_SW, 15);
+
+
+    // For sleep
+    bool hp_ana_wait_sel_sosc = 1;
+    uint32_t lp_wait_us = 154;
+    uint32_t hp_wait_us = 150;
+    uint32_t xtl_stable_wait = 200;
+
+    uint32_t slowclk_period = rtc_clk_cal(0, 128) * 4;
+    uint32_t fosc_period = rtc_clk_cal(3, 5000);
+
+    uint32_t lp_wait_cycle = rtc_time_us_to_slowclk(lp_wait_us, slowclk_period);
+    uint32_t xtl_wait_cycle = rtc_time_us_to_slowclk(xtl_stable_wait, fosc_period);
+    uint32_t hp_wait_cycle;
+
+    if (hp_ana_wait_sel_sosc)
+    {
+        REG_SET_BIT(PMU_SLP_WAKEUP_CNTL7_REG, PMU_ANA_WAIT_CLK_SEL);   // hp_ana_wait_clk sel sosc
+        hp_wait_cycle = rtc_time_us_to_slowclk(hp_wait_us, slowclk_period);
+    } else {
+        REG_CLR_BIT(PMU_SLP_WAKEUP_CNTL7_REG, PMU_ANA_WAIT_CLK_SEL);   // hp_ana_wait_clk sel fosc
+        hp_wait_cycle = rtc_time_us_to_slowclk(lp_wait_us, fosc_period);
+    }
+
+    REG_SET_FIELD(PMU_SLP_WAKEUP_CNTL5_REG, PMU_LP_ANA_WAIT_TARGET, lp_wait_cycle);
+    REG_SET_FIELD(PMU_SLP_WAKEUP_CNTL7_REG, PMU_ANA_WAIT_TARGET, hp_wait_cycle);
+    REG_SET_FIELD(PMU_POWER_CK_WAIT_CNTL_REG, PMU_WAIT_XTL_STABLE, xtl_wait_cycle);
 }
