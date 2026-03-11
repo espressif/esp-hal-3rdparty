@@ -32,7 +32,7 @@ static const char *TAG = "rtc_clk";
 static int s_cur_cpll_freq = 0;
 
 // MPLL frequency option, 400MHz. Zero if MPLL is not enabled.
-static TCM_DRAM_ATTR uint32_t s_cur_mpll_freq = 0;
+static SPM_DRAM_ATTR uint32_t s_cur_mpll_freq = 0;
 
 void rtc_clk_32k_enable(bool enable)
 {
