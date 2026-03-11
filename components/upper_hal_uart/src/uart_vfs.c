@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2015-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -14,6 +14,7 @@
 #include "sdkconfig.h"
 #include "esp_attr.h"
 #include "driver/uart_vfs.h"
+#include "driver/esp_private/uart_vfs.h"
 #include "driver/uart.h"
 #include "driver/uart_select.h"
 #include "esp_rom_serial_output.h"
@@ -1163,12 +1164,73 @@ void uart_vfs_dev_use_driver(int uart_num)
 }
 
 #if CONFIG_ESP_CONSOLE_UART
+esp_err_t uart_vfs_dev_port_init(const esp_console_dev_uart_config_t *config,
+                                 esp_line_endings_t rx_mode,
+                                 esp_line_endings_t tx_mode)
+{
+    if (config == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    if (uart_vfs_dev_port_set_rx_line_endings(config->channel, rx_mode) == -1) {
+        return ESP_FAIL;
+    }
+
+    if (uart_vfs_dev_port_set_tx_line_endings(config->channel, tx_mode) == -1) {
+        return ESP_FAIL;
+    }
+
+    /* Configure UART. Note that REF_TICK/XTAL is used so that the baud rate remains
+     * correct while APB frequency is changing in light sleep mode.
+     */
+#if SOC_UART_SUPPORT_REF_TICK
+    uart_sclk_t clk_source = UART_SCLK_REF_TICK;
+    // REF_TICK clock can't provide a high baudrate
+    if (config->baud_rate > 1 * 1000 * 1000) {
+        clk_source = UART_SCLK_DEFAULT;
+        ESP_LOGW("uart_vfs", "light sleep UART wakeup might not work at the configured baud rate");
+    }
+#elif SOC_UART_SUPPORT_XTAL_CLK
+    uart_sclk_t clk_source = UART_SCLK_XTAL;
+#else
+#error "No UART clock source is aware of DFS"
+#endif // SOC_UART_SUPPORT_xxx
+    const uart_config_t uart_driver_config = {
+        .baud_rate = config->baud_rate,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .source_clk = clk_source,
+    };
+
+    uart_param_config(config->channel, &uart_driver_config);
+    uart_set_pin(config->channel, config->tx_gpio_num, config->rx_gpio_num, -1, -1);
+
+    /* Install UART driver for interrupt-driven reads and writes */
+    const esp_err_t ret = uart_driver_install(config->channel, 256, 0, 0, NULL, 0);
+    if (ret != ESP_OK) {
+        uart_driver_delete(config->channel);
+        return ret;
+    }
+
+    /* Tell VFS to use UART driver */
+    uart_vfs_dev_use_driver(config->channel);
+
+    return ESP_OK;
+}
+
+void uart_vfs_dev_port_deinit(const esp_console_dev_uart_config_t *config)
+{
+    uart_vfs_dev_use_nonblocking(config->channel);
+    uart_driver_delete(config->channel);
+}
+
 ESP_SYSTEM_INIT_FN(init_vfs_uart, CORE, BIT(0), 110)
 {
     uart_vfs_dev_register();
     return ESP_OK;
 }
-#endif
+#endif // CONFIG_ESP_CONSOLE_UART
 
 void uart_vfs_include_dev_init(void)
 {
