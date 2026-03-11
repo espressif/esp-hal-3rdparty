@@ -24,14 +24,16 @@ else()
                         "patches/esp_rom_efuse.c"
                         "patches/esp_rom_gpio.c")
 
-    if(CONFIG_HEAP_TLSF_USE_ROM_IMPL AND CONFIG_ESP_ROM_TLSF_CHECK_PATCH)
-        # This file shall be included in the build if TLSF in ROM is activated
-        list(APPEND sources "patches/esp_rom_tlsf.c")
-    endif()
+    if(NOT BOOTLOADER_BUILD)
+        if(CONFIG_HEAP_TLSF_USE_ROM_IMPL AND CONFIG_ESP_ROM_TLSF_CHECK_PATCH)
+            # This file shall be included in the build if TLSF in ROM is activated
+            list(APPEND sources "patches/esp_rom_tlsf.c")
+        endif()
 
-    if(CONFIG_HEAP_TLSF_USE_ROM_IMPL AND CONFIG_ESP_ROM_MULTI_HEAP_WALK_PATCH)
-        # This file shall be included in the build if TLSF in ROM is activated
-        list(APPEND sources "patches/esp_rom_multi_heap.c")
+        if(CONFIG_HEAP_TLSF_USE_ROM_IMPL AND CONFIG_ESP_ROM_MULTI_HEAP_WALK_PATCH)
+            # This file shall be included in the build if TLSF in ROM is activated
+            list(APPEND sources "patches/esp_rom_multi_heap.c")
+        endif()
     endif()
 
     list(APPEND private_required_comp soc hal esp_hal_uart)
