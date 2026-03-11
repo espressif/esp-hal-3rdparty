@@ -5,7 +5,6 @@
  */
 #pragma once
 
-#include <stdint.h>
 #include "soc/soc.h"
 
 #define REG_MCPWM_BASE(i)       (DR_REG_MCPWM0_BASE + (i) * 0x1000)
