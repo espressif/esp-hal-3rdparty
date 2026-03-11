@@ -131,16 +131,18 @@ soc_rtc_fast_clk_src_t rtc_clk_fast_src_get(void)
     return clk_ll_rtc_fast_get_src();
 }
 
-static __attribute__((unused)) void rtc_clk_bbpll_disable(void)
+#if BOOTLOADER_BUILD
+static void rtc_clk_bbpll_disable(void)
 {
     clk_ll_bbpll_disable();
     s_cur_pll_freq = 0;
 }
 
-static __attribute__((unused)) void rtc_clk_bbpll_enable(void)
+static void rtc_clk_bbpll_enable(void)
 {
     clk_ll_bbpll_enable();
 }
+#endif
 
 static void rtc_clk_bbpll_configure(soc_xtal_freq_t xtal_freq, int pll_freq)
 {
