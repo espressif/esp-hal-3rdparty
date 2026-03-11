@@ -20,7 +20,7 @@
 #include "soc/pmu_reg.h"
 #include "pmu_param.h"
 
-// ESP_HW_LOG_ATTR_TAG(TAG, "rtc_clk_init");
+ESP_HW_LOG_ATTR_TAG(TAG, "rtc_clk_init");
 
 void rtc_clk_init(rtc_clk_config_t cfg)
 {
@@ -35,7 +35,7 @@ void rtc_clk_init(rtc_clk_config_t cfg)
      *   CLK_8M_DFREQ constant gives the best temperature characteristics.
      */
     REG_SET_FIELD(LP_CLKRST_FOSC_CNTL_REG, LP_CLKRST_FOSC_DFREQ, cfg.clk_8m_dfreq);
-    REG_SET_FIELD(LP_CLKRST_RC32K_CNTL_REG, LP_CLKRST_RC32K_DFREQ, cfg.slow_clk_dcap); // h4 specific workaround (RC32K_DFREQ is used for RC_SLOW clock tuning) TODO: IDF-12313
+    REG_SET_FIELD(LP_CLKRST_RC32K_CNTL_REG, LP_CLKRST_RC32K_DFREQ, cfg.slow_clk_dcap); // h21 specific workaround (RC32K_DFREQ is used for RC_SLOW clock tuning) TODO: IDF-12313
 
 
     // switch to ccm mode
@@ -90,8 +90,3 @@ void rtc_clk_init(rtc_clk_config_t cfg)
     rtc_clk_fast_src_set(cfg.fast_clk_src);
     rtc_clk_slow_src_set(cfg.slow_clk_src);
 }
-
-__attribute__((weak)) uint8_t i2c_readReg(uint8_t block, uint8_t host_id, uint8_t reg_add)  {return 0;}
-__attribute__((weak)) uint8_t i2c_readReg_Mask(uint8_t block, uint8_t host_id, uint8_t reg_add, uint8_t msb, uint8_t lsb) {return 0;}
-__attribute__((weak)) void i2c_writeReg(uint8_t block, uint8_t host_id, uint8_t reg_add, uint8_t data) {};
-__attribute__((weak)) void i2c_writeReg_Mask(uint8_t block, uint8_t host_id, uint8_t reg_add, uint8_t msb, uint8_t lsb, uint8_t data) {};

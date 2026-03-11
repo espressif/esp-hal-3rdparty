@@ -50,7 +50,7 @@ ESP_HW_LOG_ATTR_TAG(TAG, "pmu_param");
         .xpd_bbpll      = 1  \
     }, \
     .xtal = {                \
-        .xpd_xtalx2     = 0, \
+        .xpd_xtalx2     = 1, \
         .xpd_xtal       = 1  \
     } \
 }
@@ -65,7 +65,7 @@ ESP_HW_LOG_ATTR_TAG(TAG, "pmu_param");
 */
 #define PMU_HP_SLEEP_POWER_CONFIG_DEFAULT() { \
     .dig_power = {           \
-        .vdd_flash_mode = 0, \
+        .vdd_flash_mode = 3, \
         .mem_dslp       = 0, \
         .mem_pd_en      = 0, \
         .wifi_pd_en     = 0, \

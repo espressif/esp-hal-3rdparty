@@ -312,7 +312,7 @@ typedef struct {
     },                                                                      \
     .lp_sys[PMU_MODE_LP_ACTIVE] = {                                         \
         .dig_power = {                                                      \
-            .vdd_io_mode    = 4,                                            \
+            .vdd_io_mode    = 0,                                            \
             .bod_source_sel = 0,                                            \
             .vddbat_mode    = 0,                                            \
             .peri_pd_en     = 0,                                            \
@@ -327,7 +327,7 @@ typedef struct {
     },                                                                      \
     .lp_sys[PMU_MODE_LP_SLEEP] = {                                          \
         .dig_power = {                                                      \
-            .vdd_io_mode    = 4,                                            \
+            .vdd_io_mode    = 3,                                            \
             .bod_source_sel = 0,                                            \
             .vddbat_mode    = 1,                                            \
             .peri_pd_en     = ((sleep_flags) & PMU_SLEEP_PD_LP_PERIPH) ? 1 : 0,\
@@ -548,8 +548,8 @@ typedef struct pmu_sleep_machine_constant {
 #define PMU_SLEEP_MC_DEFAULT()      {           \
     .lp = {                                     \
         .min_slp_time_us                = 450,  \
-        .analog_wait_time_us            = 100,  \
-        .xtal_wait_stable_time_us       = 250,  \
+        .analog_wait_time_us            = 154,  \
+        .xtal_wait_stable_time_us       = 200,  \
         .clk_switch_cycle               = 1,    \
         .clk_power_on_wait_cycle        = 1,    \
         .isolate_wait_time_us           = 1,    \
@@ -559,14 +559,14 @@ typedef struct pmu_sleep_machine_constant {
     },                                          \
     .hp = {                                     \
         .min_slp_time_us                = 450,  \
-        .analog_wait_time_us            = 1600,  \
+        .analog_wait_time_us            = 150,  \
         .isolate_wait_time_us           = 1,    \
         .reset_wait_time_us             = 1,    \
         .power_supply_wait_time_us      = 2,    \
         .power_up_wait_time_us          = 2,    \
         .regdma_s2a_work_time_us        = PMU_REGDMA_S2A_WORK_TIME_US, \
         .regdma_a2s_work_time_us        = PMU_REGDMA_A2S_WORK_TIME_US, \
-        .xtal_wait_stable_time_us       = 250,  \
+        .xtal_wait_stable_time_us       = 200,  \
         .pll_wait_stable_time_us        = 1     \
     }                                           \
 }

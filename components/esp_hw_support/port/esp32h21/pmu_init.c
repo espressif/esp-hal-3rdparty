@@ -14,11 +14,12 @@
 #include "pmu_param.h"
 #include "esp_private/esp_pmu.h"
 #include "regi2c_ctrl.h"
-#include "soc/rtc.h"
+// #include "esp_private/ocode_init.h"
+#include "esp_hw_log.h"
 #include "soc/regi2c_lp_bias.h"
-#include "soc/lp_aon_reg.h"
+#include "hal/lp_aon_ll.h"
 
-static __attribute__((unused)) const char *TAG = "pmu_init";
+ESP_HW_LOG_ATTR_TAG(TAG, "pmu_init");
 
 typedef struct {
     const pmu_hp_system_power_param_t     *power;
@@ -56,6 +57,7 @@ void pmu_hp_system_init(pmu_context_t *ctx, pmu_hp_mode_t mode, const pmu_hp_sys
     pmu_ll_hp_set_dig_power(ctx->hal->dev, mode, power->dig_power.val);
     pmu_ll_hp_set_clk_power(ctx->hal->dev, mode, power->clk_power.val);
     pmu_ll_hp_set_xtal_xpd (ctx->hal->dev, mode, power->xtal.xpd_xtal);
+    pmu_ll_hp_set_xtalx2_xpd (ctx->hal->dev, mode, power->xtal.xpd_xtalx2);
 
     /* Default configuration of hp-system clock in active, modem and sleep modes */
     pmu_ll_hp_set_icg_func          (ctx->hal->dev, mode, clock->icg_func);
@@ -115,7 +117,23 @@ void pmu_hp_system_init(pmu_context_t *ctx, pmu_hp_mode_t mode, const pmu_hp_sys
     pmu_ll_hp_set_sleep_protect_mode(ctx->hal->dev, PMU_SLEEP_PROTECT_HP_LP_SLEEP);
 
     /* set dcdc ccm mode software enable */
-    pmu_ll_set_dcdc_ccm_sw_en(&PMU, true);
+    pmu_ll_set_dcdc_ccm_sw_en(ctx->hal->dev, true);
+
+    //For dcdc ldo mode when VDD is low than about a certion value, eg 2.6v
+    lp_aon_ll_set_ldo_sw(15);
+
+    /* set ble bandgap ocode */
+    uint32_t ulp_ocode = 0;
+#if !CONFIG_IDF_ENV_FPGA
+    bool ulp_force_flag = REGI2C_READ_MASK(I2C_ULP, I2C_ULP_IR_FORCE_CODE);
+    if (ulp_force_flag) {
+        ulp_ocode = REGI2C_READ_MASK(I2C_ULP, I2C_ULP_EXT_CODE);
+    } else {
+        ulp_ocode = REGI2C_READ_MASK(I2C_ULP, I2C_ULP_OCODE);
+    }
+#endif
+    pmu_ll_set_ble_bandgap_ext_ocode(ctx->hal->dev, ulp_ocode);
+    pmu_ll_set_ble_bandgap_ext_force_ocode(ctx->hal->dev, true);
 }
 
 void pmu_lp_system_init(pmu_context_t *ctx, pmu_lp_mode_t mode, const pmu_lp_system_param_t *param)
@@ -128,11 +146,13 @@ void pmu_lp_system_init(pmu_context_t *ctx, pmu_lp_mode_t mode, const pmu_lp_sys
     pmu_ll_lp_set_dig_power(ctx->hal->dev, mode, power->dig_power.val);
     pmu_ll_lp_set_clk_power(ctx->hal->dev, mode, power->clk_power.val);
     pmu_ll_lp_set_xtal_xpd (ctx->hal->dev, PMU_MODE_LP_SLEEP, power->xtal.xpd_xtal);
+    pmu_ll_lp_set_xtalx2_xpd (ctx->hal->dev, PMU_MODE_LP_SLEEP, power->xtal.xpd_xtalx2);
 
     /* Default configuration of lp-system analog sub-system in active and
      * sleep modes */
     if (mode == PMU_MODE_LP_SLEEP) {
         pmu_ll_lp_set_dcdc_ccm_enable   (ctx->hal->dev, mode, anlg->bias.dcdc_ccm_enb);
+        pmu_ll_lp_set_dcdc_clear_ready  (ctx->hal->dev, mode, anlg->bias.dcdc_clear_rdy);
         pmu_ll_lp_set_dig_reg_dpcur_bias(ctx->hal->dev, mode, anlg->bias.dig_reg_dpcur_bias);
         pmu_ll_lp_set_dig_reg_dsfmos    (ctx->hal->dev, mode, anlg->bias.dig_reg_dsfmos);
         pmu_ll_lp_set_dcm_vset          (ctx->hal->dev, mode, anlg->bias.dcm_vset);
@@ -156,7 +176,7 @@ static inline void pmu_power_domain_force_default(pmu_context_t *ctx)
     const pmu_hp_power_domain_t pmu_hp_domains[] = {
         PMU_HP_PD_TOP,
         PMU_HP_PD_CPU,
-        PMU_HP_PD_WIFI
+        PMU_HP_PD_BT_154
     };
 
     for (uint8_t idx = 0; idx < (sizeof(pmu_hp_domains) / sizeof(pmu_hp_power_domain_t)); idx++) {
@@ -191,7 +211,7 @@ static inline void pmu_hp_system_param_default(pmu_hp_mode_t mode, pmu_hp_system
     *param->analog = *pmu_hp_system_analog_param_default(mode); //copy default value
     param->retent = pmu_hp_system_retention_param_default(mode);
 
-    if (mode == PMU_MODE_HP_ACTIVE || mode == PMU_MODE_HP_MODEM) {
+    if (mode == PMU_MODE_HP_ACTIVE) {
         param->analog->regulator1.drv_b = get_act_hp_drvb();
     }
 }
@@ -229,31 +249,12 @@ static void pmu_lp_system_init_default(pmu_context_t *ctx)
     }
 }
 
-uint32_t get_ulp_ocode()
-{
-    uint32_t ulp_ocode = 0;
-    bool ulp_force_flag = REGI2C_READ_MASK(I2C_ULP, I2C_ULP_IR_FORCE_CODE);
-    if (ulp_force_flag)
-        ulp_ocode = REGI2C_READ_MASK(I2C_ULP, I2C_ULP_EXT_CODE);
-    else
-        ulp_ocode = REGI2C_READ_MASK(I2C_ULP, I2C_ULP_OCODE);
-    return ulp_ocode;
-}
-
 void pmu_init(void)
 {
-    WRITE_PERI_REG(PMU_POWER_PD_TOP_CNTL_REG, 0);
-    WRITE_PERI_REG(PMU_POWER_PD_HPAON_CNTL_REG, 0);
-    WRITE_PERI_REG(PMU_POWER_PD_HPCPU_CNTL_REG, 0);
-    WRITE_PERI_REG(PMU_POWER_PD_HPPERI_RESERVE_REG, 0);
-    WRITE_PERI_REG(PMU_POWER_PD_HPWIFI_CNTL_REG, 0);
-    WRITE_PERI_REG(PMU_POWER_PD_LPPERI_CNTL_REG, 0);
-    WRITE_PERI_REG(PMU_POWER_PD_MEM_CNTL_REG, 0);
-
     /* Peripheral reg i2c power up */
-    SET_PERI_REG_MASK(PMU_RF_PWC_REG, PMU_XPD_PERIF_I2C);
-    SET_PERI_REG_MASK(PMU_RF_PWC_REG, PMU_XPD_RFTX_I2C);
-    SET_PERI_REG_MASK(PMU_RF_PWC_REG, PMU_XPD_RFRX_I2C);
+    regi2c_ctrl_ll_i2c_sar_periph_enable();
+    regi2c_ctrl_ll_i2c_rftx_periph_enable();
+    regi2c_ctrl_ll_i2c_rfrx_periph_enable();
 
     pmu_hp_system_init_default(PMU_instance());
     pmu_lp_system_init_default(PMU_instance());
@@ -266,38 +267,4 @@ void pmu_init(void)
     //     esp_ocode_calib_init();
     // }
 // #endif
-    uint32_t ulp_ocode = get_ulp_ocode();
-    REG_SET_FIELD(PMU_BLE_BANDGAP_CTRL_REG, PMU_EXT_OCODE, ulp_ocode);
-    SET_PERI_REG_MASK(PMU_BLE_BANDGAP_CTRL_REG, PMU_EXT_FORCE_OCODE);
-
-    //For dcdc ldo mode when VDD is low than about a certion value, eg 2.6v
-    CLEAR_PERI_REG_MASK(LP_AON_DATE_REG, LP_AON_DREG_LDO_HW);
-    REG_SET_FIELD(LP_AON_DATE_REG, LP_AON_DREG_LDO_SW, 15);
-
-
-    // For sleep
-    bool hp_ana_wait_sel_sosc = 1;
-    uint32_t lp_wait_us = 154;
-    uint32_t hp_wait_us = 150;
-    uint32_t xtl_stable_wait = 200;
-
-    uint32_t slowclk_period = rtc_clk_cal(0, 128) * 4;
-    uint32_t fosc_period = rtc_clk_cal(3, 5000);
-
-    uint32_t lp_wait_cycle = rtc_time_us_to_slowclk(lp_wait_us, slowclk_period);
-    uint32_t xtl_wait_cycle = rtc_time_us_to_slowclk(xtl_stable_wait, fosc_period);
-    uint32_t hp_wait_cycle;
-
-    if (hp_ana_wait_sel_sosc)
-    {
-        REG_SET_BIT(PMU_SLP_WAKEUP_CNTL7_REG, PMU_ANA_WAIT_CLK_SEL);   // hp_ana_wait_clk sel sosc
-        hp_wait_cycle = rtc_time_us_to_slowclk(hp_wait_us, slowclk_period);
-    } else {
-        REG_CLR_BIT(PMU_SLP_WAKEUP_CNTL7_REG, PMU_ANA_WAIT_CLK_SEL);   // hp_ana_wait_clk sel fosc
-        hp_wait_cycle = rtc_time_us_to_slowclk(lp_wait_us, fosc_period);
-    }
-
-    REG_SET_FIELD(PMU_SLP_WAKEUP_CNTL5_REG, PMU_LP_ANA_WAIT_TARGET, lp_wait_cycle);
-    REG_SET_FIELD(PMU_SLP_WAKEUP_CNTL7_REG, PMU_ANA_WAIT_TARGET, hp_wait_cycle);
-    REG_SET_FIELD(PMU_POWER_CK_WAIT_CNTL_REG, PMU_WAIT_XTL_STABLE, xtl_wait_cycle);
 }
