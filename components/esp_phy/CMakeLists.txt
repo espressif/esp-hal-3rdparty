@@ -22,6 +22,9 @@ if(CONFIG_ESP_PHY_ENABLED)
     else()
         set(link_binary_libs 1)
         set(ldfragments "linker.lf")
+        if(CONFIG_ESP_PHY_INIT_IRAM)
+            list(APPEND ldfragments "linker_esp32hxx.lf")
+        endif()
     endif()
 
     if(CONFIG_SOC_IEEE802154_BLE_ONLY)
@@ -140,8 +143,9 @@ if(CONFIG_ESP_PHY_ENABLED)
             list(APPEND libs_to_link esp_phy_libphy)
         endif()
 
-        # Finally, link the libraries to the component
-        target_link_libraries(${COMPONENT_LIB} INTERFACE ${libs_to_link})
+        # Finally, link the libraries to the component.
+        # PUBLIC is required for linker.lf fragment mappings (e.g. IRAM placement) to work.
+        target_link_libraries(${COMPONENT_LIB} PUBLIC ${libs_to_link})
     endif()
 
    if(CONFIG_ESP_PHY_INIT_DATA_IN_PARTITION)
