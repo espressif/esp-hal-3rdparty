@@ -11,6 +11,9 @@
 #include "esp_rom_caps.h"
 #include "lp_core_test_app.h"
 #include "lp_core_test_app_counter.h"
+#if CONFIG_ESP_ROM_SUPPORT_DEEP_SLEEP_WAKEUP_STUB
+#include "lp_core_test_app_wake_stub.h"
+#endif
 #include "lp_core_test_app_isr.h"
 #include "ulp_lp_core_cpu_freq_shared.h"
 
@@ -24,7 +27,13 @@
 #include "test_shared.h"
 #include "unity.h"
 #include "esp_sleep.h"
+#if CONFIG_ESP_ROM_SUPPORT_DEEP_SLEEP_WAKEUP_STUB
+#include "esp_wake_stub.h"
+#endif
 #include "esp_timer.h"
+#include "esp_private/esp_clk.h"
+#include "hal/rtc_timer_ll.h"
+#include "soc/rtc.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -37,6 +46,11 @@ extern const uint8_t lp_core_main_bin_end[]   asm("_binary_lp_core_test_app_bin_
 
 extern const uint8_t lp_core_main_counter_bin_start[] asm("_binary_lp_core_test_app_counter_bin_start");
 extern const uint8_t lp_core_main_counter_bin_end[]   asm("_binary_lp_core_test_app_counter_bin_end");
+
+#if CONFIG_ESP_ROM_SUPPORT_DEEP_SLEEP_WAKEUP_STUB
+extern const uint8_t lp_core_main_wake_stub_bin_start[] asm("_binary_lp_core_test_app_wake_stub_bin_start");
+extern const uint8_t lp_core_main_wake_stub_bin_end[]   asm("_binary_lp_core_test_app_wake_stub_bin_end");
+#endif
 
 extern const uint8_t lp_core_main_set_timer_wakeup_bin_start[] asm("_binary_lp_core_test_app_set_timer_wakeup_bin_start");
 extern const uint8_t lp_core_main_set_timer_wakeup_bin_end[]   asm("_binary_lp_core_test_app_set_timer_wakeup_bin_end");
@@ -352,6 +366,86 @@ static void check_reset_reason_and_sleep_duration(void)
 TEST_CASE_MULTIPLE_STAGES("LP Timer can wakeup lp core periodically during deep sleep", "[ulp]",
                           do_ulp_wakeup_with_lp_timer_deepsleep,
                           check_reset_reason_and_sleep_duration);
+
+#if CONFIG_ESP_ROM_SUPPORT_DEEP_SLEEP_WAKEUP_STUB
+/* Number of LP core wakeup cycles the stub handles before falling through to full boot */
+#define WAKE_STUB_LP_WAKEUP_COUNT       10
+/* LP timer period for wake stub test */
+#define WAKE_STUB_LP_TIMER_PERIOD_US    2000000  /* 200 ms */
+/* Safety backup timer in case LP core never wakes up HP */
+#define WAKE_STUB_BACKUP_TIMER_US       5000000 /* 5 s */
+
+static RTC_DATA_ATTR uint32_t s_wake_stub_run_count;
+static RTC_DATA_ATTR uint64_t s_stub_first_rtc_tick;
+static RTC_DATA_ATTR uint64_t s_stub_last_rtc_tick;
+
+static void RTC_IRAM_ATTR wake_stub_lp_core_test(void)
+{
+    s_wake_stub_run_count++;
+    if (s_wake_stub_run_count == 1) {
+        s_stub_first_rtc_tick = rtc_timer_ll_get_cycle_count(0);
+    }
+    if (s_wake_stub_run_count < WAKE_STUB_LP_WAKEUP_COUNT) {
+        esp_wake_stub_uart_tx_wait_idle(0);
+        esp_wake_stub_sleep(&wake_stub_lp_core_test);
+    }
+    /* On the Nth run record the final tick and fall through to full boot */
+    s_stub_last_rtc_tick = rtc_timer_ll_get_cycle_count(0);
+}
+
+static void do_lp_core_wake_stub_deepsleep(void)
+{
+    s_wake_stub_run_count = 0;
+    s_stub_first_rtc_tick = 0;
+    s_stub_last_rtc_tick = 0;
+
+    ulp_lp_core_cfg_t cfg = {
+        .wakeup_source = ULP_LP_CORE_WAKEUP_SOURCE_LP_TIMER,
+        .lp_timer_sleep_duration_us = WAKE_STUB_LP_TIMER_PERIOD_US,
+    };
+    load_and_start_lp_core_firmware(&cfg, lp_core_main_wake_stub_bin_start, lp_core_main_wake_stub_bin_end);
+
+    TEST_ASSERT(esp_sleep_enable_ulp_wakeup() == ESP_OK);
+    /* Backup timer so test doesn't hang if LP core never wakes HP */
+    //TEST_ASSERT(esp_sleep_enable_timer_wakeup(WAKE_STUB_BACKUP_TIMER_US) == ESP_OK);
+
+    esp_set_deep_sleep_wake_stub(&wake_stub_lp_core_test);
+
+    esp_deep_sleep_start();
+    UNITY_TEST_FAIL(__LINE__, "Should not get here!");
+}
+
+static void check_lp_core_wake_stub_ran_correctly(void)
+{
+    /* Must have woken via ULP (stub fell through on Nth run), not the backup timer */
+    TEST_ASSERT_EQUAL(BIT(ESP_SLEEP_WAKEUP_ULP), esp_sleep_get_wakeup_causes() & BIT(ESP_SLEEP_WAKEUP_ULP));
+
+    /* Stub should have run exactly WAKE_STUB_LP_WAKEUP_COUNT times */
+    TEST_ASSERT_EQUAL(WAKE_STUB_LP_WAKEUP_COUNT, s_wake_stub_run_count);
+
+    /* Compute the time between first and last stub run using RTC timer ticks
+     * recorded inside the stub itself, excluding any boot or menu latency.
+     * Between run 1 and run N there are (N-1) LP timer periods.
+     * With the PMU re-wakeup bug the PMU re-triggers immediately after
+     * esp_wake_stub_sleep(), so all 10 runs complete in ~162ms.
+     * With the fix each cycle respects the 200ms LP timer, so the inter-run
+     * span is at least (N-1)*period/2 = 900ms. */
+    uint64_t rtc_ticks = s_stub_last_rtc_tick - s_stub_first_rtc_tick;
+    uint32_t cal = esp_clk_slowclk_cal_get();
+    uint64_t elapsed_ms = (((uint64_t)rtc_ticks * cal) >> RTC_CLK_CAL_FRACT) / 1000;
+    uint64_t min_expected_ms = (uint64_t)(WAKE_STUB_LP_WAKEUP_COUNT - 1) * WAKE_STUB_LP_TIMER_PERIOD_US / 2000;
+
+    printf("Wake stub ran %" PRIu32 " times, inter-run span: %" PRIu64 "ms (min expected: %" PRIu64 "ms)\n",
+           s_wake_stub_run_count, elapsed_ms, min_expected_ms);
+    TEST_ASSERT_MESSAGE(elapsed_ms >= min_expected_ms,
+                        "Wake stub ran too quickly - possible PMU re-wakeup bug");
+}
+
+TEST_CASE_MULTIPLE_STAGES("LP core wake stub can sleep again without immediate re-wakeup", "[ulp]",
+                          do_lp_core_wake_stub_deepsleep,
+                          check_lp_core_wake_stub_ran_correctly);
+
+#endif //#if CONFIG_ESP_ROM_SUPPORT_DEEP_SLEEP_WAKEUP_STUB
 
 #endif //#if SOC_DEEP_SLEEP_SUPPORTED
 
