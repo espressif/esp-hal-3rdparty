@@ -42,6 +42,15 @@ extern "C" {
 #define CACHE_LL_L1_CORE0_EVENT_MASK                (1<<0)
 #define CACHE_LL_L1_CORE1_EVENT_MASK                (1<<1)
 
+/**
+ * @brief Preload strategy
+ */
+typedef enum {
+    CACHE_LL_PRELOAD_UNTIL_FETCH_DONE = 0,
+    CACHE_LL_PRELOAD_AFTER_FETCH = 1,
+    CACHE_LL_PRELOAD_ARBITRARY = 2,
+} cache_ll_preload_strategy_t;
+
 /*------------------------------------------------------------------------------
  * Autoload
  *----------------------------------------------------------------------------*/
@@ -840,6 +849,34 @@ __attribute__((always_inline))
 static inline uint32_t cache_ll_l2_cache_get_line_size(uint32_t cache_id)
 {
     return 0;
+}
+
+/**
+ * @brief Set the preload strategy (no-op)
+ */
+__attribute__((always_inline))
+static inline void cache_ll_preload_set_strategy(uint32_t cache_level, cache_type_t type, uint32_t cache_id, cache_ll_preload_strategy_t strategy)
+{
+    (void)cache_level;
+    (void)type;
+    (void)cache_id;
+    (void)strategy;
+}
+
+/**
+ * @brief Preload cache
+ */
+__attribute__((always_inline))
+static inline void cache_ll_preload(uint32_t cache_level, cache_type_t type, uint32_t cache_id, uint32_t vaddr, uint32_t size, bool ascending)
+{
+}
+
+/**
+ * @brief Wait until cache preload is done
+ */
+__attribute__((always_inline))
+static inline void cache_ll_preload_wait_done(uint32_t cache_level, cache_type_t type, uint32_t cache_id)
+{
 }
 
 /**
