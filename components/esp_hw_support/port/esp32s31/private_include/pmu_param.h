@@ -16,8 +16,8 @@
 extern "C" {
 #endif
 
-#define HP_CALI_DBIAS_DEFAULT   28
-#define LP_CALI_DBIAS_DEFAULT   28
+#define HP_CALI_DBIAS_DEFAULT   24
+#define LP_CALI_DBIAS_DEFAULT   24
 #define HP_CALI_DBIAS_SLP_1V1   22
 #define LP_CALI_DBIAS_SLP_1V1   22
 

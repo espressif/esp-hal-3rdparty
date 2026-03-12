@@ -306,6 +306,13 @@ else() # Regular app build
         if(CONFIG_ESP32C61_REV_MIN_FULL GREATER_EQUAL 101)
             rom_linker_script("eco4")
         endif()
+    elseif(target STREQUAL "esp32s31")
+        # esp32s31.rom.api.ld has been split to several lds by components.
+        # esp32s31.rom.api.ld is still reserved to map the APIs
+        rom_linker_script("phy")
+        rom_linker_script("coexist")
+        rom_linker_script("net80211")
+        rom_linker_script("pp")
     endif()
 
 

@@ -70,17 +70,19 @@ static inline __attribute__((always_inline)) void regi2c_ctrl_ll_master_configur
 /**
  * @brief Enable the I2C internal bus to do I2C read/write operation to the SAR_ADC and TSENS registers
  */
-static inline void regi2c_ctrl_ll_i2c_sar_periph_enable(void)
+static inline __attribute__((always_inline)) void regi2c_ctrl_ll_i2c_sar_periph_enable(void)
 {
     // TODO: IDF-14632, IDF-14744
+    //Enable REGI2C for SAR_ADC and TSENS
     SET_PERI_REG_MASK(PMU_ANA_PERI_PWR_CTRL_REG, PMU_XPD_PERIF_I2C);
+    //Release regi2c reset mode, enter work mode
     SET_PERI_REG_MASK(PMU_ANA_PERI_PWR_CTRL_REG, PMU_RSTB_PERIF_I2C);
 }
 
 /**
  * @brief Disable the I2C internal bus to do I2C read/write operation to the SAR_ADC register
  */
-static inline void regi2c_ctrl_ll_i2c_sar_periph_disable(void)
+static inline __attribute__((always_inline)) void regi2c_ctrl_ll_i2c_sar_periph_disable(void)
 {
     // TODO: IDF-14632, IDF-14744
     CLEAR_PERI_REG_MASK(PMU_ANA_PERI_PWR_CTRL_REG, PMU_XPD_PERIF_I2C);

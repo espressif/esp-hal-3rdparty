@@ -200,7 +200,7 @@ static inline void _mspi_timing_ll_set_flash_clk_src(uint32_t mspi_id, soc_perip
     case FLASH_CLK_SRC_XTAL:
         clk_val = 0;
         break;
-    case FLASH_CLK_SRC_SPLL:
+    case FLASH_CLK_SRC_BBPLL:
         clk_val = 1;
         break;
     case FLASH_CLK_SRC_CPLL:

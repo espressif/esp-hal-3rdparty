@@ -38,9 +38,9 @@ ESP_HW_LOG_ATTR_TAG(TAG, "pmu_param");
     .clk_power = {            \
         .i2c_iso_en    = 0,   \
         .i2c_retention = 0,   \
-        .xpd_bb_i2c    = 1,   \
-        .xpd_pll_i2c   = 0xf, \
-        .xpd_pll       = 0xf  \
+        .xpd_bb_i2c    = 0,   \
+        .xpd_pll_i2c   = 0x3, \
+        .xpd_pll       = 0x3  \
     }, \
     .xtal = {                 \
         .xpd_xtal      = 1    \
@@ -55,16 +55,16 @@ ESP_HW_LOG_ATTR_TAG(TAG, "pmu_param");
         .hp_mem_pd_en       = 0, \
         .modem_top_pd_en    = 0, \
         .hp_cnnt_pd_en      = 0, \
-        .hp_cpu_pd_en       = 1, \
+        .hp_cpu_pd_en       = 0, \
         .modem_pwr_pd_en    = 0, \
         .top_pd_en          = 0  \
     }, \
     .clk_power = {            \
-        .i2c_iso_en    = 0,   \
-        .i2c_retention = 0,   \
-        .xpd_bb_i2c    = 1,   \
-        .xpd_pll_i2c   = 0xf, \
-        .xpd_pll       = 0xf  \
+        .i2c_iso_en    = 1,   \
+        .i2c_retention = 1,   \
+        .xpd_bb_i2c    = 0,   \
+        .xpd_pll_i2c   = 0x3, \
+        .xpd_pll       = 0x3  \
     }, \
     .xtal = {                 \
         .xpd_xtal      = 1    \
@@ -73,22 +73,22 @@ ESP_HW_LOG_ATTR_TAG(TAG, "pmu_param");
 
 #define PMU_HP_SLEEP_POWER_CONFIG_DEFAULT() { \
     .dig_power = {               \
-        .vdd_spi_pd_en      = 1, \
-        .pd_hp_alive_pd_en  = 1, \
-        .hp_mem_dslp        = 1, \
+        .vdd_spi_pd_en      = 0, \
+        .pd_hp_alive_pd_en  = 0, \
+        .hp_mem_dslp        = 0, \
         .hp_mem_pd_en       = 0, \
-        .modem_top_pd_en    = 1, \
-        .hp_cnnt_pd_en      = 1, \
-        .hp_cpu_pd_en       = 1, \
+        .modem_top_pd_en    = 0, \
+        .hp_cnnt_pd_en      = 0, \
+        .hp_cpu_pd_en       = 0, \
         .modem_pwr_pd_en    = 0, \
-        .top_pd_en          = 1  \
+        .top_pd_en          = 0  \
     }, \
     .clk_power = {            \
-        .i2c_iso_en    = 0,   \
-        .i2c_retention = 0,   \
-        .xpd_bb_i2c    = 1,   \
-        .xpd_pll_i2c   = 0xf, \
-        .xpd_pll       = 0xf  \
+        .i2c_iso_en    = 1,   \
+        .i2c_retention = 1,   \
+        .xpd_bb_i2c    = 0,   \
+        .xpd_pll_i2c   = 0, \
+        .xpd_pll       = 0  \
     }, \
     .xtal = {                 \
         .xpd_xtal      = 0    \
@@ -186,13 +186,19 @@ const pmu_hp_system_clock_param_t * pmu_hp_system_clock_param_default(pmu_hp_mod
     } \
 }
 
+/**
+ * - hp_pad_hold_all:
+ *   - when top off: must set to 1;
+ *   - when top on: 0 if use pad; 1 if not use pad
+ * - dig_pad_slp_sel: must set to 1 when sleep
+ */
 #define PMU_HP_SLEEP_DIGITAL_CONFIG_DEFAULT() { \
     .syscntl = {                \
-        .c_channel       = 1,   \
+        .c_channel       = 0,   \
         .uart_wakeup_en  = 1,   \
         .lp_pad_hold_all = 0,   \
-        .hp_pad_hold_all = 0,   \
-        .dig_pad_slp_sel = 0,   \
+        .hp_pad_hold_all = 1,   \
+        .dig_pad_slp_sel = 1,   \
         .dig_pause_wdt   = 1,   \
         .dig_cpu_stall   = 1    \
     } \
@@ -259,17 +265,17 @@ const pmu_hp_system_digital_param_t * pmu_hp_system_digital_param_default(pmu_hp
     .bias = {                                   \
         .xpd_bias        = 0,                   \
         .dbg_atten       = 0x0,                 \
-        .pd_cur          = 0,                   \
-        .bias_sleep      = 0                    \
+        .pd_cur          = 1,                   \
+        .bias_sleep      = 1                    \
     }, \
     .regulator0 = {                             \
         .slp_connect_en  = 0,                   \
         .slp_mem_xpd     = 0,                   \
         .slp_logic_xpd   = 0,                   \
         .xpd             = 1,                   \
-        .slp_mem_dbias   = 1,                   \
+        .slp_mem_dbias   = 0,                   \
         .slp_logic_dbias = 0,                   \
-        .dbias           = 1                    \
+        .dbias           = 0                    \
     }, \
     .regulator1 = {                             \
         .drv_b           = 0x0                  \
@@ -357,8 +363,8 @@ const pmu_hp_system_retention_param_t * pmu_hp_system_retention_param_default(pm
         .peri_pd_en     = 0,    \
     }, \
     .clk_power = {              \
-        .xpd_xtal32k    = 1,    \
-        .xpd_rc32k      = 1,    \
+        .xpd_xtal32k    = 0,    \
+        .xpd_rc32k      = 0,    \
         .xpd_fosc       = 1,    \
         .pd_osc         = 0     \
     } \
@@ -413,7 +419,7 @@ const pmu_lp_system_power_param_t * pmu_lp_system_power_param_default(pmu_lp_mod
         .slp_xpd    = 0,    \
         .xpd        = 1,    \
         .slp_dbias  = 0,    \
-        .dbias      = 12    \
+        .dbias      = 0    \
     }, \
     .regulator1 = {         \
         .drv_b      = 0x0   \

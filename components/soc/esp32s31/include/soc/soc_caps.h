@@ -52,7 +52,8 @@
 // #define SOC_LP_CORE_SUPPORTED           1      // TODO: [ESP32S31] IDF-14640
 #define SOC_EFUSE_KEY_PURPOSE_FIELD     1         // TODO: [ESP32S31] IDF-14688
 #define SOC_EFUSE_SUPPORTED             1         // TODO: [ESP32S31] IDF-14688
-// #define SOC_RTC_MEM_SUPPORTED           1      // TODO: [ESP32S31] IDF-14678
+#define SOC_RTC_FAST_MEM_SUPPORTED      1
+#define SOC_RTC_MEM_SUPPORTED           1      // TODO: [ESP32S31] IDF-14645
 // #define SOC_RMT_SUPPORTED               1      // TODO: [ESP32S31] IDF-14794
 // #define SOC_I2S_SUPPORTED               1      // TODO: [ESP32S31] IDF-14771
 #define SOC_SDM_SUPPORTED               1
@@ -83,7 +84,7 @@
 #define SOC_SPIRAM_SUPPORTED            1      // TODO: [ESP32S31] IDF-14718
 #define SOC_PSRAM_DMA_CAPABLE           1
 // #define SOC_SDMMC_HOST_SUPPORTED        1      // TODO: [ESP32S31] IDF-14705
-// #define SOC_CLK_TREE_SUPPORTED          1      // TODO: [ESP32S31] IDF-14733
+#define SOC_CLK_TREE_SUPPORTED          1
 // #define SOC_ASSIST_DEBUG_SUPPORTED      1      // TODO: [ESP32S31] IDF-14675
 // #define SOC_DEBUG_PROBE_SUPPORTED       1      // TODO: [ESP32S31] IDF-14798
 #define SOC_WDT_SUPPORTED               1
@@ -287,17 +288,16 @@
 #define SOC_UART_WAKEUP_SUPPORT_ACTIVE_THRESH_MODE (1)
 
 // /*-------------------------- CLOCK SUBSYSTEM CAPS ----------------------------------------*/
-// TODO: [ESP32S31] IDF-14733
 #define SOC_MODEM_CLOCK_IS_INDEPENDENT            (1)
 
-#define SOC_CLK_APLL_SUPPORTED                    (1)     /*!< Support Audio PLL */
-#define SOC_CLK_MPLL_SUPPORTED                    (1)     /*!< Support MSPI PLL */
+#define SOC_CLK_RC_FAST_SUPPORT_CALIBRATION       (1)
+
+// #define SOC_CLK_APLL_SUPPORTED                    (1)     /*!< Support Audio PLL */ // TODO: IDF-14771, IDF-14750
+#define SOC_CLK_MPLL_SUPPORTED                    (1)     /*!< Support MSPI PLL */ // TODO: IDF-14718
+#define SOC_CLK_XTAL32K_SUPPORTED                 (1)     /*!< Support to connect an external low frequency crystal */
 #define SOC_CLK_RC32K_SUPPORTED                   (1)     /*!< Support an internal 32kHz RC oscillator */
 
-#define SOC_CLK_LP_FAST_SUPPORT_LP_PLL            (1)      /*!< Support LP_PLL clock as the LP_FAST clock source */
 #define SOC_CLK_LP_FAST_SUPPORT_XTAL              (1)     /*!< Support XTAL clock as the LP_FAST clock source */
-
-#define SOC_CLK_ANA_I2C_MST_HAS_ROOT_GATE         (1)     /*!< Any regi2c operation needs enable the analog i2c master clock first */
 
 #define SOC_RCC_IS_INDEPENDENT                    1       /*!< Reset and Clock Control has own registers for each module */
 

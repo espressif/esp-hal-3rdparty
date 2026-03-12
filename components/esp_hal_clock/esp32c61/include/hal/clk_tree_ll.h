@@ -57,7 +57,7 @@ typedef enum {
  * @brief XTAL32K_CLK configuration structure
  */
 typedef struct {
-    uint32_t dac : 6;
+    uint32_t dac : 3;
     uint32_t dres : 3;
     uint32_t dgm : 3;
     uint32_t dbuf: 1;
@@ -217,8 +217,6 @@ static inline __attribute__((always_inline)) uint32_t clk_ll_xtal_get_freq_mhz(v
 {
     return PCR.sysclk_conf.clk_xtal_freq;
 }
-
-#define clk_ll_xtal_load_freq_mhz() clk_ll_xtal_get_freq_mhz()
 
 /**
  * @brief Get SPLL_CLK frequency

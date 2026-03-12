@@ -688,7 +688,7 @@ static inline uint8_t spimem_flash_ll_get_source_freq_mhz(void)
         source_clk_mhz = CLK_LL_PLL_480M_FREQ_MHZ; // SPLL
         break;
     case 2:
-        source_clk_mhz = CLK_LL_PLL_400M_FREQ_MHZ; // CPLL
+        source_clk_mhz = CLK_LL_PLL_320M_FREQ_MHZ; // CPLL
         break;
     default:
         break;

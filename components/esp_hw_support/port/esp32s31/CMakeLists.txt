@@ -1,6 +1,7 @@
 target_include_directories(${COMPONENT_LIB} PUBLIC .)
 
 set(srcs
+         "rtc_clk_init.c"
          "rtc_clk.c"
          "rtc_time.c"
          "chip_info.c"
