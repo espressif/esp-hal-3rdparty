@@ -559,14 +559,14 @@ typedef struct pmu_sleep_machine_constant {
     },                                          \
     .hp = {                                     \
         .min_slp_time_us                = 450,  \
-        .analog_wait_time_us            = 150,  \
+        .analog_wait_time_us            = 190,  \
         .isolate_wait_time_us           = 1,    \
         .reset_wait_time_us             = 1,    \
         .power_supply_wait_time_us      = 2,    \
         .power_up_wait_time_us          = 2,    \
         .regdma_s2a_work_time_us        = PMU_REGDMA_S2A_WORK_TIME_US, \
         .regdma_a2s_work_time_us        = PMU_REGDMA_A2S_WORK_TIME_US, \
-        .xtal_wait_stable_time_us       = 200,  \
+        .xtal_wait_stable_time_us       = 160,  \
         .pll_wait_stable_time_us        = 1     \
     }                                           \
 }
