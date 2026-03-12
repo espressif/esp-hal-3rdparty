@@ -1114,3 +1114,7 @@ config SOC_TOUCH_SAMPLE_CFG_NUM
 config SOC_USB_OTG_PERIPH_NUM
     int
     default 1
+
+config SOC_ASRC_SUPPORTED
+    bool
+    default y
