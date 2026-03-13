@@ -81,7 +81,6 @@ entries:
     if ESP_PHY_INIT_IRAM = y:
         temperature_sensor_hal:temperature_sensor_hal_get_degree (noflash)
         temperature_sensor_hal:temperature_sensor_hal_init (noflash)
-        temperature_sensor_hal:temperature_sensor_ll_set_range (noflash)
 
 [mapping:esp_timer_hxx]
 archive: libesp_timer.a
