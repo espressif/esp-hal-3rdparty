@@ -196,6 +196,8 @@ static inline void pmu_power_domain_force_default(pmu_context_t *ctx)
     pmu_ll_hp_set_memory_no_isolate     (ctx->hal->dev, 0);
     /* Disable memory force pu for memory pd during deep sleep */
     pmu_ll_hp_set_memory_power_up       (ctx->hal->dev, 0);
+    /* Enable VDD flash fast discharge */
+    pmu_ll_hp_set_vdd_flash_tiel_enable (ctx->hal->dev, true);
 
     pmu_ll_lp_set_power_force_power_up  (ctx->hal->dev, false);
     pmu_ll_lp_set_power_force_no_reset  (ctx->hal->dev, false);

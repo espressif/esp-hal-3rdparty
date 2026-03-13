@@ -374,6 +374,12 @@ FORCE_INLINE_ATTR void pmu_ll_hp_set_memory_power_on_mask(pmu_dev_t *hw, uint32_
     hw->power.mem_mask.mem2_mask = mem_mask & BIT(2);
 }
 
+FORCE_INLINE_ATTR void pmu_ll_hp_set_vdd_flash_tiel_enable(pmu_dev_t *hw, bool enable)
+{
+    hw->power.vdd_flash.ldo_tiel_en = enable;
+    hw->power.vdd_flash.ldo_tiel = enable;
+}
+
 FORCE_INLINE_ATTR void pmu_ll_lp_set_discnnt_dig_rtc(pmu_dev_t *hw, pmu_lp_mode_t mode, bool discnnt)
 {
     HAL_ASSERT(mode == PMU_MODE_LP_SLEEP);

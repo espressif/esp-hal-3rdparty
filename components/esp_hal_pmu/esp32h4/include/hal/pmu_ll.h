@@ -585,6 +585,12 @@ FORCE_INLINE_ATTR void pmu_ll_hp_set_memory_power_off_mask(pmu_dev_t *hw, uint32
     hw->power.mem_mask.mem2_pd_mask = mem2_pd_mask;
 }
 
+FORCE_INLINE_ATTR void pmu_ll_hp_set_vdd_flash_tiel_enable(pmu_dev_t *hw, bool enable)
+{
+    hw->power.vdd_flash.ldo_tiel_en = enable;
+    hw->power.vdd_flash.ldo_tiel = enable;
+}
+
 FORCE_INLINE_ATTR void pmu_ll_hp_set_sleep_enable(pmu_dev_t *hw)
 {
     hw->wakeup.cntl0.sleep_req = 1;
