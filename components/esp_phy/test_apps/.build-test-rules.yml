@@ -8,6 +8,7 @@ components/esp_phy/test_apps/phy_iram:
       temporary: true
       reason: not supported for esp32h21 and esp32h4 yet
   depends_components:
+    - esp_hal_ana_conv
     - esp_phy
     - esp_pm
     - esp_timer
