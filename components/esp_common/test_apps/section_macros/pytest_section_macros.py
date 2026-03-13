@@ -10,6 +10,7 @@ from pytest_embedded_idf.utils import idf_parametrize
 @idf_parametrize('target', ['linux'], indirect=['target'])
 def test_section_macros(dut: Dut) -> None:
     dut.expect('SUCCESS: All 5 section entries verified.')
+    dut.expect('SUCCESS: All 3 pointer section entries verified.')
 
 
 @pytest.mark.host_test
@@ -17,3 +18,4 @@ def test_section_macros(dut: Dut) -> None:
 @idf_parametrize('target', ['linux'], indirect=['target'])
 def test_section_macros_macos(dut: Dut) -> None:
     dut.expect('SUCCESS: All 5 section entries verified.')
+    dut.expect('SUCCESS: All 3 pointer section entries verified.')

@@ -257,7 +257,7 @@ FORCE_INLINE_ATTR TYPE& operator<<=(TYPE& a, int b) { a = a << b; return a; }
 #include <mach-o/dyld.h>
 
 #define _SECTION_ATTR_IMPL_GENERIC(SECTION, COUNTER) \
-    __attribute__((used, aligned(4), section("__DATA," SECTION)))
+    __attribute__((used, section("__DATA," SECTION)))
 
 #define PLACE_IN_SECTION(SECTION) _SECTION_ATTR_IMPL_GENERIC(SECTION, __COUNTER__)
 
@@ -283,8 +283,12 @@ FORCE_INLINE_ATTR TYPE& operator<<=(TYPE& a, int b) { a = a << b; return a; }
 
 #else /* ELF targets (Linux and embedded) */
 
+/* Use the variable's own natural alignment so that pointer arithmetic over
+ * the section (end - start) gives the correct entry count with no padding gaps.
+ * On 32-bit embedded targets uint32_t aligns to 4; on 64-bit hosts a struct
+ * with a pointer member aligns to 8 — both correct without an explicit override. */
 #define _SECTION_ATTR_IMPL_GENERIC(SECTION, COUNTER) \
-    __attribute__((used, aligned(4), section("." SECTION "." _COUNTER_STRINGIFY(COUNTER))))
+    __attribute__((used, section("." SECTION "." _COUNTER_STRINGIFY(COUNTER))))
 
 #define PLACE_IN_SECTION(SECTION) _SECTION_ATTR_IMPL_GENERIC(SECTION, __COUNTER__)
 
