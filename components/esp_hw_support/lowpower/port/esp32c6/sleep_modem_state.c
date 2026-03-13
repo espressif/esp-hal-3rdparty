@@ -35,6 +35,7 @@
 #define MODEM_FE_CTRL_BASE              (0x600a0800)
 
 typedef struct {
+    void *link_head;
 #define DESC_IDX_I2C_MST_ENA (0)
 #define DESC_IDX_I2C_MST_SEL (1)
 #define DESC_IDX_I2C_MST_DIS (2)
@@ -127,6 +128,7 @@ esp_err_t sleep_modem_state_phy_link_init(void **link_head)
             }
         }
         if (err == ESP_OK) {
+            phy_link_context.link_head = link;
             *link_head = (void *)&phy_link_context;
         }
     }
@@ -152,7 +154,7 @@ void IRAM_ATTR sleep_modem_state_phy_link_config(void *link_context, uint32_t fl
 esp_err_t sleep_modem_state_phy_link_deinit(void *link_head)
 {
 #if SOC_PM_PAU_REGDMA_LINK_WIFIMAC
-    regdma_link_destroy(link_head, 0);
+    regdma_link_destroy(((sleep_modem_state_phy_link_context_t *)link_head)->link_head, 0);
 #endif
     return ESP_OK;
 }
