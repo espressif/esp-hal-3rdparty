@@ -723,6 +723,7 @@ static SLEEP_FN_ATTR void misc_modules_sleep_prepare(uint32_t sleep_flags, bool 
         sar_periph_ctrl_power_disable();
     }
 #endif
+    suspend_timers(sleep_flags);
 }
 
 /**
@@ -730,6 +731,7 @@ static SLEEP_FN_ATTR void misc_modules_sleep_prepare(uint32_t sleep_flags, bool 
  */
 static SLEEP_FN_ATTR void misc_modules_wake_prepare(uint32_t sleep_flags)
 {
+    resume_timers(sleep_flags);
 #if CONFIG_ESP_ENABLE_PVT && SOC_PVT_EN_WITH_SLEEP
     pvt_func_enable(true);
 #endif
@@ -906,7 +908,6 @@ static esp_err_t FORCE_IRAM_ATTR esp_sleep_start_safe(uint32_t sleep_flags, uint
         result = rtc_deep_sleep_start(s_config.wakeup_triggers, reject_triggers);
 #endif
     } else {
-        suspend_timers(sleep_flags);
         /* Cache Suspend 1: will wait cache idle in cache suspend */
         suspend_cache();
         if (!(sleep_flags & RTC_SLEEP_PD_VDDSDIO)) {
@@ -992,7 +993,6 @@ static esp_err_t FORCE_IRAM_ATTR esp_sleep_start_safe(uint32_t sleep_flags, uint
 #endif
         /* Cache Resume 1: Resume cache for continue running*/
         resume_cache();
-        resume_timers(sleep_flags);
 #if CONFIG_PM_SLP_SPIRAM_HALFSLEEP_ENABLED && CONFIG_SPIRAM_XIP_FROM_PSRAM
         // Code outside of esp_sleep_start_safe may be linked to FLASH, and if CONFIG_SPIRAM_XIP_FROM_PSRAM
         // is enabled, code in Flash will be copied to PSRAM for execution. We need to wait here until
