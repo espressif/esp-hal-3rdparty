@@ -3,9 +3,12 @@ idf_build_get_property(non_os_build NON_OS_BUILD)
 
 # On Linux, we only support a few features, hence this simple component registration
 if(${target} STREQUAL "linux")
+    # "include/linux" MUST come before "include" so that Linux-specific header
+    # overrides (e.g. esp_cpu.h) take precedence over the generic versions.
     idf_component_register(SRCS "port/linux/esp_random.c"
                                  "port/linux/chip_info.c"
-                           INCLUDE_DIRS "include" "etm/include")
+                                 "port/linux/cpu.c"
+                           INCLUDE_DIRS "include/linux" "include" "etm/include")
     return()
 endif()
 
