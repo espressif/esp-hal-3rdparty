@@ -1342,3 +1342,7 @@ config SOC_I2S_PDM_MAX_TX_LINES
 config SOC_I2S_PDM_MAX_RX_LINES
     int
     default 4
+
+config SOC_ASRC_SUPPORTED
+    bool
+    default y
