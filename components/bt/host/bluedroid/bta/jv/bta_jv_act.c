@@ -1002,13 +1002,14 @@ static void bta_jv_start_discovery_cback(UINT16 result, void *user_data)
 *******************************************************************************/
 void bta_jv_start_discovery(tBTA_JV_MSG *p_data)
 {
-    tBTA_JV_STATUS status = BTA_JV_FAILURE;
+    tBTA_JV_DISCOVERY_COMP disc_comp = {0};
+
     APPL_TRACE_DEBUG("bta_jv_start_discovery in, sdp_active:%d", bta_jv_cb.sdp_active);
     if (bta_jv_cb.sdp_active != BTA_JV_SDP_ACT_NONE) {
-        /* SDP is still in progress */
-        status = BTA_JV_BUSY;
+        /* SDP is still in progress: report BUSY with a full tBTA_JV so BTC can copy safely */
+        disc_comp.status = BTA_JV_BUSY;
         if (bta_jv_cb.p_dm_cback) {
-            bta_jv_cb.p_dm_cback(BTA_JV_DISCOVERY_COMP_EVT, (tBTA_JV *)&status, p_data->start_discovery.user_data);
+            bta_jv_cb.p_dm_cback(BTA_JV_DISCOVERY_COMP_EVT, (tBTA_JV *)&disc_comp, p_data->start_discovery.user_data);
         }
         return;
     }
@@ -1031,9 +1032,10 @@ void bta_jv_start_discovery(tBTA_JV_MSG *p_data)
                                             p_bta_jv_cfg->p_sdp_db,
                                             bta_jv_start_discovery_cback, p_data->start_discovery.user_data)) {
         bta_jv_cb.sdp_active = BTA_JV_SDP_ACT_NONE;
-        /* failed to start SDP. report the failure right away */
+        /* failed to start SDP: report failure with a full tBTA_JV so BTC can copy safely */
+        disc_comp.status = BTA_JV_FAILURE;
         if (bta_jv_cb.p_dm_cback) {
-            bta_jv_cb.p_dm_cback(BTA_JV_DISCOVERY_COMP_EVT, (tBTA_JV *)&status, p_data->start_discovery.user_data);
+            bta_jv_cb.p_dm_cback(BTA_JV_DISCOVERY_COMP_EVT, (tBTA_JV *)&disc_comp, p_data->start_discovery.user_data);
         }
     }
     /*
