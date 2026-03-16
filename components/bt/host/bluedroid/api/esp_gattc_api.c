@@ -334,6 +334,27 @@ esp_err_t esp_ble_gattc_close (esp_gatt_if_t gattc_if, uint16_t conn_id)
     return (btc_transfer_context(&msg, &arg, sizeof(btc_ble_gattc_args_t), NULL, NULL) == BT_STATUS_SUCCESS ? ESP_OK : ESP_FAIL);
 }
 
+esp_err_t esp_ble_gattc_cancel_open(const esp_ble_gattc_cancel_open_params_t *params)
+{
+    btc_msg_t msg = {0};
+    btc_ble_gattc_args_t arg;
+
+    ESP_BLUEDROID_STATUS_CHECK(ESP_BLUEDROID_STATUS_ENABLED);
+
+    if (params == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    memset(&arg, 0, sizeof(arg));
+    msg.sig = BTC_SIG_API_CALL;
+    msg.pid = BTC_PID_GATTC;
+    msg.act = BTC_GATTC_ACT_CANCEL_OPEN;
+    arg.cancel_open.gattc_if = params->gattc_if;
+    memcpy(arg.cancel_open.remote_bda, params->remote_bda, ESP_BD_ADDR_LEN);
+
+    return (btc_transfer_context(&msg, &arg, sizeof(btc_ble_gattc_args_t), NULL, NULL) == BT_STATUS_SUCCESS ? ESP_OK : ESP_FAIL);
+}
+
 esp_err_t esp_ble_gattc_send_mtu_req (esp_gatt_if_t gattc_if, uint16_t conn_id)
 {
     btc_msg_t msg = {0};
