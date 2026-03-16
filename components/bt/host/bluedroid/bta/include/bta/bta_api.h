@@ -2017,6 +2017,15 @@ extern void BTA_DmBleReadAdvTxPower(tBTA_CMPL_CB *cmpl_cb);
 #endif  ///BLE_INCLUDED == TRUE
 
 extern void BTA_DmReadRSSI(BD_ADDR remote_addr, tBTA_TRANSPORT transport, tBTA_CMPL_CB *cmpl_cb);
+#if (ESP_BT_CLASSIC_ENABLE_POWER_CTRL_VSC == TRUE)
+extern void BTA_DmReadAclRealRssi(BD_ADDR remote_addr, tBTA_CMPL_CB *cmpl_cb);
+extern void BTA_DmReadNewConnTxPwrLvl(tBTA_CMPL_CB *cmpl_cb);
+extern void BTA_DmWriteNewConnTxPwrLvl(INT8 pwr_lvl_min, INT8 pwr_lvl_max, tBTA_CMPL_CB *cmpl_cb);
+#endif // #if (ESP_BT_CLASSIC_ENABLE_POWER_CTRL_VSC == TRUE)
+#if (CLASSIC_BT_INCLUDED == TRUE)
+extern void BTA_DmReadBredrTxPwrLvl(tBTM_TX_PWR_LVL_TYPE type, tBTA_CMPL_CB *cmpl_cb);
+extern void BTA_DmWriteBredrTxPwrLvl(tBTM_TX_PWR_LVL_TYPE type, INT8 tx_power, tBTA_CMPL_CB *cmpl_cb);
+#endif // #if (CLASSIC_BT_INCLUDED == TRUE)
 extern void BTA_DmBleReadChannelMap(BD_ADDR remote_device, tBTA_CMPL_CB *p_callback);
 
 /*******************************************************************************

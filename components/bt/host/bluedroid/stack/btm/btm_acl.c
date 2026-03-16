@@ -56,6 +56,97 @@ static void btm_process_remote_ext_features (tACL_CONN *p_acl_cb, UINT8 num_read
 
 #define BTM_DEV_REPLY_TIMEOUT   3       /* 3 second timeout waiting for responses */
 
+#if (ESP_BT_CLASSIC_ENABLE_POWER_CTRL_VSC == TRUE)
+static void btm_read_acl_real_rssi_vsc_cmpl_cb(tBTM_VSC_CMPL *p1)
+{
+    tBTM_CMPL_CB *p_cb = btm_cb.devcb.p_acl_real_rssi_cmpl_cb;
+    tBTM_ACL_REAL_RSSI_RESULTS results;
+    UINT16 handle = 0;
+    tACL_CONN *p_acl_cb = NULL;
+
+    btu_stop_timer(&btm_cb.devcb.acl_real_rssi_timer);
+    btm_cb.devcb.p_acl_real_rssi_cmpl_cb = NULL;
+
+    memset(&results, 0, sizeof(results));
+    results.status = BTM_ERR_PROCESSING;
+    results.hci_status = HCI_ERR_UNSPECIFIED;
+
+    if (p1 == NULL || p1->p_param_buf == NULL || p1->param_len < 1) {
+        goto out;
+    }
+
+    UINT8 *p = p1->p_param_buf;
+    STREAM_TO_UINT8(results.hci_status, p);
+    if (results.hci_status != HCI_SUCCESS) {
+        results.status = BTM_ERR_PROCESSING;
+        goto out;
+    }
+
+    // Expected payload (after status): [handle:2][rssi:1]
+    if (p1->param_len < 1 + 3) {
+        results.status = BTM_ERR_PROCESSING;
+        goto out;
+    }
+
+    STREAM_TO_UINT16(handle, p);
+    STREAM_TO_UINT8(results.rssi, p);
+    results.status = BTM_SUCCESS;
+
+    p_acl_cb = btm_handle_to_acl(handle);
+    if (p_acl_cb) {
+        memcpy(results.rem_bda, p_acl_cb->remote_addr, BD_ADDR_LEN);
+    }
+
+out:
+    if (p_cb) {
+        (*p_cb)(&results);
+    }
+}
+
+tBTM_STATUS BTM_ReadAclRealRSSI(BD_ADDR remote_bda, tBTM_CMPL_CB *p_cb)
+{
+    tACL_CONN *p;
+    tBTM_ACL_REAL_RSSI_RESULTS result;
+
+    memset(&result, 0, sizeof(result));
+
+    /* If someone already waiting on the result, do not allow another */
+    if (btm_cb.devcb.p_acl_real_rssi_cmpl_cb) {
+        result.status = BTM_BUSY;
+        (*p_cb)(&result);
+        return (BTM_BUSY);
+    }
+
+    p = btm_bda_to_acl(remote_bda, BT_TRANSPORT_BR_EDR);
+    if (p != (tACL_CONN *)NULL) {
+        btu_start_timer(&btm_cb.devcb.acl_real_rssi_timer, BTU_TTYPE_BTM_ACL, BTM_DEV_REPLY_TIMEOUT);
+        btm_cb.devcb.p_acl_real_rssi_cmpl_cb = p_cb;
+
+        UINT8 param[2];
+        UINT8 *pp = param;
+        UINT16_TO_STREAM(pp, p->hci_handle);
+
+        tBTM_STATUS st = BTM_VendorSpecificCommand(HCI_VENDOR_BT_RD_ACL_REAL_RSSI,
+                                                  sizeof(param),
+                                                  param,
+                                                  btm_read_acl_real_rssi_vsc_cmpl_cb);
+        if (st != BTM_CMD_STARTED) {
+            btm_cb.devcb.p_acl_real_rssi_cmpl_cb = NULL;
+            btu_stop_timer(&btm_cb.devcb.acl_real_rssi_timer);
+            result.status = BTM_NO_RESOURCES;
+            (*p_cb)(&result);
+            return (BTM_NO_RESOURCES);
+        }
+        return (BTM_CMD_STARTED);
+    }
+
+    /* If here, no BD Addr found */
+    result.status = BTM_UNKNOWN_ADDR;
+    (*p_cb)(&result);
+    return (BTM_UNKNOWN_ADDR);
+}
+#endif // #if (ESP_BT_CLASSIC_ENABLE_POWER_CTRL_VSC == TRUE)
+
 /*******************************************************************************
 **
 ** Function         btm_acl_init

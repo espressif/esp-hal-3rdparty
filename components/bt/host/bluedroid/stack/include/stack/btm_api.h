@@ -795,6 +795,66 @@ typedef struct {
     BD_ADDR     rem_bda;
 } tBTM_RSSI_RESULTS;
 
+#if (ESP_BT_CLASSIC_ENABLE_POWER_CTRL_VSC == TRUE)
+/* Structure returned with read ACL real RSSI event (in tBTM_CMPL_CB callback function)
+** in response to BTM_ReadAclRealRSSI call.
+*/
+typedef struct {
+    tBTM_STATUS status;
+    UINT8       hci_status;
+    INT8        rssi;
+    BD_ADDR     rem_bda;
+} tBTM_ACL_REAL_RSSI_RESULTS;
+
+/* Structure returned with read new connection transmit power level event (in tBTM_CMPL_CB callback function)
+** in response to BTM_ReadNewConnTxPwrLvl call.
+*/
+typedef struct {
+    tBTM_STATUS status;
+    UINT8       hci_status;
+    INT8        pwr_lvl_min;
+    INT8        pwr_lvl_max;
+} tBTM_READ_NEW_CONN_TX_PWR_LVL_RESULTS;
+
+/* Structure returned with write new connection transmit power level event (in tBTM_CMPL_CB callback function)
+** in response to BTM_WriteNewConnTxPwrLvl call.
+*/
+typedef struct {
+    tBTM_STATUS status;
+    UINT8       hci_status;
+} tBTM_WRITE_NEW_CONN_TX_PWR_LVL_RESULTS;
+#endif // #if (ESP_BT_CLASSIC_ENABLE_POWER_CTRL_VSC == TRUE)
+
+#if (CLASSIC_BT_INCLUDED == TRUE)
+/* BR/EDR tx power level type for inq/iscan/page/pscan control */
+typedef enum {
+    BTM_TX_PWR_LVL_INQ = 0,
+    BTM_TX_PWR_LVL_ISCAN,
+    BTM_TX_PWR_LVL_PAGE,
+    BTM_TX_PWR_LVL_PSCAN,
+    BTM_TX_PWR_LVL_MAX,
+} tBTM_TX_PWR_LVL_TYPE;
+
+/* Structure returned with read inq/iscan/page/pscan tx power level event (in tBTM_CMPL_CB callback function)
+** in response to BTM_ReadBredrTxPwrLvl/BTM_ReadInquiryRspTxPower call.
+*/
+typedef struct {
+    tBTM_STATUS status;
+    UINT8       hci_status;
+    INT8        tx_power;
+    tBTM_TX_PWR_LVL_TYPE type;
+} tBTM_READ_TX_PWR_LVL_RESULTS;
+
+/* Structure returned with write inq/iscan/page/pscan tx power level event (in tBTM_CMPL_CB callback function)
+** in response to BTM_WriteBredrTxPwrLvl/BTM_WriteInquiryTxPower call.
+*/
+typedef struct {
+    tBTM_STATUS status;
+    UINT8       hci_status;
+    tBTM_TX_PWR_LVL_TYPE type;
+} tBTM_WRITE_TX_PWR_LVL_RESULTS;
+#endif // #if (CLASSIC_BT_INCLUDED == TRUE)
+
 /* Structure returned with read channel map event (in tBTM_CMPL_CB callback function)
 ** in response to BTM_ReadChannelMap call.
 */
@@ -865,16 +925,6 @@ typedef struct {
     tBTM_STATUS status;
     UINT8       hci_status;
 } tBTM_BLE_SET_CHANNELS_RESULTS;
-
-/* Structure returned with read inq tx power quality event (in tBTM_CMPL_CB callback function)
-** in response to BTM_ReadInquiryRspTxPower call.
-*/
-typedef struct {
-    tBTM_STATUS status;
-    UINT8       hci_status;
-    INT8        tx_power;
-} tBTM_INQ_TXPWR_RESULTS;
-
 
 enum {
     BTM_ACL_CONN_CMPL_EVT,
@@ -2788,6 +2838,7 @@ tBTM_INQ_INFO *BTM_InqDbNext (tBTM_INQ_INFO *p_cur);
 //extern
 tBTM_STATUS  BTM_ClearInqDb (BD_ADDR p_bda);
 
+#if (CLASSIC_BT_INCLUDED == TRUE)
 /*******************************************************************************
 **
 ** Function         BTM_ReadInquiryRspTxPower
@@ -2801,6 +2852,21 @@ tBTM_STATUS  BTM_ClearInqDb (BD_ADDR p_bda);
 *******************************************************************************/
 //extern
 tBTM_STATUS BTM_ReadInquiryRspTxPower (tBTM_CMPL_CB *p_cb);
+
+/*******************************************************************************
+**
+** Function         BTM_WriteInquiryTxPower
+**
+** Description      This command writes the inquiry transmit power level used
+**                  to transmit inquiry response packets.
+**
+** Returns          BTM_CMD_STARTED if command issued to controller.
+**                  BTM_NO_RESOURCES if couldn't allocate memory to issue command
+**                  BTM_BUSY if command is already in progress
+**
+*******************************************************************************/
+tBTM_STATUS BTM_WriteInquiryTxPower(INT8 tx_power, tBTM_CMPL_CB *p_cb);
+#endif // #if (CLASSIC_BT_INCLUDED == TRUE)
 
 #if SDP_INCLUDED == TRUE
 /*******************************************************************************
@@ -3007,6 +3073,88 @@ tBTM_STATUS BTM_SwitchRole (BD_ADDR remote_bd_addr,
 *******************************************************************************/
 //extern
 tBTM_STATUS BTM_ReadRSSI (BD_ADDR remote_bda, tBT_TRANSPORT transport, tBTM_CMPL_CB *p_cb);
+
+#if (ESP_BT_CLASSIC_ENABLE_POWER_CTRL_VSC == TRUE)
+/*******************************************************************************
+**
+** Function         BTM_ReadAclRealRSSI
+**
+** Description      This function is called to read ACL real RSSI.
+**                  The RSSI of results are returned in the callback.
+**                  (tBTM_ACL_REAL_RSSI_RESULTS)
+**
+** Returns          BTM_CMD_STARTED if command issued to controller.
+**                  BTM_NO_RESOURCES if couldn't allocate memory to issue command
+**                  BTM_UNKNOWN_ADDR if no active link with bd addr specified
+**                  BTM_BUSY if command is already in progress
+**
+*******************************************************************************/
+tBTM_STATUS BTM_ReadAclRealRSSI(BD_ADDR remote_bda, tBTM_CMPL_CB *p_cb);
+
+/*******************************************************************************
+**
+** Function         BTM_ReadNewConnTxPwrLvl
+**
+** Description      This function is called to read new connection transmit power level.
+**                  The new connection transmit power level value returned in the callback.
+**                  (tBTM_READ_NEW_CONN_TX_PWR_LVL_RESULTS)
+**
+** Returns          BTM_CMD_STARTED if command issued to controller.
+**                  BTM_NO_RESOURCES if couldn't allocate memory to issue command
+**                  BTM_BUSY if command is already in progress
+**
+*******************************************************************************/
+tBTM_STATUS BTM_ReadNewConnTxPwrLvl(tBTM_CMPL_CB *p_cb);
+
+/*******************************************************************************
+**
+** Function         BTM_WriteNewConnTxPwrLvl
+**
+** Description      This function is called to write new connection transmit power level.
+**                  The new connection transmit power level value returned in the callback.
+**                  (tBTM_WRITE_NEW_CONN_TX_PWR_LVL_RESULTS)
+**
+** Returns          BTM_CMD_STARTED if command issued to controller.
+**                  BTM_NO_RESOURCES if couldn't allocate memory to issue command
+**                  BTM_BUSY if command is already in progress
+**
+*******************************************************************************/
+tBTM_STATUS BTM_WriteNewConnTxPwrLvl(INT8 pwr_lvl_min, INT8 pwr_lvl_max, tBTM_CMPL_CB *p_cb);
+#endif // #if (ESP_BT_CLASSIC_ENABLE_POWER_CTRL_VSC == TRUE)
+
+#if (CLASSIC_BT_INCLUDED == TRUE)
+/*******************************************************************************
+**
+** Function         BTM_ReadBredrTxPwrLvl
+**
+** Description      This function is called to read inq/iscan/page/pscan transmit power level.
+**                  The corresponding transmit power level value returned in the callback.
+**                  (tBTM_READ_TX_PWR_LVL_RESULTS)
+**
+** Returns          BTM_CMD_STARTED if command issued to controller.
+**                  BTM_NO_RESOURCES if couldn't allocate memory to issue command
+**                  BTM_BUSY if command is already in progress
+**                  BTM_ILLEGAL_VALUE if type is invalid
+**
+*******************************************************************************/
+tBTM_STATUS BTM_ReadBredrTxPwrLvl(tBTM_TX_PWR_LVL_TYPE type, tBTM_CMPL_CB *p_cb);
+
+/*******************************************************************************
+**
+** Function         BTM_WriteBredrTxPwrLvl
+**
+** Description      This function is called to write inq/iscan/page/pscan transmit power level.
+**                  The corresponding write status returned in the callback.
+**                  (tBTM_WRITE_TX_PWR_LVL_RESULTS)
+**
+** Returns          BTM_CMD_STARTED if command issued to controller.
+**                  BTM_NO_RESOURCES if couldn't allocate memory to issue command
+**                  BTM_BUSY if command is already in progress
+**                  BTM_ILLEGAL_VALUE if type is invalid
+**
+*******************************************************************************/
+tBTM_STATUS BTM_WriteBredrTxPwrLvl(tBTM_TX_PWR_LVL_TYPE type, INT8 tx_power, tBTM_CMPL_CB *p_cb);
+#endif // (CLASSIC_BT_INCLUDED == TRUE)
 
 /*******************************************************************************
 **

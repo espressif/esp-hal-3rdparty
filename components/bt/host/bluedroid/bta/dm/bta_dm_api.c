@@ -523,7 +523,65 @@ void BTA_DmReadRSSI(BD_ADDR remote_addr, tBTA_TRANSPORT transport, tBTA_CMPL_CB 
     }
 }
 
+#if (ESP_BT_CLASSIC_ENABLE_POWER_CTRL_VSC == TRUE)
+void BTA_DmReadAclRealRssi(BD_ADDR remote_addr, tBTA_CMPL_CB *cmpl_cb)
+{
+    tBTA_DM_API_READ_ACL_REAL_RSSI *p_msg;
+    if ((p_msg = (tBTA_DM_API_READ_ACL_REAL_RSSI *)osi_malloc(sizeof(tBTA_DM_API_READ_ACL_REAL_RSSI))) != NULL) {
+        p_msg->hdr.event = BTA_DM_API_READ_ACL_REAL_RSSI_EVT;
+        memcpy(p_msg->remote_addr, remote_addr, sizeof(BD_ADDR));
+        p_msg->read_acl_real_rssi_cb = cmpl_cb;
+        bta_sys_sendmsg(p_msg);
+    }
+}
+
+void BTA_DmReadNewConnTxPwrLvl(tBTA_CMPL_CB *cmpl_cb)
+{
+    tBTA_DM_API_READ_NEW_CONN_TX_PWR_LVL *p_msg;
+    if ((p_msg = (tBTA_DM_API_READ_NEW_CONN_TX_PWR_LVL *)osi_malloc(sizeof(tBTA_DM_API_READ_NEW_CONN_TX_PWR_LVL))) != NULL) {
+        p_msg->hdr.event = BTA_DM_API_READ_NEW_CONN_TX_PWR_LVL_EVT;
+        p_msg->read_new_conn_tx_pwr_lvl_cb = cmpl_cb;
+        bta_sys_sendmsg(p_msg);
+    }
+}
+
+void BTA_DmWriteNewConnTxPwrLvl(INT8 pwr_lvl_min, INT8 pwr_lvl_max, tBTA_CMPL_CB *cmpl_cb)
+{
+    tBTA_DM_API_WRITE_NEW_CONN_TX_PWR_LVL *p_msg;
+    if ((p_msg = (tBTA_DM_API_WRITE_NEW_CONN_TX_PWR_LVL *)osi_malloc(sizeof(tBTA_DM_API_WRITE_NEW_CONN_TX_PWR_LVL))) != NULL) {
+        p_msg->hdr.event = BTA_DM_API_WRITE_NEW_CONN_TX_PWR_LVL_EVT;
+        p_msg->pwr_lvl_min = pwr_lvl_min;
+        p_msg->pwr_lvl_max = pwr_lvl_max;
+        p_msg->write_new_conn_tx_pwr_lvl_cb = cmpl_cb;
+        bta_sys_sendmsg(p_msg);
+    }
+}
+#endif // #if (ESP_BT_CLASSIC_ENABLE_POWER_CTRL_VSC == TRUE)
+
 #if (CLASSIC_BT_INCLUDED == TRUE)
+void BTA_DmReadBredrTxPwrLvl(tBTM_TX_PWR_LVL_TYPE type, tBTA_CMPL_CB *cmpl_cb)
+{
+    tBTA_DM_API_READ_BREDR_TX_PWR_LVL *p_msg;
+    if ((p_msg = (tBTA_DM_API_READ_BREDR_TX_PWR_LVL *)osi_malloc(sizeof(tBTA_DM_API_READ_BREDR_TX_PWR_LVL))) != NULL) {
+        p_msg->hdr.event = BTA_DM_API_READ_BREDR_TX_PWR_LVL_EVT;
+        p_msg->type = type;
+        p_msg->read_bredr_tx_pwr_lvl_cb = cmpl_cb;
+        bta_sys_sendmsg(p_msg);
+    }
+}
+
+void BTA_DmWriteBredrTxPwrLvl(tBTM_TX_PWR_LVL_TYPE type, INT8 tx_power, tBTA_CMPL_CB *cmpl_cb)
+{
+    tBTA_DM_API_WRITE_BREDR_TX_PWR_LVL *p_msg;
+    if ((p_msg = (tBTA_DM_API_WRITE_BREDR_TX_PWR_LVL *)osi_malloc(sizeof(tBTA_DM_API_WRITE_BREDR_TX_PWR_LVL))) != NULL) {
+        p_msg->hdr.event = BTA_DM_API_WRITE_BREDR_TX_PWR_LVL_EVT;
+        p_msg->type = type;
+        p_msg->tx_power = tx_power;
+        p_msg->write_bredr_tx_pwr_lvl_cb = cmpl_cb;
+        bta_sys_sendmsg(p_msg);
+    }
+}
+
 /*******************************************************************************
 **
 ** Function         BTA_DmSetVisibility

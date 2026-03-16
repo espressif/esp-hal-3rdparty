@@ -170,6 +170,15 @@ enum {
     BTA_DM_API_UPDATE_WHITE_LIST_EVT,
     BTA_DM_API_CLEAR_WHITE_LIST_EVT,
     BTA_DM_API_READ_RSSI_EVT,
+#if (ESP_BT_CLASSIC_ENABLE_POWER_CTRL_VSC == TRUE)
+    BTA_DM_API_READ_ACL_REAL_RSSI_EVT,
+    BTA_DM_API_READ_NEW_CONN_TX_PWR_LVL_EVT,
+    BTA_DM_API_WRITE_NEW_CONN_TX_PWR_LVL_EVT,
+#endif // #if (ESP_BT_CLASSIC_ENABLE_POWER_CTRL_VSC == TRUE)
+#if (CLASSIC_BT_INCLUDED == TRUE)
+    BTA_DM_API_READ_BREDR_TX_PWR_LVL_EVT,
+    BTA_DM_API_WRITE_BREDR_TX_PWR_LVL_EVT,
+#endif // #if (CLASSIC_BT_INCLUDED == TRUE)
 #if BLE_INCLUDED == TRUE
 #if ((BLE_42_SCAN_EN == TRUE) || (BLE_50_EXTEND_SCAN_EN == TRUE))
     BTA_DM_API_UPDATE_DUPLICATE_EXCEPTIONAL_LIST_EVT,
@@ -455,6 +464,41 @@ typedef struct {
     tBTA_TRANSPORT  transport;
     tBTA_CMPL_CB  *read_rssi_cb;
 }tBTA_DM_API_READ_RSSI;
+
+#if (ESP_BT_CLASSIC_ENABLE_POWER_CTRL_VSC == TRUE)
+typedef struct {
+    BT_HDR        hdr;
+    BD_ADDR       remote_addr;
+    tBTA_CMPL_CB  *read_acl_real_rssi_cb;
+} tBTA_DM_API_READ_ACL_REAL_RSSI;
+
+typedef struct {
+    BT_HDR        hdr;
+    tBTA_CMPL_CB  *read_new_conn_tx_pwr_lvl_cb;
+} tBTA_DM_API_READ_NEW_CONN_TX_PWR_LVL;
+
+typedef struct {
+    BT_HDR        hdr;
+    INT8          pwr_lvl_min;
+    INT8          pwr_lvl_max;
+    tBTA_CMPL_CB  *write_new_conn_tx_pwr_lvl_cb;
+} tBTA_DM_API_WRITE_NEW_CONN_TX_PWR_LVL;
+#endif // #if (ESP_BT_CLASSIC_ENABLE_POWER_CTRL_VSC == TRUE)
+
+#if (CLASSIC_BT_INCLUDED == TRUE)
+typedef struct {
+    BT_HDR        hdr;
+    tBTM_TX_PWR_LVL_TYPE type;
+    tBTA_CMPL_CB  *read_bredr_tx_pwr_lvl_cb;
+} tBTA_DM_API_READ_BREDR_TX_PWR_LVL;
+
+typedef struct {
+    BT_HDR        hdr;
+    tBTM_TX_PWR_LVL_TYPE type;
+    INT8          tx_power;
+    tBTA_CMPL_CB  *write_bredr_tx_pwr_lvl_cb;
+} tBTA_DM_API_WRITE_BREDR_TX_PWR_LVL;
+#endif // #if (CLASSIC_BT_INCLUDED == TRUE)
 
 typedef struct {
     BT_HDR            hdr;
@@ -1624,6 +1668,15 @@ typedef union {
     tBTA_DM_API_UPDATE_WHITE_LIST white_list;
 #endif  ///BLE_INCLUDED == TRUE
     tBTA_DM_API_READ_RSSI rssi;
+#if (ESP_BT_CLASSIC_ENABLE_POWER_CTRL_VSC == TRUE)
+    tBTA_DM_API_READ_ACL_REAL_RSSI acl_real_rssi;
+    tBTA_DM_API_READ_NEW_CONN_TX_PWR_LVL read_new_conn_tx_pwr_lvl;
+    tBTA_DM_API_WRITE_NEW_CONN_TX_PWR_LVL write_new_conn_tx_pwr_lvl;
+#endif // #if (ESP_BT_CLASSIC_ENABLE_POWER_CTRL_VSC == TRUE)
+#if (CLASSIC_BT_INCLUDED == TRUE)
+    tBTA_DM_API_READ_BREDR_TX_PWR_LVL read_bredr_tx_pwr_lvl;
+    tBTA_DM_API_WRITE_BREDR_TX_PWR_LVL write_bredr_tx_pwr_lvl;
+#endif // #if (CLASSIC_BT_INCLUDED == TRUE)
 
     tBTA_DM_API_READ_CH_MAP ch_map;
 
@@ -2207,6 +2260,15 @@ extern void bta_dm_update_white_list(tBTA_DM_MSG *p_data);
 extern void bta_dm_clear_white_list(tBTA_DM_MSG *p_data);
 extern void bta_dm_ble_read_adv_tx_power(tBTA_DM_MSG *p_data);
 extern void bta_dm_read_rssi(tBTA_DM_MSG *p_data);
+#if (ESP_BT_CLASSIC_ENABLE_POWER_CTRL_VSC == TRUE)
+extern void bta_dm_read_acl_real_rssi(tBTA_DM_MSG *p_data);
+extern void bta_dm_read_new_conn_tx_pwr_lvl(tBTA_DM_MSG *p_data);
+extern void bta_dm_write_new_conn_tx_pwr_lvl(tBTA_DM_MSG *p_data);
+#endif // #if (ESP_BT_CLASSIC_ENABLE_POWER_CTRL_VSC == TRUE)
+#if (CLASSIC_BT_INCLUDED == TRUE)
+extern void bta_dm_read_bredr_tx_pwr_lvl(tBTA_DM_MSG *p_data);
+extern void bta_dm_write_bredr_tx_pwr_lvl(tBTA_DM_MSG *p_data);
+#endif // #if (CLASSIC_BT_INCLUDED == TRUE)
 extern void bta_dm_read_ble_channel_map(tBTA_DM_MSG *p_data);
 #if (CLASSIC_BT_INCLUDED == TRUE)
 extern void bta_dm_set_visibility (tBTA_DM_MSG *p_data);

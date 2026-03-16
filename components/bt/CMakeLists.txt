@@ -400,6 +400,7 @@ if(CONFIG_BT_ENABLED)
                    "host/bluedroid/stack/btm/btm_dev.c"
                    "host/bluedroid/stack/btm/btm_devctl.c"
                    "host/bluedroid/stack/btm/btm_inq.c"
+                   "host/bluedroid/stack/btm/btm_bredr_pwr_ctrl.c"
                    "host/bluedroid/stack/btm/btm_main.c"
                    "host/bluedroid/stack/btm/btm_pm.c"
                    "host/bluedroid/stack/btm/btm_sco.c"

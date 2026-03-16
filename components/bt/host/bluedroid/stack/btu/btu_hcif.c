@@ -1245,7 +1245,10 @@ static void btu_hcif_hdl_command_complete (UINT16 opcode, UINT8 *p, UINT16 evt_l
 
 #if (CLASSIC_BT_INCLUDED == TRUE)
     case HCI_READ_INQ_TX_POWER_LEVEL:
-        btm_read_linq_tx_power_complete (p);
+        btm_read_iscan_tx_power_complete (p);
+        break;
+    case HCI_WRITE_INQ_TX_POWER_LEVEL:
+        btm_write_inq_tx_power_complete(p);
         break;
     case HCI_SET_AFH_CHANNELS:
         btm_set_afh_channels_complete(p);
