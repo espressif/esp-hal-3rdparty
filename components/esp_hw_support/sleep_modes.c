@@ -1058,19 +1058,23 @@ static esp_err_t SLEEP_FN_ATTR esp_sleep_start(uint32_t sleep_flags, uint32_t cl
     // Enable ULP wakeup
 #if CONFIG_ULP_COPROC_TYPE_FSM
     if (s_config.wakeup_triggers & RTC_ULP_TRIG_EN) {
-#elif CONFIG_ULP_COPROC_TYPE_RISCV
-    if (s_config.wakeup_triggers & (RTC_COCPU_TRIG_EN | RTC_COCPU_TRAP_TRIG_EN)) {
-#elif CONFIG_ULP_COPROC_TYPE_LP_CORE
-    if (s_config.wakeup_triggers & (RTC_LP_CORE_TRIG_EN | RTC_LP_CORE_TRAP_TRIG_EN)) {
-#endif
 #ifdef CONFIG_IDF_TARGET_ESP32
         rtc_hal_ulp_wakeup_enable();
-#elif CONFIG_ULP_COPROC_TYPE_LP_CORE
-        pmu_ll_hp_clear_sw_intr_status(&PMU);
 #else
         rtc_hal_ulp_int_clear();
 #endif
     }
+#endif
+#if CONFIG_ULP_COPROC_TYPE_RISCV
+    if (s_config.wakeup_triggers & (RTC_COCPU_TRIG_EN | RTC_COCPU_TRAP_TRIG_EN)) {
+        rtc_hal_ulp_int_clear();
+    }
+#endif
+#if CONFIG_ULP_COPROC_TYPE_LP_CORE
+    if (s_config.wakeup_triggers & (RTC_LP_CORE_TRIG_EN | RTC_LP_CORE_TRAP_TRIG_EN)) {
+        pmu_ll_hp_clear_sw_intr_status(&PMU);
+    }
+#endif
 #endif // CONFIG_ULP_COPROC_ENABLED
 
     misc_modules_sleep_prepare(sleep_flags, deep_sleep);
@@ -1800,7 +1804,10 @@ esp_err_t esp_sleep_enable_ulp_wakeup(void)
     }
 #endif //CONFIG_IDF_TARGET_ESP32
 
-#if CONFIG_ULP_COPROC_TYPE_FSM
+#if CONFIG_ULP_COPROC_TYPE_FSM && CONFIG_ULP_COPROC_TYPE_RISCV
+    s_config.wakeup_triggers |= (RTC_ULP_TRIG_EN | RTC_COCPU_TRIG_EN | RTC_COCPU_TRAP_TRIG_EN);
+    return ESP_OK;
+#elif CONFIG_ULP_COPROC_TYPE_FSM
     s_config.wakeup_triggers |= RTC_ULP_TRIG_EN;
     return ESP_OK;
 #elif CONFIG_ULP_COPROC_TYPE_RISCV
