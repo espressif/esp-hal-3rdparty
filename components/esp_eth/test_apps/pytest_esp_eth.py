@@ -288,6 +288,19 @@ def test_esp_eth_ip101(dut: IdfDut) -> None:
     ethernet_l2_test(dut)
 
 
+@pytest.mark.eth_ip101
+@pytest.mark.parametrize(
+    'config',
+    [
+        'rmii_clko_esp32',
+    ],
+    indirect=True,
+)
+@idf_parametrize('target', ['esp32'], indirect=['target'])
+def test_esp32_emac_clko(dut: IdfDut) -> None:
+    dut.run_all_single_board_cases(group='esp_emac_clk_out')
+
+
 # ----------- IP101 ESP32P4 -----------
 @pytest.mark.parametrize(
     'config, target',

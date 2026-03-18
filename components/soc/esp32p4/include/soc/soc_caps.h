@@ -720,6 +720,7 @@
 #define SOC_EMAC_USE_MULTI_IO_MUX                  (1)      /*!< Multiple GPIO pad options exist to connect EMAC signal via IO_MUX */
 #define SOC_EMAC_MII_USE_GPIO_MATRIX               (1)      /*!< EMAC MII signals are connected to GPIO pads via GPIO Matrix */
 #define SOC_EMAC_SUPPORT_SLEEP_RETENTION           (1)      /*!< EMAC supports register backup/restore in sleep mode */
+#define SOC_EMAC_REF_CLK_FROM_MPLL                 (1)      /*!< RMII REF CLK can use MPLL as internal clock source */
 
 /*--------------------------- JPEG --------------------------------*/
 #define SOC_JPEG_CODEC_SUPPORTED                  (1)

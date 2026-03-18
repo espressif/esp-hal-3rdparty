@@ -16,6 +16,7 @@
 #include "esp_log.h"
 #include "esp_eth_test_utils.h"
 #include "hal/emac_hal.h" // for MAC_HAL_TDES0_* control bits
+#include "clk_ctrl_os.h"
 
 #define ETHERTYPE_TX_STD        0x2222  // frame transmitted via _transmit_frame
 #define ETHERTYPE_TX_MULTI_2    0x2223  // frame transmitted via _transmit_multiple_buf_frame (2 buffers)
@@ -590,6 +591,104 @@ TEST_CASE("internal emac ref rmii clk out", "[esp_emac_clk_out]")
     // EMAC is clocked by it. It does not verify the whole system functionality. As such, it can be executed on the same
     // test boards which are configured to input REF RMII CLK by default with only minor HW modification.
 }
+
+#if SOC_EMAC_REF_CLK_FROM_MPLL
+// Verifies that EMAC can derive 50 MHz RMII clock when MPLL is already in use by another
+// peripheral (e.g. PSRAM). The MPLL frequency is pre-set to typical PSRAM values and EMAC
+// must find an integer divider that produces 50 MHz within the 50 ppm tolerance.
+TEST_CASE("internal emac MPLL shared with PSRAM", "[esp_emac_clk_out][skip_setup_teardown]")
+{
+    uint32_t real_freq = 0;
+    esp_eth_mac_t *mac;
+
+    // Init common MAC and PHY configs to default
+    eth_mac_config_t mac_config = ETH_MAC_DEFAULT_CONFIG();
+
+    // Init vendor specific MAC config to default
+    eth_esp32_emac_config_t esp32_emac_config = ETH_ESP32_EMAC_DEFAULT_CONFIG();
+
+    esp32_emac_config.clock_config.rmii.clock_mode = EMAC_CLK_OUT;
+    esp32_emac_config.clock_config.rmii.clock_gpio = 23;
+
+    esp32_emac_config.clock_config_out_in.rmii.clock_mode = EMAC_CLK_EXT_IN;
+    esp32_emac_config.clock_config_out_in.rmii.clock_gpio = 32;
+
+    // PSRAM default speed: MPLL at 400 MHz — EMAC divider 8 gives exactly 50 MHz
+    ESP_LOGI(TAG, "Verify MPLL at 400 MHz (simulating PSRAM default)");
+    TEST_ESP_OK(periph_rtc_mpll_acquire());
+    TEST_ESP_OK(periph_rtc_mpll_freq_set(400 * 1000000, &real_freq));
+    ESP_LOGI(TAG, "MPLL set to %" PRIu32 " Hz", real_freq);
+
+    mac = esp_eth_mac_new_esp32(&esp32_emac_config, &mac_config);
+    TEST_ASSERT_NOT_NULL(mac);
+    TEST_ESP_OK(mac->del(mac));
+    periph_rtc_mpll_release();
+
+    // PSRAM 250M speed: MPLL at 500 MHz — EMAC divider 10 gives exactly 50 MHz
+    ESP_LOGI(TAG, "Verify MPLL at 500 MHz (simulating PSRAM @ 250M speed)");
+    TEST_ESP_OK(periph_rtc_mpll_acquire());
+    TEST_ESP_OK(periph_rtc_mpll_freq_set(500 * 1000000, &real_freq));
+    ESP_LOGI(TAG, "MPLL set to %" PRIu32 " Hz", real_freq);
+
+    mac = esp_eth_mac_new_esp32(&esp32_emac_config, &mac_config);
+    TEST_ASSERT_NOT_NULL(mac);
+    TEST_ESP_OK(mac->del(mac));
+    periph_rtc_mpll_release();
+
+    // PSRAM 80M speed: MPLL at 320 MHz — no integer divider can produce 50 MHz within tolerance,
+    // see AP_HEX_PSRAM_MPLL_DEFAULT_FREQ_MHZ for reference
+    // Best candidate: 320/6 = 53.33 MHz (error ~3.33 MHz >> 2500 Hz tolerance)
+    ESP_LOGI(TAG, "Verify MPLL at 320 MHz (simulating PSRAM @ 80M speed) — expected to fail");
+    TEST_ESP_OK(periph_rtc_mpll_acquire());
+    TEST_ESP_OK(periph_rtc_mpll_freq_set(320 * 1000000, &real_freq));
+    ESP_LOGI(TAG, "MPLL set to %" PRIu32 " Hz", real_freq);
+
+    mac = esp_eth_mac_new_esp32(&esp32_emac_config, &mac_config);
+    TEST_ASSERT_NULL(mac);
+    periph_rtc_mpll_release();
+}
+#endif // SOC_EMAC_REF_CLK_FROM_MPLL
+
+#if SOC_EMAC_REF_CLK_FROM_APLL
+// Verifies that EMAC can use the APLL when it is already occupied by another peripheral
+// (e.g. I2S). Unlike MPLL, the APLL has no configurable divider — its output feeds the RMII
+// clock directly. So EMAC can only work if the APLL is already at exactly 50 MHz (+/- 50 ppm).
+TEST_CASE("internal emac APLL shared with I2S", "[esp_emac_clk_out][skip_setup_teardown]")
+{
+    uint32_t real_freq = 0;
+    esp_eth_mac_t *mac;
+
+    // Init common MAC and PHY configs to default
+    eth_mac_config_t mac_config = ETH_MAC_DEFAULT_CONFIG();
+
+    // Init vendor specific MAC config to default
+    eth_esp32_emac_config_t esp32_emac_config = ETH_ESP32_EMAC_DEFAULT_CONFIG();
+
+    esp32_emac_config.clock_config.rmii.clock_mode = EMAC_CLK_OUT;
+    esp32_emac_config.clock_config.rmii.clock_gpio = 0;
+
+    // Another peripheral has APLL at 50 MHz — exact RMII clock match, EMAC should succeed
+    ESP_LOGI(TAG, "Verify APLL at 50 MHz (exact RMII clock match)");
+    periph_rtc_apll_acquire();
+    TEST_ESP_OK(periph_rtc_apll_freq_set(50 * 1000000, &real_freq));
+    ESP_LOGI(TAG, "APLL set to %" PRIu32 " Hz", real_freq);
+
+    mac = esp_eth_mac_new_esp32(&esp32_emac_config, &mac_config);
+    TEST_ASSERT_NOT_NULL(mac);
+    TEST_ESP_OK(mac->del(mac));
+    periph_rtc_apll_release();
+
+    // I2S typical frequency: APLL at ~12.288 MHz (48 kHz * 256) — far from 50 MHz, EMAC should fail
+    ESP_LOGI(TAG, "Verify APLL at ~12.288 MHz (simulating I2S @ 48 kHz) — expected to fail");
+    periph_rtc_apll_acquire();
+    TEST_ESP_OK(periph_rtc_apll_freq_set(12288000, &real_freq));
+    ESP_LOGI(TAG, "APLL set to %" PRIu32 " Hz", real_freq);
+
+    mac = esp_eth_mac_new_esp32(&esp32_emac_config, &mac_config);
+    TEST_ASSERT_NULL(mac);
+    periph_rtc_apll_release();
+}
+#endif // SOC_EMAC_REF_CLK_FROM_APLL
 
 // This test skips Ethernet initialization in the setUp and tearDown since different EMAC configurations are tested.
 // As such, allocated resources may not be freed in the tearDown when the test fails. Therefore the tets is run as
