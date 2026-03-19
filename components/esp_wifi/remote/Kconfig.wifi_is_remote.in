@@ -480,3 +480,9 @@ if WIFI_RMT_MODEM_RF_FLAG_UPDATE_DEBUG
         depends on WIFI_RMT_ENHANCED_LIGHT_SLEEP
         default WIFI_RMT_MODEM_RF_FLAG_UPDATE_DEBUG
 endif
+
+if WIFI_RMT_PASSIVE_HIDDEN_AP_SUPPORT
+    config ESP_WIFI_PASSIVE_HIDDEN_AP_SUPPORT # ignore: multiple-definition
+        bool
+        default WIFI_RMT_PASSIVE_HIDDEN_AP_SUPPORT
+endif
