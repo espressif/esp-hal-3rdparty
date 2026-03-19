@@ -573,9 +573,9 @@ FORCE_INLINE_ATTR void pmu_ll_hp_set_memory_power_up(pmu_dev_t *hw, uint32_t fpu
 
 FORCE_INLINE_ATTR void pmu_ll_hp_set_memory_power_on_mask(pmu_dev_t *hw, uint32_t mem_mask)
 {
-    hw->power.mem_mask.mem0_mask = mem_mask & BIT(0);
-    hw->power.mem_mask.mem1_mask = mem_mask & BIT(1);
-    hw->power.mem_mask.mem2_mask = mem_mask & BIT(2);
+    hw->power.mem_mask.mem0_mask = (mem_mask & BIT(0)) ? 1 : 0;
+    hw->power.mem_mask.mem1_mask = (mem_mask & BIT(1)) ? 1 : 0;
+    hw->power.mem_mask.mem2_mask = (mem_mask & BIT(2)) ? 1 : 0;
 }
 
 FORCE_INLINE_ATTR void pmu_ll_hp_set_memory_power_off_mask(pmu_dev_t *hw, uint32_t mem0_pd_mask, uint32_t mem1_pd_mask, uint32_t mem2_pd_mask)

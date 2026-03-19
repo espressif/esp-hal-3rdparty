@@ -369,9 +369,9 @@ FORCE_INLINE_ATTR void pmu_ll_lp_set_bias_xpd(pmu_dev_t *hw, pmu_lp_mode_t mode,
 
 FORCE_INLINE_ATTR void pmu_ll_hp_set_memory_power_on_mask(pmu_dev_t *hw, uint32_t mem_mask)
 {
-    hw->power.mem_mask.mem0_mask = mem_mask & BIT(0);
-    hw->power.mem_mask.mem1_mask = mem_mask & BIT(1);
-    hw->power.mem_mask.mem2_mask = mem_mask & BIT(2);
+    hw->power.mem_mask.mem0_mask = (mem_mask & BIT(0)) ? 1 : 0;
+    hw->power.mem_mask.mem1_mask = (mem_mask & BIT(1)) ? 1 : 0;
+    hw->power.mem_mask.mem2_mask = (mem_mask & BIT(2)) ? 1 : 0;
 }
 
 FORCE_INLINE_ATTR void pmu_ll_hp_set_vdd_flash_tiel_enable(pmu_dev_t *hw, bool enable)
