@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2025-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -36,8 +36,9 @@ extern "C" {
 #define ESP_BLOCKDEV_CMD_SYSTEM_BASE        0x00                                /*!< System commands base value */
 #define ESP_BLOCKDEV_CMD_USER_BASE          0x80                                /*!< User commands base value */
 
-#define ESP_BLOCKDEV_CMD_MARK_DELETED       ESP_BLOCKDEV_CMD_SYSTEM_BASE        /*!< mark given range as invalid, data to be deleted/overwritten eventually */
-#define ESP_BLOCKDEV_CMD_ERASE_CONTENTS     ESP_BLOCKDEV_CMD_SYSTEM_BASE + 1    /*!< erase required range and set the contents to the device's default bit values */
+//      Command name                        Code                                     Description                                                                    Argument type
+#define ESP_BLOCKDEV_CMD_MARK_DELETED       ESP_BLOCKDEV_CMD_SYSTEM_BASE        /*!< mark given range as invalid, data to be deleted/overwritten eventually       [ esp_blockdev_cmd_arg_erase_t* ]*/
+#define ESP_BLOCKDEV_CMD_ERASE_CONTENTS    (ESP_BLOCKDEV_CMD_SYSTEM_BASE + 1)   /*!< erase required range and set the contents to the device's default bit values [ esp_blockdev_cmd_arg_erase_t* ]*/
 
 typedef struct esp_blockdev_cmd_arg_erase_t {
     uint64_t start_addr;                            /*!< IN  - starting address of the disk space to erase/trim/discard/sanitize (in bytes), must be a multiple of erase block size */
