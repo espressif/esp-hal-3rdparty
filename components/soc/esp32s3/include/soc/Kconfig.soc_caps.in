@@ -783,10 +783,6 @@ config SOC_UART_WAKEUP_SUPPORT_ACTIVE_THRESH_MODE
     bool
     default y
 
-config SOC_UHCI_NUM
-    int
-    default 1
-
 config SOC_USB_OTG_PERIPH_NUM
     int
     default 1

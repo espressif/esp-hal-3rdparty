@@ -23,7 +23,6 @@
 #include "driver/uhci.h"
 #include "driver/uhci_types.h"
 #include "hal/uhci_periph.h"
-#include "soc/soc_caps.h"
 #include "hal/uhci_hal.h"
 #include "hal/uhci_ll.h"
 #include "hal/dma_types.h"
@@ -43,7 +42,7 @@ static const char* TAG = "uhci";
 
 typedef struct uhci_platform_t {
     _lock_t mutex;                                      // platform level mutex lock.
-    uhci_controller_handle_t controller[SOC_UHCI_NUM];  // array of UHCI instances.
+    uhci_controller_handle_t controller[UHCI_LL_NUM];  // array of UHCI instances.
 } uhci_platform_t;
 
 static uhci_platform_t s_uhci_platform = {}; // singleton platform
@@ -483,7 +482,7 @@ esp_err_t uhci_new_controller(const uhci_controller_config_t *config, uhci_contr
     // Auto search a free controller
     bool ctrl_found = false;
     _lock_acquire(&s_uhci_platform.mutex);
-    for (int i = 0; i < SOC_UHCI_NUM; i++) {
+    for (int i = 0; i < UHCI_LL_NUM; i++) {
         if (uhci_ctrl_occupied(i) == false) {
             s_uhci_platform.controller[i] = uhci_ctrl;
             ctrl_found = true;
