@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2019-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2019-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -9,12 +9,13 @@
 
 #pragma once
 
+#include <stddef.h>
 #include "hal/ledc_types.h"
 #include "soc/ledc_struct.h"
 #include "soc/ledc_reg.h"
 #include "soc/dport_reg.h"
 
-#define LEDC_LL_GET_HW()           &LEDC
+#define LEDC_LL_GET_HW(group_id)           ((group_id == 0) ? &LEDC : NULL)
 
 #define LEDC_LL_DUTY_NUM_MAX       (LEDC_DUTY_NUM_LSCH0_V)
 #define LEDC_LL_DUTY_CYCLE_MAX     (LEDC_DUTY_CYCLE_LSCH0_V)
@@ -46,10 +47,12 @@ extern "C" {
 /**
  * @brief Enable peripheral register clock
  *
+ * @param group_id  LEDC group ID
  * @param enable    Enable/Disable
  */
-static inline void ledc_ll_enable_bus_clock(bool enable)
+static inline void ledc_ll_enable_bus_clock(int group_id, bool enable)
 {
+    (void)group_id;
     if (enable) {
         DPORT_SET_PERI_REG_MASK(DPORT_PERIP_CLK_EN_REG, DPORT_LEDC_CLK_EN);
     } else {
@@ -66,21 +69,21 @@ static inline void ledc_ll_enable_bus_clock(bool enable)
 
 /**
  * @brief Reset whole peripheral register to init value defined by HW design
+ *
+ * @param group_id  LEDC group ID
  */
-static inline void ledc_ll_enable_reset_reg(bool enable)
+static inline void ledc_ll_reset_register(int group_id)
 {
-    if (enable) {
-        DPORT_SET_PERI_REG_MASK(DPORT_PERIP_RST_EN_REG, DPORT_LEDC_RST);
-    } else {
-        DPORT_CLEAR_PERI_REG_MASK(DPORT_PERIP_RST_EN_REG, DPORT_LEDC_RST);
-    }
+    (void)group_id;
+    DPORT_SET_PERI_REG_MASK(DPORT_PERIP_RST_EN_REG, DPORT_LEDC_RST);
+    DPORT_CLEAR_PERI_REG_MASK(DPORT_PERIP_RST_EN_REG, DPORT_LEDC_RST);
 }
 
 /// use a macro to wrap the function, force the caller to use it in a critical section
 /// the critical section needs to declare the __DECLARE_RCC_ATOMIC_ENV variable in advance
-#define ledc_ll_enable_reset_reg(...) do { \
+#define ledc_ll_reset_register(...) do { \
         (void)__DECLARE_RCC_ATOMIC_ENV; \
-        ledc_ll_enable_reset_reg(__VA_ARGS__); \
+        ledc_ll_reset_register(__VA_ARGS__); \
     } while(0)
 
 /**
@@ -94,13 +97,15 @@ static inline void ledc_ll_enable_mem_power(bool enable)
 /**
  * @brief Enable LEDC function clock
  *
- * @param hw Beginning address of the peripheral registers
+ * @param group_id  LEDC group ID
  * @param en True to enable, false to disable
  *
  * @return None
  */
-static inline void ledc_ll_enable_clock(ledc_dev_t *hw, bool en)
+static inline void ledc_ll_enable_clock(int group_id, bool en)
 {
+    (void)group_id;
+    (void)en;
     //resolve for compatibility
 }
 
