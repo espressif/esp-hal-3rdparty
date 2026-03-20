@@ -164,11 +164,16 @@ static esp_err_t esp_ds_sign(const void *message,
     return esp_ds_finish_sign(signature, data);
 }
 
-static esp_err_t esp_ds_encrypt_params(esp_ds_data_t *data,
-                                       const void *iv,
-                                       const esp_ds_p_data_t *p_data,
-                                       const void *key)
+static esp_err_t esp_ds_encrypt_params_using_key_type(esp_ds_data_t *data,
+                                                      const void *iv,
+                                                      const esp_ds_p_data_t *p_data,
+                                                      const void *key,
+                                                      esp_ds_key_type_t key_type)
 {
+    if (key_type >= ESP_DS_KEY_MAX) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
     if (!p_data) {
         return ESP_ERR_INVALID_ARG;
     }
@@ -188,7 +193,7 @@ static esp_err_t esp_ds_encrypt_params(esp_ds_data_t *data,
     ets_ds_data_t *ds_data = (ets_ds_data_t *) data;
     const ets_ds_p_data_t *ds_plain_data = (const ets_ds_p_data_t *) p_data;
 
-    ets_ds_result_t ets_result = ets_ds_encrypt_params(ds_data, iv, ds_plain_data, key, ETS_DS_KEY_HMAC);
+    ets_ds_result_t ets_result = ets_ds_encrypt_params(ds_data, iv, ds_plain_data, key, (ets_ds_key_t) key_type);
 
     if (ets_result == ETS_DS_INVALID_PARAM) {
         result = ESP_ERR_INVALID_ARG;
@@ -286,11 +291,16 @@ static esp_err_t esp_ds_sign(const void *message,
     return esp_ds_finish_sign(signature, (void *)data);
 }
 
-static esp_err_t esp_ds_encrypt_params(esp_ds_data_t *data,
-                                       const void *iv,
-                                       const esp_ds_p_data_t *p_data,
-                                       const void *key)
+static esp_err_t esp_ds_encrypt_params_using_key_type(esp_ds_data_t *data,
+                                                      const void *iv,
+                                                      const esp_ds_p_data_t *p_data,
+                                                      const void *key,
+                                                      esp_ds_key_type_t key_type)
 {
+    if (key_type >= ESP_DS_KEY_MAX) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
     assert(esp_ptr_internal(p_data) && esp_ptr_word_aligned(p_data));
 
     esp_err_t result = ESP_OK;
@@ -301,7 +311,7 @@ static esp_err_t esp_ds_encrypt_params(esp_ds_data_t *data,
     ets_ds_data_t *ds_data = (ets_ds_data_t *) data;
     const ets_ds_p_data_t *ds_plain_data = (const ets_ds_p_data_t *) p_data;
 
-    ets_ds_result_t ets_result = ets_ds_encrypt_params(ds_data, iv, ds_plain_data, key, ETS_DS_KEY_HMAC);
+    ets_ds_result_t ets_result = ets_ds_encrypt_params(ds_data, iv, ds_plain_data, key, (ets_ds_key_t) key_type);
 
     if (ets_result == ETS_DS_INVALID_PARAM) {
         result = ESP_ERR_INVALID_ARG;
@@ -343,8 +353,8 @@ TEST(ds, digital_signature_parameter_encryption)
         p_data.M_prime = t->p_data.M_prime;
         p_data.length = t->p_data.length;
 
-        esp_err_t r = esp_ds_encrypt_params(&result, t->iv, &p_data,
-                                            test_hmac_keys[t->hmac_key_idx]);
+        esp_err_t r = esp_ds_encrypt_params_using_key_type(&result, t->iv, &p_data,
+                                                           test_hmac_keys[t->hmac_key_idx], ESP_DS_KEY_HMAC);
         ESP_LOGI(TAG, "Encrypting test case %d done", i);
         TEST_ASSERT_EQUAL(ESP_OK, r);
         TEST_ASSERT_EQUAL(t->p_data.length, result.rsa_length);
