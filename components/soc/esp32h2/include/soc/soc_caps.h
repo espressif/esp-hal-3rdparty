@@ -258,10 +258,6 @@
 /*-------------------------- ETM CAPS -----------------------------------*/
 #define SOC_ETM_SUPPORT_SLEEP_RETENTION 1
 
-/*------------------------- Analog Comparator CAPS ---------------------------*/
-#define SOC_ANA_CMPR_NUM                    (1U)
-#define SOC_ANA_CMPR_INTR_SHARE_WITH_GPIO   (1)
-
 /*-------------------------- I2C CAPS ----------------------------------------*/
 #define SOC_I2C_NUM                             (2U)
 #define SOC_HP_I2C_NUM                          (2U)
