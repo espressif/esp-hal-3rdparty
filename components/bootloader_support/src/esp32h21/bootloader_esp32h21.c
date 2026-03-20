@@ -37,6 +37,7 @@
 #include "hal/mmu_hal.h"
 #include "hal/cache_hal.h"
 #include "hal/lpwdt_ll.h"
+#include "hal/brownout_ll.h"
 #include "soc/lp_wdt_reg.h"
 #include "soc/pmu_reg.h"
 #include "hal/efuse_hal.h"
@@ -96,8 +97,7 @@ static inline void bootloader_ana_reset_config(void)
     //Enable super WDT reset.
     bootloader_ana_super_wdt_reset_config(true);
     //Enable BOD reset (mode1)
-    //TODO: [ESP32H21] IDF-11530
-    // brownout_ll_ana_reset_enable(true);
+    brownout_ll_ana_reset_enable(true);
 }
 
 esp_err_t bootloader_init(void)
