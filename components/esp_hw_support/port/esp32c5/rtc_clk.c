@@ -177,10 +177,6 @@ static FORCE_IRAM_ATTR void rtc_clk_cpu_freq_to_xtal(int cpu_freq, int div)
     clk_ll_cpu_set_src(SOC_CPU_CLK_SRC_XTAL);
     clk_ll_bus_update();
     esp_rom_set_cpu_ticks_per_us(cpu_freq);
-#if CONFIG_ESP_ENABLE_PVT && !defined(BOOTLOADER_BUILD)
-    charge_pump_enable(false);
-    pvt_func_enable(false);
-#endif
 }
 
 static void rtc_clk_cpu_freq_to_rc_fast(void)
@@ -190,10 +186,6 @@ static void rtc_clk_cpu_freq_to_rc_fast(void)
     clk_ll_cpu_set_src(SOC_CPU_CLK_SRC_RC_FAST);
     clk_ll_bus_update();
     esp_rom_set_cpu_ticks_per_us(20);
-#if CONFIG_ESP_ENABLE_PVT && !defined(BOOTLOADER_BUILD)
-    charge_pump_enable(false);
-    pvt_func_enable(false);
-#endif
 }
 
 /**
@@ -464,6 +456,10 @@ FORCE_IRAM_ATTR void rtc_clk_cpu_set_to_default_config(void)
 void rtc_clk_cpu_freq_set_xtal_for_sleep(void)
 {
     rtc_clk_cpu_set_to_default_config();
+#if CONFIG_ESP_ENABLE_PVT && !defined(BOOTLOADER_BUILD)
+    charge_pump_enable(false);
+    pvt_func_enable(false);
+#endif
 }
 
 #ifndef BOOTLOADER_BUILD
