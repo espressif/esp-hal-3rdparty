@@ -37,16 +37,19 @@ static uint8_t get_lp_hp_gap(void)
         uint8_t offset_read = efuse_ll_get_dbias_vol_gap();
         bool offset_flag = offset_read >> 4;
         uint8_t offset_value = offset_read & 0xf;
-        int8_t pvt_offset = 0;
         if (offset_flag) {
             pvt_offset = -1 * offset_value;
         } else {
             pvt_offset = offset_value;
         }
         pvt_offset = pvt_offset - 2;
-        assert((pvt_offset >= -15) && (pvt_offset <= 13));
-        if (pvt_offset < 0 ) {
-            pvt_offset = 16 - pvt_offset;
+        if (pvt_offset < 0) {
+            if (pvt_offset >= -15) {
+                pvt_offset = 16 - pvt_offset;
+            } else {
+                // pvt offset value only has 4 bit
+                pvt_offset = 31;
+            }
         }
     }
     return pvt_offset;
