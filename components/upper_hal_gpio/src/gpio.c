@@ -20,6 +20,7 @@
 #include "esp_log.h"
 #include "esp_check.h"
 #include "hal/gpio_hal.h"
+#include "hal/gpio_caps.h"
 #include "esp_private/esp_gpio_reserve.h"
 #include "esp_private/io_mux.h"
 #include "esp_private/periph_ctrl.h"
@@ -651,7 +652,7 @@ esp_err_t gpio_isr_register(void (*fn)(void *), void *arg, int intr_alloc_flags,
     gpio_isr_alloc_t p;
     p.source = GPIO_LL_INTR_SOURCE0;
     p.intr_alloc_flags = intr_alloc_flags;
-#if SOC_ANA_CMPR_INTR_SHARE_WITH_GPIO
+#if GPIO_CAPS_GET(INTR_SHARED)
     p.intr_alloc_flags |= ESP_INTR_FLAG_SHARED;
 #endif
     p.fn = fn;
