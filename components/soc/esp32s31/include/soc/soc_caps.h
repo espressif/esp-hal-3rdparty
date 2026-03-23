@@ -60,7 +60,7 @@
 #define SOC_GPSPI_SUPPORTED             1
 #define SOC_LEDC_SUPPORTED              1
 // #define SOC_ISP_SUPPORTED               1      // TODO: [ESP32S31] IDF-14769
-// #define SOC_I2C_SUPPORTED               1      // TODO: [ESP32S31] IDF-14726
+#define SOC_I2C_SUPPORTED               1
 #define SOC_SYSTIMER_SUPPORTED          1         // TODO: [ESP32S31] IDF-14693
 // #define SOC_AES_SUPPORTED               1      // TODO: [ESP32S31] IDF-14633
 // #define SOC_MPI_SUPPORTED               1      // TODO: [ESP32S31] IDF-14633
@@ -79,7 +79,7 @@
 // #define SOC_ULP_LP_UART_SUPPORTED       1      // TODO: [ESP32S31] IDF-14634
 #define SOC_LP_GPIO_MATRIX_SUPPORTED    1
 #define SOC_LP_PERIPHERALS_SUPPORTED    1
-// #define SOC_LP_I2C_SUPPORTED            1      // TODO: [ESP32S31] IDF-14635
+#define SOC_LP_I2C_SUPPORTED            1
 // #define SOC_LP_SPI_SUPPORTED            1      // TODO: [ESP32S31] IDF-14639
 #define SOC_SPIRAM_SUPPORTED            1      // TODO: [ESP32S31] IDF-14718
 #define SOC_PSRAM_DMA_CAPABLE           1
@@ -229,6 +229,21 @@
 #define SOC_RMT_SUPPORT_TX_LOOP_AUTO_STOP     1  /*!< Hardware support of auto-stop in loop mode */
 #define SOC_RMT_SUPPORT_DMA                   1  /*!< RMT peripheral can connect to DMA channel */
 #define SOC_RMT_SUPPORT_SLEEP_RETENTION       1  /*!< The sleep retention feature can help back up RMT registers before sleep */
+
+/*-------------------------- I2C CAPS ----------------------------------------*/
+#define SOC_I2C_NUM                             (3U)
+#define SOC_HP_I2C_NUM                          (2U)
+#define SOC_LP_I2C_NUM                          (1U)
+
+#define SOC_I2C_SUPPORT_XTAL                    (1)
+#define SOC_I2C_SUPPORT_RTC                     (1)
+#define SOC_I2C_SUPPORT_10BIT_ADDR              (1)
+
+#define SOC_I2C_SUPPORT_SLAVE                   (1)
+#define SOC_I2C_SLAVE_SUPPORT_BROADCAST         (1)
+#define SOC_I2C_SLAVE_CAN_GET_STRETCH_CAUSE     (1)
+
+#define SOC_I2C_SUPPORT_SLEEP_RETENTION         (1)
 
 /*-------------------------- MMU CAPS ----------------------------------------*/
 #define SOC_MMU_PERIPH_NUM                    (2U)
