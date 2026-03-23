@@ -13,7 +13,6 @@
 #include "esp_log_level.h"
 #include "esp_assert.h"
 #include "sdkconfig.h"
-#include "esp_rom_caps.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -122,10 +121,10 @@ extern "C" {
  * On chips where ets_vprintf is in ROM (ESP32-S2, ESP32-C2), this is always enabled
  * since there is no IRAM cost.
  */
-#if BOOTLOADER_BUILD || ESP_ROM_HAS_VPRINTF_FUNC
+#if BOOTLOADER_BUILD || CONFIG_ESP_ROM_HAS_VPRINTF_FUNC
 #define ESP_LOG_API_CONSTRAINED_ENV_SAFE  (1)
 #else
-#ifdef CONFIG_LOG_API_CONSTRAINED_ENV_SAFE
+#if defined(CONFIG_LOG_API_CONSTRAINED_ENV_SAFE) || defined(CONFIG_LOG_MODE_BINARY_EN)
 #define ESP_LOG_API_CONSTRAINED_ENV_SAFE  (1)
 #else
 #define ESP_LOG_API_CONSTRAINED_ENV_SAFE  (0)
