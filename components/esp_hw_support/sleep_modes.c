@@ -995,6 +995,12 @@ static esp_err_t FORCE_IRAM_ATTR esp_sleep_start_safe(uint32_t sleep_flags, uint
 #endif // !SOC_MSPI_HAS_INDEPENT_IOMUX
         }
 #endif
+#if CONFIG_ESP_SLEEP_SET_FLASH_DPD
+        if (sleep_flags & RTC_SLEEP_FLASH_DPD) {
+            //Release Flash out from deep powerdown mode
+            spi_flash_enable_deep_power_down_mode(false);
+        }
+#endif
         /* Cache Resume 1: Resume cache for continue running*/
         resume_cache();
 #if CONFIG_PM_SLP_SPIRAM_HALFSLEEP_ENABLED && CONFIG_SPIRAM_XIP_FROM_PSRAM
@@ -1406,12 +1412,6 @@ static SLEEP_FN_ATTR esp_err_t esp_light_sleep_inner(uint32_t sleep_flags, uint3
         // Wait for the flash chip to start up
         esp_rom_delay_us(flash_enable_time_us);
     } else {
-#if CONFIG_ESP_SLEEP_SET_FLASH_DPD
-        if (sleep_flags & RTC_SLEEP_FLASH_DPD) {
-            //Release Flash out from deep powerdown mode
-            spi_flash_enable_deep_power_down_mode(false);
-        }
-#endif
     }
 
 #if CONFIG_ESP_SLEEP_CACHE_SAFE_ASSERTION
