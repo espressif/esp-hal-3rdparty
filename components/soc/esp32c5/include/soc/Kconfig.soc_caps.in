@@ -235,6 +235,10 @@ config SOC_WDT_SUPPORTED
     bool
     default y
 
+config SOC_RTC_WDT_SUPPORTED
+    bool
+    default y
+
 config SOC_SDIO_SLAVE_SUPPORTED
     bool
     default y

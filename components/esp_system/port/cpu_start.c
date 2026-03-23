@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2015-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -64,8 +64,10 @@
 #include "esp_memprot.h"
 #elif CONFIG_IDF_TARGET_ESP32H4
 #include "esp_memprot.h"
+#elif CONFIG_IDF_TARGET_ESP32S31
 #endif
 
+#include "rom/ets_sys.h"
 #include "esp_private/cache_utils.h"
 #include "esp_private/rtc_clk.h"
 #include "esp_rtc_time.h"
@@ -92,7 +94,9 @@
 #include "esp_private/crosscore_int.h"
 
 #include "esp_private/sleep_gpio.h"
+#if SOC_WDT_SUPPORTED || SOC_RTC_WDT_SUPPORTED
 #include "hal/wdt_hal.h"
+#endif
 #include "soc/rtc.h"
 #include "hal/cache_hal.h"
 #include "hal/cache_ll.h"
@@ -564,6 +568,7 @@ FORCE_INLINE_ATTR IRAM_ATTR void ext_mem_init(void)
 
 MSPI_INIT_ATTR void sys_rtc_init(const soc_reset_reason_t *rst_reas)
 {
+#if SOC_RTC_WDT_SUPPORTED
 #if CONFIG_IDF_TARGET_ESP32P4
 #define RWDT_RESET           RESET_REASON_CORE_RWDT
 #define MWDT_RESET           RESET_REASON_CORE_MWDT
@@ -585,6 +590,7 @@ MSPI_INIT_ATTR void sys_rtc_init(const soc_reset_reason_t *rst_reas)
         wdt_hal_write_protect_enable(&rtc_wdt_ctx);
     }
 #endif
+#endif /* SOC_RTC_WDT_SUPPORTED */
 
     // Configure the power related stuff. After this the MSPI timing tuning can be done.
     esp_rtc_init();

@@ -19,7 +19,9 @@
 #include "esp_private/startup_internal.h"
 #include "freertos/FreeRTOS.h"
 #include "soc/soc_caps.h"
+#if SOC_WDT_SUPPORTED || SOC_RTC_WDT_SUPPORTED
 #include "hal/wdt_hal.h"
+#endif
 #include "hal/uart_types.h"
 #include "hal/uart_ll.h"
 
@@ -134,7 +136,7 @@ ESP_SYSTEM_INIT_FN(init_bootloader_offset, SECONDARY, BIT(0), 205)
 }
 #endif // SOC_RECOVERY_BOOTLOADER_SUPPORTED
 
-#ifndef CONFIG_BOOTLOADER_WDT_DISABLE_IN_USER_CODE
+#if SOC_RTC_WDT_SUPPORTED && !defined(CONFIG_BOOTLOADER_WDT_DISABLE_IN_USER_CODE)
 ESP_SYSTEM_INIT_FN(init_disable_rtc_wdt, SECONDARY, BIT(0), 999)
 {
     wdt_hal_context_t rtc_wdt_ctx = RWDT_HAL_CONTEXT_DEFAULT();
@@ -143,4 +145,4 @@ ESP_SYSTEM_INIT_FN(init_disable_rtc_wdt, SECONDARY, BIT(0), 999)
     wdt_hal_write_protect_enable(&rtc_wdt_ctx);
     return ESP_OK;
 }
-#endif // CONFIG_BOOTLOADER_WDT_DISABLE_IN_USER_CODE
+#endif // SOC_RTC_WDT_SUPPORTED && !CONFIG_BOOTLOADER_WDT_DISABLE_IN_USER_CODE

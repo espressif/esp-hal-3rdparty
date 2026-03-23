@@ -106,6 +106,7 @@
 #define SOC_ASSIST_DEBUG_SUPPORTED      1
 #define SOC_DEBUG_PROBE_SUPPORTED       1
 #define SOC_WDT_SUPPORTED               1
+#define SOC_RTC_WDT_SUPPORTED           1
 #define SOC_SPI_FLASH_SUPPORTED         1
 #define SOC_TOUCH_SENSOR_SUPPORTED      1
 #define SOC_RNG_SUPPORTED               1

@@ -93,6 +93,7 @@
 #define SOC_CLK_TREE_SUPPORTED          1
 #define SOC_MPU_SUPPORTED               1
 #define SOC_WDT_SUPPORTED               1
+#define SOC_RTC_WDT_SUPPORTED           1
 #define SOC_SPI_FLASH_SUPPORTED         1
 #define SOC_RNG_SUPPORTED               1
 #define SOC_LIGHT_SLEEP_SUPPORTED       1
