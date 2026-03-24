@@ -26,14 +26,14 @@
 #endif
 
 #if ESP_ROM_HAS_LP_ROM
-extern uint32_t _rtc_ulp_memory_start;
+extern uint8_t _rtc_ulp_memory_start[];
 #endif //ESP_ROM_HAS_LP_ROM
 
 const static char* TAG = "ulp-lp-core";
 
 #define WAKEUP_SOURCE_MAX_NUMBER 6
 
-#define RESET_HANDLER_ADDR ((intptr_t)&_rtc_ulp_memory_start + 0x80) // Placed after the 0x80 byte long vector table
+#define RESET_HANDLER_ADDR ((intptr_t)_rtc_ulp_memory_start + 0x80) // Placed after the 0x80 byte long vector table
 
 /* Maps the flags defined in ulp_lp_core.h e.g. ULP_LP_CORE_WAKEUP_SOURCE_HP_CPU to their actual HW values */
 static uint32_t wakeup_src_sw_to_hw_flag_lookup[WAKEUP_SOURCE_MAX_NUMBER] = {
@@ -157,7 +157,7 @@ esp_err_t ulp_lp_core_load_binary(const uint8_t* program_binary, size_t program_
     /* Turn off LP CPU before loading binary */
     ulp_lp_core_stop();
 #if ESP_ROM_HAS_LP_ROM
-    uint32_t* base = (uint32_t*)&_rtc_ulp_memory_start;
+    uint32_t* base = (uint32_t*)_rtc_ulp_memory_start;
 #else
     uint32_t* base = RTC_SLOW_MEM;
 #endif
