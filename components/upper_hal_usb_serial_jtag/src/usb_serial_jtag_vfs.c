@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2015-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -25,6 +25,7 @@
 #include "driver/usb_serial_jtag_select.h"
 #include "driver/usb_serial_jtag_vfs.h"
 #include "driver/usb_serial_jtag.h"
+#include "driver/esp_private/usb_serial_jtag_vfs.h"
 #include "esp_private/startup_internal.h"
 #include "esp_heap_caps.h"
 
@@ -680,6 +681,36 @@ ESP_SYSTEM_INIT_FN(init_vfs_usj, CORE, BIT(0), 111)
     usb_serial_jtag_vfs_register();
     return ESP_OK;
 }
+
+esp_err_t usb_serial_jtag_vfs_dev_port_init(const esp_console_dev_usb_serial_jtag_config_t *config,
+                                            esp_line_endings_t rx_mode,
+                                            esp_line_endings_t tx_mode)
+{
+    (void)config;
+
+    usb_serial_jtag_vfs_set_rx_line_endings(rx_mode);
+    usb_serial_jtag_vfs_set_tx_line_endings(tx_mode);
+
+    /* Install USB-SERIAL-JTAG driver for interrupt-driven reads and writes */
+    usb_serial_jtag_driver_config_t usb_serial_jtag_config = USB_SERIAL_JTAG_DRIVER_CONFIG_DEFAULT();
+    esp_err_t ret = usb_serial_jtag_driver_install(&usb_serial_jtag_config);
+    if (ret != ESP_OK) {
+        return ret;
+    }
+
+    /* Tell vfs to use usb-serial-jtag driver */
+    usb_serial_jtag_vfs_use_driver();
+
+    return ESP_OK;
+}
+
+void usb_serial_jtag_vfs_dev_port_deinit(const esp_console_dev_usb_serial_jtag_config_t *config)
+{
+    (void)config;
+    usb_serial_jtag_vfs_use_nonblocking();
+    usb_serial_jtag_driver_uninstall();
+}
+
 #endif
 
 #if CONFIG_ESP_CONSOLE_SECONDARY_USB_SERIAL_JTAG
