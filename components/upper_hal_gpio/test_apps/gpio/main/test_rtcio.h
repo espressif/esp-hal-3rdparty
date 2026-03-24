@@ -99,7 +99,7 @@ const int s_test_map[TEST_GPIO_PIN_COUNT] = {
 };
 #define TEST_RTCIO_INTR_PIN_INDEX       5 // IO6
 #define TEST_RTCIO_DEEP_SLEEP_PIN_INDEX 5 // IO6
-#elif CONFIG_IDF_TARGET_ESP32C6
+#elif CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32S31
 // Has no input-only rtcio pins, all pins support pull-up/down
 #define RTCIO_SUPPORT_PU_PD(num)    1
 #define TEST_GPIO_PIN_COUNT 8

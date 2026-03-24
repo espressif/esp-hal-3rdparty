@@ -923,7 +923,7 @@ esp_err_t _uart_set_pin6(uart_port_t uart_num, int tx_io_num, int rx_io_num, int
             if (uart_num < SOC_UART_HP_NUM) {
                 gpio_matrix_output(tx_io_num, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_TX), false, false);
             }
-#if SOC_LP_GPIO_MATRIX_SUPPORTED
+#if SOC_LP_GPIO_MATRIX_SUPPORTED && (SOC_UART_LP_NUM >= 1)
             else {
                 rtc_gpio_init(tx_io_num); // set as a LP_GPIO pin
                 lp_gpio_connect_out_signal(tx_io_num, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_TX), 0, 0);
@@ -946,7 +946,7 @@ esp_err_t _uart_set_pin6(uart_port_t uart_num, int tx_io_num, int rx_io_num, int
             if (uart_num < SOC_UART_HP_NUM) {
                 gpio_matrix_input(rx_io_num, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_RX), false);
             }
-#if SOC_LP_GPIO_MATRIX_SUPPORTED
+#if SOC_LP_GPIO_MATRIX_SUPPORTED && (SOC_UART_LP_NUM >= 1)
             else {
                 rtc_gpio_mode_t mode = (tx_rx_same_io ? RTC_GPIO_MODE_INPUT_OUTPUT : RTC_GPIO_MODE_INPUT_ONLY);
                 rtc_gpio_set_direction(rx_io_num, mode);
@@ -964,7 +964,7 @@ esp_err_t _uart_set_pin6(uart_port_t uart_num, int tx_io_num, int rx_io_num, int
         if (uart_num < SOC_UART_HP_NUM) {
             gpio_matrix_output(rts_io_num, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_RTS), false, false);
         }
-#if SOC_LP_GPIO_MATRIX_SUPPORTED
+#if SOC_LP_GPIO_MATRIX_SUPPORTED && (SOC_UART_LP_NUM >= 1)
         else {
             rtc_gpio_init(rts_io_num); // set as a LP_GPIO pin
             lp_gpio_connect_out_signal(rts_io_num, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_RTS), 0, 0);
@@ -978,7 +978,7 @@ esp_err_t _uart_set_pin6(uart_port_t uart_num, int tx_io_num, int rx_io_num, int
         if (uart_num < SOC_UART_HP_NUM) {
             gpio_matrix_input(cts_io_num, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_CTS), false);
         }
-#if SOC_LP_GPIO_MATRIX_SUPPORTED
+#if SOC_LP_GPIO_MATRIX_SUPPORTED && (SOC_UART_LP_NUM >= 1)
         else {
             rtc_gpio_set_direction(cts_io_num, RTC_GPIO_MODE_INPUT_ONLY);
             rtc_gpio_init(cts_io_num); // set as a LP_GPIO pin
@@ -991,7 +991,7 @@ esp_err_t _uart_set_pin6(uart_port_t uart_num, int tx_io_num, int rx_io_num, int
         if (uart_num < SOC_UART_HP_NUM) {
             gpio_matrix_output(dtr_io_num, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_DTR), false, false);
         }
-#if SOC_LP_GPIO_MATRIX_SUPPORTED
+#if SOC_LP_GPIO_MATRIX_SUPPORTED && (SOC_UART_LP_NUM >= 1)
         else {
             rtc_gpio_init(dtr_io_num); // set as a LP_GPIO pin
             lp_gpio_connect_out_signal(dtr_io_num, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_DTR), 0, 0);
@@ -1005,7 +1005,7 @@ esp_err_t _uart_set_pin6(uart_port_t uart_num, int tx_io_num, int rx_io_num, int
         if (uart_num < SOC_UART_HP_NUM) {
             gpio_matrix_input(dsr_io_num, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_DSR), false);
         }
-#if SOC_LP_GPIO_MATRIX_SUPPORTED
+#if SOC_LP_GPIO_MATRIX_SUPPORTED && (SOC_UART_LP_NUM >= 1)
         else {
             rtc_gpio_set_direction(dsr_io_num, RTC_GPIO_MODE_INPUT_ONLY);
             rtc_gpio_init(dsr_io_num); // set as a LP_GPIO pin
