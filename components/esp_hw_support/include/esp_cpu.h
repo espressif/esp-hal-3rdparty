@@ -154,8 +154,10 @@ FORCE_INLINE_ATTR __attribute__((always_inline)) int esp_cpu_get_curr_privilege_
 #else
 #if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C2
     return PRV_M;
-#else
+#elif defined(CSR_PRV_MODE)
     return RV_READ_CSR(CSR_PRV_MODE);
+#else
+    return -1;
 #endif
 #endif
 }
