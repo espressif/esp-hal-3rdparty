@@ -18,10 +18,6 @@
 #define GDMA_LL_AHB_BURST_SIZE_ADJUSTABLE 1  // AHB GDMA supports adjustable burst size
 #define GDMA_LL_MAX_BURST_SIZE_PSRAM      32 // PSRAM controller doesn't support burst access with size > 32 bytes
 
-// GDMA supported burst sizes
-#define GDMA_LL_SUPPORTED_BURST_SIZES_ARRAY  { 4, 16, 32, 64 }
-#define GDMA_LL_SUPPORTED_BURST_SIZES_STR    "4, 16, 32, 64"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
