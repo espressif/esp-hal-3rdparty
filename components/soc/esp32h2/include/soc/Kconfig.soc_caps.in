@@ -1067,10 +1067,6 @@ config SOC_UART_WAKEUP_SUPPORT_CHAR_SEQ_MODE
     bool
     default y
 
-config SOC_UHCI_NUM
-    int
-    default 1
-
 config SOC_COEX_HW_PTI
     bool
     default y

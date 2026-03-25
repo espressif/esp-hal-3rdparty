@@ -1,17 +1,14 @@
 /*
- * SPDX-FileCopyrightText: 2020-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-
-// The LL layer for UHCI register operations.
-// Note that most of the register operations in this layer are non-atomic operations.
 
 #pragma once
 #include <stdio.h>
 #include "hal/uhci_types.h"
 #include "soc/uhci_struct.h"
-#include "soc/system_struct.h"
+#include "soc/pcr_struct.h"
 #include "hal/misc.h"
 
 #define UHCI_LL_NUM (1UL)
@@ -35,42 +32,27 @@ typedef enum {
  * @param group_id Group ID
  * @param enable true to enable, false to disable
  */
-static inline void _uhci_ll_enable_bus_clock(int group_id, bool enable)
+static inline void uhci_ll_enable_bus_clock(int group_id, bool enable)
 {
     (void)group_id;
-    SYSTEM.perip_clk_en0.reg_uhci0_clk_en = enable;
+    PCR.uhci_conf.uhci_clk_en = enable;
 }
-
-/// use a macro to wrap the function, force the caller to use it in a critical section
-/// the critical section needs to declare the __DECLARE_RCC_ATOMIC_ENV variable in advance
-#define uhci_ll_enable_bus_clock(...) do { \
-        (void)__DECLARE_RCC_ATOMIC_ENV; \
-        _uhci_ll_enable_bus_clock(__VA_ARGS__); \
-    } while(0)
 
 /**
  * @brief Reset the UHCI module
  *
  * @param group_id Group ID
  */
-static inline void _uhci_ll_reset_register(int group_id)
+static inline void uhci_ll_reset_register(int group_id)
 {
     (void)group_id;
-    SYSTEM.perip_rst_en0.reg_uhci0_rst = 1;
-    SYSTEM.perip_rst_en0.reg_uhci0_rst = 0;
+    PCR.uhci_conf.uhci_rst_en = 1;
+    PCR.uhci_conf.uhci_rst_en = 0;
 }
-
-/// use a macro to wrap the function, force the caller to use it in a critical section
-/// the critical section needs to declare the __DECLARE_RCC_ATOMIC_ENV variable in advance
-#define uhci_ll_reset_register(...) do { \
-        (void)__DECLARE_RCC_ATOMIC_ENV; \
-        _uhci_ll_reset_register(__VA_ARGS__); \
-    } while(0)
 
 static inline void uhci_ll_init(uhci_dev_t *hw)
 {
     typeof(hw->conf0) conf0_reg;
-    hw->conf0.clk_en = 1;
     conf0_reg.val = 0;
     conf0_reg.clk_en = 1;
     hw->conf0.val = conf0_reg.val;
@@ -113,12 +95,12 @@ static inline void uhci_ll_set_swflow_ctrl_sub_chr(uhci_dev_t *hw, uhci_swflow_c
         typeof(hw->esc_conf3) esc_conf3_reg;
         esc_conf3_reg.val = hw->esc_conf3.val;
 
-        HAL_FORCE_MODIFY_U32_REG_FIELD(esc_conf2_reg, seq1, sub_ctr->xon_chr);
-        HAL_FORCE_MODIFY_U32_REG_FIELD(esc_conf2_reg, seq1_char0, sub_ctr->xon_sub1);
-        HAL_FORCE_MODIFY_U32_REG_FIELD(esc_conf2_reg, seq1_char1, sub_ctr->xon_sub2);
-        HAL_FORCE_MODIFY_U32_REG_FIELD(esc_conf3_reg, seq2, sub_ctr->xoff_chr);
-        HAL_FORCE_MODIFY_U32_REG_FIELD(esc_conf3_reg, seq2_char0, sub_ctr->xoff_sub1);
-        HAL_FORCE_MODIFY_U32_REG_FIELD(esc_conf3_reg, seq2_char1, sub_ctr->xoff_sub2);
+        HAL_FORCE_MODIFY_U32_REG_FIELD(esc_conf2_reg, esc_seq1, sub_ctr->xon_chr);
+        HAL_FORCE_MODIFY_U32_REG_FIELD(esc_conf2_reg, esc_seq1_char0, sub_ctr->xon_sub1);
+        HAL_FORCE_MODIFY_U32_REG_FIELD(esc_conf2_reg, esc_seq1_char1, sub_ctr->xon_sub2);
+        HAL_FORCE_MODIFY_U32_REG_FIELD(esc_conf3_reg, esc_seq2, sub_ctr->xoff_chr);
+        HAL_FORCE_MODIFY_U32_REG_FIELD(esc_conf3_reg, esc_seq2_char0, sub_ctr->xoff_sub1);
+        HAL_FORCE_MODIFY_U32_REG_FIELD(esc_conf3_reg, esc_seq2_char1, sub_ctr->xoff_sub2);
         escape_conf_reg.tx_11_esc_en = 1;
         escape_conf_reg.tx_13_esc_en = 1;
         escape_conf_reg.rx_11_esc_en = 1;
@@ -169,7 +151,7 @@ static inline void uhci_ll_rx_set_eof_mode(uhci_dev_t *hw, uint32_t eof_mode)
 
 static inline void uhci_ll_rx_set_packet_threshold(uhci_dev_t *hw, uint16_t length)
 {
-    hw->pkt_thres.thrs = length;
+    hw->pkt_thres.pkt_thrs = length;
 }
 
 #ifdef __cplusplus
