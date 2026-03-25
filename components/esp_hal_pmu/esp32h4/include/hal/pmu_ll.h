@@ -578,13 +578,6 @@ FORCE_INLINE_ATTR void pmu_ll_hp_set_memory_power_on_mask(pmu_dev_t *hw, uint32_
     hw->power.mem_mask.mem2_mask = (mem_mask & BIT(2)) ? 1 : 0;
 }
 
-FORCE_INLINE_ATTR void pmu_ll_hp_set_memory_power_off_mask(pmu_dev_t *hw, uint32_t mem0_pd_mask, uint32_t mem1_pd_mask, uint32_t mem2_pd_mask)
-{
-    hw->power.mem_mask.mem0_pd_mask = mem0_pd_mask;
-    hw->power.mem_mask.mem1_pd_mask = mem1_pd_mask;
-    hw->power.mem_mask.mem2_pd_mask = mem2_pd_mask;
-}
-
 FORCE_INLINE_ATTR void pmu_ll_hp_set_vdd_flash_tiel_enable(pmu_dev_t *hw, bool enable)
 {
     hw->power.vdd_flash.ldo_tiel_en = enable;
