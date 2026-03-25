@@ -59,6 +59,7 @@
 #define SOC_CLK_TREE_SUPPORTED          1
 #define SOC_ASSIST_DEBUG_SUPPORTED      1
 #define SOC_WDT_SUPPORTED               1
+#define SOC_RTC_WDT_SUPPORTED           1
 #define SOC_SPI_FLASH_SUPPORTED         1
 #define SOC_MODEM_CLOCK_SUPPORTED       1
 #define SOC_REG_I2C_SUPPORTED           1

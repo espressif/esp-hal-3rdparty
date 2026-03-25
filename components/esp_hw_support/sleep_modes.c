@@ -68,7 +68,9 @@
 
 #include "hal/cache_ll.h"
 #include "hal/clk_tree_ll.h"
+#if SOC_WDT_SUPPORTED || SOC_RTC_WDT_SUPPORTED || SOC_SLEEP_TGWDT_STOP_WORKAROUND
 #include "hal/wdt_hal.h"
+#endif
 #include "hal/uart_hal.h"
 #if SOC_TOUCH_SENSOR_SUPPORTED
 #include "hal/touch_sens_hal.h"
@@ -367,7 +369,7 @@ void esp_sleep_overhead_out_time_refresh(void)
 static uint32_t get_power_down_flags(void);
 static uint32_t get_sleep_flags(uint32_t pd_flags, bool deepsleep);
 static uint32_t get_sleep_clock_icg_flags(void);
-#if CONFIG_ESP_SLEEP_ENABLE_RTC_WDT_IN_SLEEP
+#if CONFIG_ESP_SLEEP_ENABLE_RTC_WDT_IN_SLEEP && SOC_RTC_WDT_SUPPORTED
 static uint32_t get_sleep_rtc_wdt_timeout(uint64_t sleep_duration);
 static uint32_t calc_sleep_slow_clk_required_cycles(uint32_t timeout, uint32_t rtc_slow_clk_cal_period);
 #endif
@@ -740,7 +742,7 @@ static SLEEP_FN_ATTR void misc_modules_wake_prepare(uint32_t sleep_flags)
     pvt_func_enable(true);
 #endif
 
-#if CONFIG_PM_POWER_DOWN_PERIPHERAL_IN_LIGHT_SLEEP
+#if CONFIG_PM_POWER_DOWN_PERIPHERAL_IN_LIGHT_SLEEP && SOC_WDT_SUPPORTED
     if (sleep_flags & PMU_SLEEP_PD_TOP) {
         // There is no driver to manage the flashboot watchdog, and it is definitely be in off state when
         // the system is running, after waking up from pd_top sleep, shut it down by software here.
@@ -796,6 +798,7 @@ static SLEEP_FN_ATTR void misc_modules_wake_prepare(uint32_t sleep_flags)
  */
 static SLEEP_FN_ATTR void sleep_rtc_wdt_prepare(bool enable)
 {
+#if SOC_RTC_WDT_SUPPORTED
     wdt_hal_context_t rtc_wdt_ctx = RWDT_HAL_CONTEXT_DEFAULT();
     if (enable) {
         wdt_hal_init(&rtc_wdt_ctx, WDT_RWDT, 0, false);
@@ -816,6 +819,9 @@ static SLEEP_FN_ATTR void sleep_rtc_wdt_prepare(bool enable)
         wdt_hal_disable(&rtc_wdt_ctx);
         wdt_hal_write_protect_enable(&rtc_wdt_ctx);
     }
+#else
+    (void)enable;
+#endif /* SOC_RTC_WDT_SUPPORTED */
 }
 
 static SLEEP_FN_ATTR void sleep_low_power_clock_calibration(bool is_dslp)
@@ -1288,6 +1294,7 @@ static esp_err_t FORCE_IRAM_ATTR deep_sleep_start(bool allow_sleep_rejection)
     s_config.sleep_time_adjustment = DEEP_SLEEP_TIME_OVERHEAD_US;
 
     // Safety net: enable WDT in case exit from deep sleep fails
+#if SOC_RTC_WDT_SUPPORTED
     wdt_hal_context_t rtc_wdt_ctx = RWDT_HAL_CONTEXT_DEFAULT();
     bool rtc_wdt_was_enabled = wdt_hal_is_enabled(&rtc_wdt_ctx);    // If WDT was enabled in the user code, then do not change it here.
     if (!rtc_wdt_was_enabled) {
@@ -1295,6 +1302,7 @@ static esp_err_t FORCE_IRAM_ATTR deep_sleep_start(bool allow_sleep_rejection)
     } else {
         ESP_EARLY_LOGW(TAG, "RTC WDT is enabled and will not be reconfigured again!");
     }
+#endif /* SOC_RTC_WDT_SUPPORTED */
 
 #if SOC_PMU_SUPPORTED
     uint32_t force_pd_flags = PMU_SLEEP_PD_TOP | PMU_SLEEP_PD_VDDSDIO | PMU_SLEEP_PD_MODEM | PMU_SLEEP_PD_HP_PERIPH \
@@ -1342,9 +1350,11 @@ static esp_err_t FORCE_IRAM_ATTR deep_sleep_start(bool allow_sleep_rejection)
         ESP_INFINITE_LOOP();
     }
     // Never returns here, except that the sleep is rejected.
+#if SOC_RTC_WDT_SUPPORTED
     if (!rtc_wdt_was_enabled) {
         sleep_rtc_wdt_prepare(false);
     }
+#endif /* SOC_RTC_WDT_SUPPORTED */
 
 #if CONFIG_ESP_INT_WDT && CONFIG_ESP32_ECO3_CACHE_LOCK_FIX
     // Configure WDT to use livelock workaround timeout after releasing other CPU
@@ -1636,6 +1646,7 @@ esp_err_t esp_light_sleep_start(void)
     periph_inform_out_light_sleep_overhead(s_config.sleep_time_adjustment - sleep_time_overhead_in);
 
     // Safety net: enable WDT in case exit from light sleep fails
+#if SOC_RTC_WDT_SUPPORTED
     wdt_hal_context_t rtc_wdt_ctx = RWDT_HAL_CONTEXT_DEFAULT();
     bool rtc_wdt_was_enabled = wdt_hal_is_enabled(&rtc_wdt_ctx);    // If WDT was enabled in the user code, then do not change it here.
     if (!rtc_wdt_was_enabled) {
@@ -1643,6 +1654,7 @@ esp_err_t esp_light_sleep_start(void)
     } else {
         ESP_EARLY_LOGW(TAG, "RTC WDT is enabled and will not be reconfigured again!");
     }
+#endif /* SOC_RTC_WDT_SUPPORTED */
 
     esp_err_t err = ESP_OK;
     int64_t final_sleep_duration_us = (int64_t)s_config.sleep_duration - (int64_t)s_config.sleep_time_adjustment;
@@ -1724,9 +1736,11 @@ esp_err_t esp_light_sleep_start(void)
 #endif
 #endif
 
+#if SOC_RTC_WDT_SUPPORTED
     if (!rtc_wdt_was_enabled) {
         sleep_rtc_wdt_prepare(false);
     }
+#endif /* SOC_RTC_WDT_SUPPORTED */
 
 #if CONFIG_ESP_TASK_WDT_USE_ESP_TIMER
     /* Restart the Task Watchdog timer as it was stopped before sleeping. */
@@ -3016,7 +3030,7 @@ static SLEEP_FN_ATTR uint32_t get_sleep_flags(uint32_t sleep_flags, bool deepsle
     }
 #endif
 
-#if CONFIG_ESP_SLEEP_ENABLE_RTC_WDT_IN_SLEEP
+#if CONFIG_ESP_SLEEP_ENABLE_RTC_WDT_IN_SLEEP && SOC_RTC_WDT_SUPPORTED
     if (s_config.wakeup_triggers & RTC_TIMER_TRIG_EN) {
         sleep_flags |= RTC_SLEEP_USE_RTC_WDT;
     } else {
@@ -3075,7 +3089,7 @@ static SLEEP_FN_ATTR uint32_t get_sleep_clock_icg_flags(void)
     return clk_flags;
 }
 
-#if CONFIG_ESP_SLEEP_ENABLE_RTC_WDT_IN_SLEEP
+#if CONFIG_ESP_SLEEP_ENABLE_RTC_WDT_IN_SLEEP && SOC_RTC_WDT_SUPPORTED
 /* TODO: PM-609 */
 /* Calculate drift cycles of rtc slow clock in long-term working scenarios. */
 static SLEEP_FN_ATTR uint32_t calc_sleep_slow_clk_required_cycles(uint32_t timeout, uint32_t rtc_slow_clk_cal_period)

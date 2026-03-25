@@ -284,6 +284,7 @@ menu "Bootloader config"
 
     config BOOTLOADER_WDT_ENABLE
         bool "Use RTC watchdog in start code"
+        depends on SOC_RTC_WDT_SUPPORTED
         default y
         help
             Tracks the execution time of startup code.
