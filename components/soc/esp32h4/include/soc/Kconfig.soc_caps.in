@@ -415,10 +415,6 @@ config SOC_GPIO_HP_PERIPH_PD_SLEEP_WAKEABLE_MASK
     int
     default 0
 
-config SOC_GPIO_HP_PERIPH_PD_SLEEP_WAKEABLE_PIN_CNT
-    int
-    default 6
-
 config SOC_GPIO_SUPPORT_FORCE_HOLD
     bool
     default y

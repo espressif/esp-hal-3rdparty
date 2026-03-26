@@ -97,11 +97,14 @@
 #include "esp_private/esp_task_wdt.h"
 #include "esp_private/sar_periph_ctrl.h"
 
+#if SOC_PM_SUPPORT_EXT1_WAKEUP && SOC_RTCIO_PIN_COUNT > 0
+#include "esp_private/sleep_gpio.h"
+#endif
+
 #ifdef CONFIG_IDF_TARGET_ESP32
 #include "esp32/rom/cache.h"
 #include "esp32/rom/rtc.h"
 #include "esp_private/gpio.h"
-#include "esp_private/sleep_gpio.h"
 #elif CONFIG_IDF_TARGET_ESP32S2
 #include "esp32s2/rom/rtc.h"
 #include "soc/extmem_reg.h"
@@ -292,8 +295,8 @@ typedef struct {
     uint32_t ext0_rtc_gpio_num : 5;
 #endif
 #if SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP
-    uint32_t gpio_wakeup_mask : SOC_GPIO_HP_PERIPH_PD_SLEEP_WAKEABLE_PIN_CNT;
-    uint32_t gpio_trigger_mode : SOC_GPIO_HP_PERIPH_PD_SLEEP_WAKEABLE_PIN_CNT;
+    uint64_t gpio_wakeup_mask;
+    uint64_t gpio_trigger_mode;
 #endif
     uint32_t sleep_time_adjustment;
     uint32_t ccount_ticks_record;
@@ -1029,9 +1032,6 @@ static esp_err_t SLEEP_FN_ATTR esp_sleep_start(uint32_t sleep_flags, uint32_t cl
 
     int64_t sleep_duration = (int64_t) s_config.sleep_duration - (int64_t) s_config.sleep_time_adjustment;
 
-    // Sleep UART prepare
-    sleep_uart_prepare(sleep_flags, deep_sleep);
-
 #if CONFIG_ESP_PHY_ENABLED && SOC_DEEP_SLEEP_SUPPORTED
     // Do deep-sleep PHY related callback, which need to be executed when the PLL clock is exists.
     // For light-sleep, PHY state is managed by the upper layer of the wifi/bt protocol stack.
@@ -1040,21 +1040,11 @@ static esp_err_t SLEEP_FN_ATTR esp_sleep_start(uint32_t sleep_flags, uint32_t cl
     }
 #endif
 
-#if !CONFIG_APP_BUILD_TYPE_PURE_RAM_APP
-    uint32_t xtal_freq = rtc_clk_xtal_freq_get();
-    esp_clk_utils_mspi_speed_mode_sync_before_cpu_freq_switching(xtal_freq, xtal_freq);
-#endif
-
 #if SOC_PM_RETENTION_SW_TRIGGER_REGDMA
     if (!deep_sleep && (sleep_flags & PMU_SLEEP_PD_TOP)) {
         sleep_retention_do_system_retention(true);
     }
 #endif
-
-    // Save current frequency and switch to XTAL
-    rtc_cpu_freq_config_t cpu_freq_config;
-    rtc_clk_cpu_freq_get_config(&cpu_freq_config);
-    rtc_clk_cpu_freq_set_xtal_for_sleep();
 
 #if SOC_PM_SUPPORT_EXT0_WAKEUP
     // Configure pins for external wakeup
@@ -1075,6 +1065,19 @@ static esp_err_t SLEEP_FN_ATTR esp_sleep_start(uint32_t sleep_flags, uint32_t cl
         esp_sleep_gpio_wakeup_prepare_on_hp_periph_powerdown();
     }
 #endif
+
+    // Sleep UART prepare
+    sleep_uart_prepare(sleep_flags, deep_sleep);
+
+#if !CONFIG_APP_BUILD_TYPE_PURE_RAM_APP
+    uint32_t xtal_freq = rtc_clk_xtal_freq_get();
+    esp_clk_utils_mspi_speed_mode_sync_before_cpu_freq_switching(xtal_freq, xtal_freq);
+#endif
+
+    // Save current frequency and switch to XTAL
+    rtc_cpu_freq_config_t cpu_freq_config;
+    rtc_clk_cpu_freq_get_config(&cpu_freq_config);
+    rtc_clk_cpu_freq_set_xtal_for_sleep();
 
 #if CONFIG_ULP_COPROC_ENABLED
     // Enable ULP wakeup
@@ -2239,15 +2242,13 @@ uint64_t esp_sleep_get_ext1_wakeup_status(void)
     uint32_t status = rtc_hal_ext1_get_wakeup_status();
     // Translate bit map of RTC IO numbers into the bit map of GPIO numbers
     uint64_t gpio_mask = 0;
-    for (int gpio = 0; gpio < SOC_GPIO_PIN_COUNT; ++gpio) {
-        if (!esp_sleep_is_valid_wakeup_gpio(gpio)) {
-            continue;
+    while (status) {
+        int rtc_pin = __builtin_ctz(status);
+        gpio_num_t gpio = esp_sleep_wakeup_io_bit2num(rtc_pin);
+        if (gpio != GPIO_NUM_NC) {
+            gpio_mask |= 1ULL << gpio;
         }
-        int rtc_pin = rtc_io_number_get(gpio);
-        if ((status & BIT(rtc_pin)) == 0) {
-            continue;
-        }
-        gpio_mask |= 1ULL << gpio;
+        status &= ~BIT(rtc_pin);
     }
     return gpio_mask;
 }
@@ -2265,26 +2266,29 @@ uint64_t esp_sleep_get_gpio_wakeup_status(void)
 
 static void esp_sleep_gpio_wakeup_prepare_on_hp_periph_powerdown(void)
 {
-    uint32_t valid_wake_io_mask = SOC_GPIO_HP_PERIPH_PD_SLEEP_WAKEABLE_MASK;
-    for (gpio_num_t gpio_idx = __builtin_ctz(valid_wake_io_mask); valid_wake_io_mask >> gpio_idx; gpio_idx++) {
-        if ((s_config.gpio_wakeup_mask & BIT64(gpio_idx)) == 0) {
-            continue;
-        }
+    uint64_t valid_wake_io_mask = s_config.gpio_wakeup_mask & SOC_GPIO_HP_PERIPH_PD_SLEEP_WAKEABLE_MASK;
+    while (valid_wake_io_mask) {
+        int gpio_idx = __builtin_ctzll(valid_wake_io_mask);
 #if SOC_LP_IO_CLOCK_IS_INDEPENDENT
         // To suppress build errors about spinlock's __DECLARE_RCC_ATOMIC_ENV
         int __DECLARE_RCC_ATOMIC_ENV __attribute__ ((unused));
         rtcio_ll_enable_io_clock(true);
 #endif
 #if CONFIG_ESP_SLEEP_GPIO_ENABLE_INTERNAL_RESISTORS
-        if (s_config.gpio_trigger_mode & BIT(gpio_idx)) {
-            ESP_ERROR_CHECK(gpio_pullup_dis(gpio_idx));
-            ESP_ERROR_CHECK(gpio_pulldown_en(gpio_idx));
+        if (GPIO_IS_VALID_OUTPUT_GPIO(gpio_idx)) {
+            if (s_config.gpio_trigger_mode & BIT(gpio_idx)) {
+                gpio_pullup_dis(gpio_idx);
+                gpio_pulldown_en(gpio_idx);
+            } else {
+                gpio_pullup_en(gpio_idx);
+                gpio_pulldown_dis(gpio_idx);
+            }
         } else {
-            ESP_ERROR_CHECK(gpio_pullup_en(gpio_idx));
-            ESP_ERROR_CHECK(gpio_pulldown_dis(gpio_idx));
+            ESP_EARLY_LOGE(TAG, "GPIO%d not support internal PU/PD", gpio_idx);
         }
 #endif
         ESP_ERROR_CHECK(gpio_hold_en(gpio_idx));
+        valid_wake_io_mask &= valid_wake_io_mask - 1;
     }
     // Clear state from previous wakeup
     rtc_hal_gpio_clear_wakeup_status();
@@ -2311,19 +2315,17 @@ esp_err_t esp_sleep_enable_gpio_wakeup_on_hp_periph_powerdown(uint64_t gpio_pin_
             }
         }
     }
-
-    for (gpio_num_t gpio_idx = __builtin_ctzll(gpio_pin_mask); gpio_pin_mask >> gpio_idx; gpio_idx++) {
-        if ((gpio_pin_mask & BIT64(gpio_idx)) == 0) {
-            continue;
-        }
+    while (gpio_pin_mask) {
+        int gpio_idx = __builtin_ctzll(gpio_pin_mask);
         err = gpio_wakeup_enable_on_hp_periph_powerdown_sleep(gpio_idx, intr_type);
         if (err != ESP_OK) return err;
-        s_config.gpio_wakeup_mask |= BIT(gpio_idx);
+        s_config.gpio_wakeup_mask |= BIT64(gpio_idx);
         if (mode == ESP_GPIO_WAKEUP_GPIO_HIGH) {
-            s_config.gpio_trigger_mode |= BIT(gpio_idx);
+            s_config.gpio_trigger_mode |= BIT64(gpio_idx);
         } else {
-            s_config.gpio_trigger_mode &= ~BIT(gpio_idx);
+            s_config.gpio_trigger_mode &= ~BIT64(gpio_idx);
         }
+        gpio_pin_mask &= gpio_pin_mask - 1;
     }
     s_config.wakeup_triggers |= RTC_GPIO_TRIG_EN;
     return err;

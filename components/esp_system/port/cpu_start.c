@@ -848,13 +848,6 @@ NOINLINE_ATTR static void system_early_init(const soc_reset_reason_t *rst_reas)
 #endif // CONFIG_ESP_CONSOLE_UART
 #endif // !CONFIG_IDF_ENV_FPGA
 
-#if SOC_DEEP_SLEEP_SUPPORTED
-    // Need to unhold the IOs that were hold right before entering deep sleep, which are used as wakeup pins
-    if (rst_reas[0] == RESET_REASON_CORE_DEEP_SLEEP) {
-        esp_deep_sleep_wakeup_io_reset();
-    }
-#endif  //#if SOC_DEEP_SLEEP_SUPPORTED
-
 #if !CONFIG_APP_BUILD_TYPE_PURE_RAM_APP
     esp_cache_err_int_init();
 #endif
