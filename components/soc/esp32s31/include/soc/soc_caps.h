@@ -97,7 +97,8 @@
 // #define SOC_PM_SUPPORTED                1      // TODO: [ESP32S31] IDF-14648
 // #define SOC_BITSCRAMBLER_SUPPORTED      1      // TODO: [ESP32S31] IDF-14714
 // #define SOC_SIMD_INSTRUCTION_SUPPORTED  1      // TODO: [ESP32S31] IDF-14661
-#define SOC_CORDIC_SUPPORTED             1
+#define SOC_CORDIC_SUPPORTED            1
+#define SOC_REGI2C_SUPPORTED            1
 
 /*-------------------------- XTAL CAPS ---------------------------------------*/
 #define SOC_XTAL_SUPPORT_40M            1

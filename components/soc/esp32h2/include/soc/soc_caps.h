@@ -100,6 +100,7 @@
 #define SOC_LIGHT_SLEEP_SUPPORTED       1
 #define SOC_DEEP_SLEEP_SUPPORTED        1
 #define SOC_MODEM_CLOCK_SUPPORTED       1
+#define SOC_REGI2C_SUPPORTED            1
 #define SOC_PM_SUPPORTED                1
 #define SOC_SPI_EXTERNAL_NOR_FLASH_SUPPORTED    1
 

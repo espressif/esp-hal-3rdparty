@@ -62,7 +62,7 @@
 #define SOC_RTC_WDT_SUPPORTED           1
 #define SOC_SPI_FLASH_SUPPORTED         1
 #define SOC_MODEM_CLOCK_SUPPORTED       1
-#define SOC_REG_I2C_SUPPORTED           1
+#define SOC_REGI2C_SUPPORTED            1
 #define SOC_ETM_SUPPORTED               1
 #define SOC_SDIO_SLAVE_SUPPORTED        1
 #define SOC_PAU_SUPPORTED               1

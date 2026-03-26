@@ -49,6 +49,7 @@
 #define SOC_BOD_SUPPORTED               1
 #define SOC_RTC_TIMER_SUPPORTED         1
 #define SOC_CLK_TREE_SUPPORTED          1
+#define SOC_REGI2C_SUPPORTED            1
 #define SOC_ASSIST_DEBUG_SUPPORTED      1
 #define SOC_WDT_SUPPORTED               1
 #define SOC_RTC_WDT_SUPPORTED           1
