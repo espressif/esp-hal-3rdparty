@@ -31,7 +31,9 @@ if(CONFIG_SPIRAM)
         endif()
 
     elseif(CONFIG_SPIRAM_MODE_OCT)
-        list(APPEND srcs "${target}/esp_psram_impl_octal.c")
+        if(${target} STREQUAL "esp32s3")
+            list(APPEND srcs "${target}/esp_psram_impl_octal.c")
+        endif()
     endif()
 endif()
 

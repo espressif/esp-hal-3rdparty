@@ -81,7 +81,7 @@
 #define DR_REG_HP_ALIVE_SYS_BASE                  0x20589000
 #define DR_REG_HP_PERI1_PMS_BASE                  0x2058A000
 #define DR_REG_LP_SYS_BASE                        0x20700000
-#define DR_REG_LP_CLKRST_BASE                     0x20701000
+#define DR_REG_LP_AONCLKRST_BASE                  0x20701000
 #define DR_REG_LP_ANA_BASE                        0x20702000
 #define DR_REG_HUK_BASE                           0x20703000
 #define DR_REG_PMU_BASE                           0x20704000

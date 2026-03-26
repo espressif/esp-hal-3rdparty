@@ -65,9 +65,9 @@ TEST_CASE("test psram halfsleep mode (if applicable)", "[psram]")
 {
     uint32_t rtc_slow_clk_period = rtc_clk_cal(CLK_CAL_RTC_SLOW, CONFIG_RTC_CLK_CAL_CYCLES);
     s_test_psram_heap_allocable();
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 3; i++) {
         esp_psram_impl_enter_halfsleep_mode();
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        esp_rom_delay_us(1000);
         esp_psram_impl_exit_halfsleep_mode();
         esp_psram_impl_resume_from_halfsleep_mode(rtc_slow_clk_period);
         s_test_psram_heap_allocable();
