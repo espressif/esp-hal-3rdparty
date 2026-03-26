@@ -240,13 +240,3 @@ void mspi_timing_psram_config_set_tuning_regs(bool control_both_mspi)
         }
     }
 }
-
-void mspi_timing_flash_config_set_tuning_regs(bool control_both_mspi)
-{
-    //for compatibility
-}
-
-void mspi_timing_flash_config_clear_tuning_regs(bool control_both_mspi)
-{
-    //for compatibility
-}

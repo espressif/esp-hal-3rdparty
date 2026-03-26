@@ -245,9 +245,9 @@ static void s_sweep_for_success_sample_points(uint8_t *reference_data, void *con
         }
     }
 
-    ESP_DRAM_LOGW(TAG, "test nums: %" PRIu32 ", test result: [id][good/bad][good_times]:", s_tuning_cfg_drv.sweep_test_nums);
+    ESP_DRAM_LOGD(TAG, "test nums: %" PRIu32 ", test result: [id][good/bad][good_times]:", s_tuning_cfg_drv.sweep_test_nums);
     for (config_idx = 0; config_idx < timing_config->available_config_num; config_idx++) {
-        ESP_DRAM_LOGW(TAG, "[%"PRIu32"][%s][%" PRIu32 "] ", config_idx, out_array[config_idx] == s_tuning_cfg_drv.sweep_test_nums ? "good" : "bad", out_array[config_idx]);
+        ESP_DRAM_LOGD(TAG, "[%"PRIu32"][%s][%" PRIu32 "] ", config_idx, out_array[config_idx] == s_tuning_cfg_drv.sweep_test_nums ? "good" : "bad", out_array[config_idx]);
     }
 }
 
@@ -481,6 +481,18 @@ void mspi_timing_psram_tuning(void)
 /*------------------------------------------------------------------------------
  * APIs to make SPI0 (and SPI1) FLASH work for high/low freq
  *----------------------------------------------------------------------------*/
+void __attribute__((weak)) mspi_timing_flash_config_clear_tuning_regs(bool control_both_mspi)
+{
+    (void)control_both_mspi;
+    //for compatibility, will be replaced by the actual implementation once flash timing tuning is ready
+}
+
+void __attribute__((weak)) mspi_timing_flash_config_set_tuning_regs(bool control_both_mspi)
+{
+    (void)control_both_mspi;
+    //for compatibility, will be replaced by the actual implementation once flash timing tuning is ready
+}
+
 uint32_t mspi_timing_get_psram_low_speed_freq_mhz(void)
 {
     return 20;
