@@ -266,7 +266,14 @@ static void btc_gatts_act_create_attr_tab(esp_gatts_attr_db_t *gatts_attr_db,
     //set the attribute table create service flag to true
     btc_creat_tab_env.is_tab_creat_svc = true;
     btc_creat_tab_env.num_handle = max_nb_attr;
+    /* After CHAR_DECLARE, the next row is the characteristic value (any UUID length); skip it here so
+     * a 16-bit characteristic UUID is not mistaken for a descriptor. */
+    bool skip_next_attr_row = false;
     for(int i = 0; i < max_nb_attr; i++){
+        if (skip_next_attr_row) {
+            skip_next_attr_row = false;
+            continue;
+        }
         if(gatts_attr_db[i].att_desc.uuid_length == ESP_UUID_LEN_16){
             uuid = (gatts_attr_db[i].att_desc.uuid_p[1] << 8) + (gatts_attr_db[i].att_desc.uuid_p[0]);
         }
@@ -416,6 +423,7 @@ static void btc_gatts_act_create_attr_tab(esp_gatts_attr_db_t *gatts_attr_db,
                                 btc_gatts_creat_tab_fail_and_cleanup(gatts_if, &param);
                                 return;
                                 }
+                        skip_next_attr_row = true;
                     }
                 } else {
                     /* svc_start_hdl == 0: service not created, report error and return */
@@ -442,7 +450,8 @@ static void btc_gatts_act_create_attr_tab(esp_gatts_attr_db_t *gatts_attr_db,
             case ESP_GATT_UUID_ENV_SENSING_CONFIG_DESCR:
             case ESP_GATT_UUID_ENV_SENSING_MEASUREMENT_DESCR:
             case ESP_GATT_UUID_ENV_SENSING_TRIGGER_DESCR:
-            case ESP_GATT_UUID_TIME_TRIGGER_DESCR: {
+            case ESP_GATT_UUID_TIME_TRIGGER_DESCR:
+            default: {
                 uint16_t svc_hal = btc_creat_tab_env.svc_start_hdl;
                 tBT_UUID bta_char_uuid;
                 esp_bt_uuid_t uuid_temp;
@@ -475,9 +484,6 @@ static void btc_gatts_act_create_attr_tab(esp_gatts_attr_db_t *gatts_attr_db,
                 }
                 break;
             }
-            default:
-                future_free(future_p);
-                break;
         }
 
 
