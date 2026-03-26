@@ -41,7 +41,7 @@ typedef enum {
  */
 typedef struct {
     esp_ds_data_t *esp_ds_data;     /**< Pointer to the esp ds data */
-    hmac_key_id_t efuse_key_id;     /**< efuse block id in which the HMAC key for the DS peripheral is stored e.g. 0,1*/
+    uint8_t efuse_key_id;           /**< efuse block id in which the HMAC key for the DS peripheral is stored e.g. 0,1*/
     uint16_t rsa_length_bits;       /**< length of RSA private key in bits e.g. 2048 */
 } esp_ds_data_ctx_t;
 
