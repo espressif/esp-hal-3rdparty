@@ -80,6 +80,13 @@ esp_err_t esp_clk_tree_src_get_freq_hz(soc_module_clk_t clk_src, esp_clk_tree_sr
     return ESP_OK;
 }
 
+esp_err_t esp_clk_tree_src_set_freq_hz(soc_module_clk_t clk_src, uint32_t expt_freq_value, uint32_t *ret_freq_value)
+{
+    /* TODO: [ESP32S31] IDF-14733 */
+    (void)clk_src; (void)expt_freq_value; (void)ret_freq_value;
+    return ESP_ERR_NOT_SUPPORTED;
+}
+
 static int16_t s_cpll_ref_cnt = 0;
 
 void esp_clk_tree_initialize(void)
