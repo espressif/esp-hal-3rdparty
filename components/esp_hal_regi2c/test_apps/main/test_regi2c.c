@@ -9,6 +9,7 @@
 #include "unity.h"
 #include "test_regi2c.h"
 #include "esp_private/regi2c_ctrl.h"
+#include "esp_private/esp_clk_tree_common.h"
 #include "sdkconfig.h"
 
 TEST_CASE("regi2c basic read/write test", "[regi2c]")
@@ -19,7 +20,7 @@ TEST_CASE("regi2c basic read/write test", "[regi2c]")
 
 #if CONFIG_IDF_TARGET_ESP32
     // For ESP32, we need to enable the APLL clock before accessing the APLL regi2c registers
-    periph_rtc_apll_acquire();
+    TEST_ESP_OK(esp_clk_tree_enable_src(SOC_MOD_CLK_APLL, true));
 #endif
 
     /* ---- Part 1: full-register read / write ---- */
@@ -91,6 +92,6 @@ TEST_CASE("regi2c basic read/write test", "[regi2c]")
 
 #if CONFIG_IDF_TARGET_ESP32
     // Disable APLL clock
-    periph_rtc_apll_release();
+    TEST_ESP_OK(esp_clk_tree_enable_src(SOC_MOD_CLK_APLL, false));
 #endif
 }
