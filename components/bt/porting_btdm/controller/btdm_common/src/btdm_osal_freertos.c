@@ -48,7 +48,7 @@ struct btdm_intr_alloc_params {
     };
 };
 
-static const char *TAG = "TBTDM OSAL";
+static const char *TAG __attribute__((unused)) = "BTDM OSAL";
 
 struct btdm_mempool s_btdm_osal_ev_pool;
 static btdm_membuf_t *s_btdm_osal_ev_buf = NULL;
@@ -1148,6 +1148,7 @@ wr_btdm_osal_free(void *ptr)
 }
 
 #if !CONFIG_BTDM_CTRL_MULTI_LINK_ENABLED
+#if UC_BT_CTRL_BLE_IS_ENABLE
 void *
 wr_btdm_osal_mmgmt_block_malloc(uint32_t size)
 {
@@ -1180,6 +1181,26 @@ wr_btdm_osal_mmgmt_block_copy(void *dst, const void *src, uint16_t size)
     extern void r_ble_lll_mmgmt_block_copy(void *addr0, void *addr1, uint16_t size);
     r_ble_lll_mmgmt_block_copy((void *)dst, (void *)src, size);
 }
+#else
+void *
+wr_btdm_osal_mmgmt_block_malloc(uint32_t size)
+{
+    return NULL;
+}
+void
+wr_btdm_osal_mmgmt_block_free(void *ptr)
+{
+    (void)ptr;
+}
+
+void
+wr_btdm_osal_mmgmt_block_copy(void *dst, const void *src, uint16_t size)
+{
+    (void)dst;
+    (void)src;
+    (void)size;
+}
+#endif /* if UC_BT_CTRL_BR_EDR_IS_ENABLE */
 #endif /* !CONFIG_BTDM_CTRL_MULTI_LINK_ENABLED */
 
 /*

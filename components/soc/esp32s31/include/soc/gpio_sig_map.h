@@ -23,6 +23,7 @@
 #define SD_CARD_CDATA7_2_PAD_IN_IDX             7
 #define SD_CARD_CDATA7_2_PAD_OUT_IDX            7
 #define PAD_MODEM_ANT_SEL0_IDX                  8
+#define ANT_SEL0_IDX                            (PAD_MODEM_ANT_SEL0_IDX)
 #define PAD_MODEM_ANT_SEL1_IDX                  9
 #define ANT_SEL0_IDX                            PAD_MODEM_ANT_SEL0_IDX
 #define ANT_SEL1_IDX                            PAD_MODEM_ANT_SEL1_IDX

@@ -136,25 +136,25 @@ esp_bt_controller_init(esp_bt_controller_config_t *cfg)
     ret = btdm_osal_elem_mempool_init(&elem);
     if (ret) {
         ESP_LOGE(BTDM_LOG_TAG, "btdm_osal_elem_mempool_init failed: %d", ret);
-        goto init_failed;
+        goto destroy_btdm_osal_mempool;
     }
 
     ret = btdm_log_init();
     if (ret) {
         ESP_LOGE(BTDM_LOG_TAG, "btdm_log_init failed: %d", ret);
-        goto init_failed;
+        goto destroy_btdm_log;
     }
 
     ret = btdm_external_init();
     if (ret) {
         ESP_LOGE(BTDM_LOG_TAG, "btdm_external_init failed: %d", ret);
-        goto init_failed;
+        goto destroy_btdm_external;
     }
 
     ret = btdm_coex_init();
     if (ret) {
         ESP_LOGE(BTDM_LOG_TAG, "btdm_coex_init failed: %d", ret);
-        goto init_failed;
+        goto destroy_btdm_coex;
     }
 
     btdm_lp_enable_clock(&cfg->btdm);
@@ -162,20 +162,20 @@ esp_bt_controller_init(esp_bt_controller_config_t *cfg)
     ret = r_btdm_task_init(&cfg->btdm);
     if (ret) {
         ESP_LOGE(BTDM_LOG_TAG, "r_btdm_task_init failed: %d", ret);
-        goto init_failed;
+        goto destroy_btdm_task;
     }
 
     ret = btdm_lp_init();
     if (ret != ESP_OK) {
         ESP_LOGE(BTDM_LOG_TAG, "btdm_lp_init failed %d", ret);
-        goto init_failed;
+        goto destroy_btdm_lp;
     }
 
 #if UC_BT_CTRL_CONN_FC_ENABLE
     ret = r_btdm_hci_fc_env_init();
     if (ret) {
         ESP_LOGE(BTDM_LOG_TAG, "r_btdm_hci_fc_env_init failed: %d", ret);
-        goto init_failed;
+        goto destroy_hci_fc_env;
     }
 #endif // UC_BT_CTRL_CONN_FC_ENABLE
 
@@ -183,7 +183,7 @@ esp_bt_controller_init(esp_bt_controller_config_t *cfg)
     ret = ble_stack_init(cfg);
     if (ret) {
         ESP_LOGE(BTDM_LOG_TAG, "ble_stack_init failed: %d", ret);
-        goto init_failed;
+        goto destroy_ble_stack;
     }
 #endif // UC_BT_CTRL_BLE_IS_ENABLE
 
@@ -191,23 +191,52 @@ esp_bt_controller_init(esp_bt_controller_config_t *cfg)
     ret = bredr_stack_init(cfg);
     if (ret) {
         ESP_LOGE(BTDM_LOG_TAG, "bredr_stack_init failed: %d", ret);
-        goto init_failed;
+        goto destroy_bredr_stack;
     }
 #endif // UC_BT_CTRL_BR_EDR_IS_ENABLE
 
     ret = hci_transport_init(BT_HCI_TRANSPORT_MODE);
     if (ret) {
         ESP_LOGE(BTDM_LOG_TAG, "hci_transport_init failed %d", ret);
-        goto init_failed;
+        goto destroy_hci_transport;
     }
 
     ESP_LOGI(BTDM_LOG_TAG, "BTDM controller init OK");
 
     return ESP_OK;
 
-init_failed:
-    esp_bt_controller_deinit();
+destroy_hci_transport:
+    hci_transport_deinit();
 
+#if UC_BT_CTRL_BR_EDR_IS_ENABLE
+destroy_bredr_stack:
+    bredr_stack_deinit();
+#endif // UC_BT_CTRL_BR_EDR_IS_ENABLE
+
+#if UC_BT_CTRL_BLE_IS_ENABLE
+destroy_ble_stack:
+    ble_stack_deinit();
+#endif // UC_BT_CTRL_BLE_IS_ENABLE
+
+#if UC_BT_CTRL_CONN_FC_ENABLE
+destroy_hci_fc_env:
+    r_btdm_hci_fc_env_deinit();
+#endif // UC_BT_CTRL_CONN_FC_ENABLE
+
+destroy_btdm_lp:
+    btdm_lp_deinit();
+destroy_btdm_task:
+    r_btdm_task_deinit();
+    btdm_lp_disable_clock();
+destroy_btdm_coex:
+    btdm_coex_deinit();
+destroy_btdm_external:
+    btdm_external_deinit();
+destroy_btdm_log:
+    btdm_log_deinit();
+destroy_btdm_osal_mempool:
+    btdm_osal_elem_mempool_deinit();
+    s_btdm_controller_status = ESP_BT_CONTROLLER_STATUS_IDLE;
     return ESP_FAIL;
 }
 

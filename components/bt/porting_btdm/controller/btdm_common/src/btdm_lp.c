@@ -25,6 +25,10 @@
 #include "esp_private/sleep_retention.h"
 #endif
 
+#if CONFIG_IDF_TARGET_ESP32S31
+// TODO: remove this include after use of HP_SYS_CLKRST_MODEM_CONF_REG is removed
+#include "soc/hp_sys_clkrst_reg.h"
+#endif
 /*
  ***************************************************************************************************
  * Local Defined Macros
@@ -114,19 +118,11 @@ btdm_lp_timer_clk_init(esp_btdm_controller_config_t *cfg)
         s_bt_lpclk_src = MODEM_CLOCK_LPCLK_SRC_RC_SLOW;
 #elif CONFIG_RTC_CLK_SRC_EXT_CRYS
         uint32_t clk_freq = 0;
-
-        if (rtc_clk_slow_src_get() == SOC_RTC_SLOW_CLK_SRC_XTAL32K) {
-            if (!esp_clk_tree_src_get_freq_hz(SOC_MOD_CLK_XTAL32K, ESP_CLK_TREE_SRC_FREQ_PRECISION_EXACT, &clk_freq)) {
-                if (clk_freq > 32700 && clk_freq < 33800) {
-                    s_bt_lpclk_src = MODEM_CLOCK_LPCLK_SRC_XTAL32K;
-                } else {
-                    ESP_LOGW(BTDM_LOG_TAG, "32.768kHz XTAL detection error, switch to main XTAL as Bluetooth sleep clock");
-                    s_bt_lpclk_src = MODEM_CLOCK_LPCLK_SRC_MAIN_XTAL;
-                }
-            } else {
-                ESP_LOGW(BTDM_LOG_TAG, "32.768kHz XTAL detection error, switch to main XTAL as Bluetooth sleep clock");
-                s_bt_lpclk_src = MODEM_CLOCK_LPCLK_SRC_MAIN_XTAL;
-            }
+        if ((rtc_clk_slow_src_get() == SOC_RTC_SLOW_CLK_SRC_XTAL32K) &&
+            !esp_clk_tree_src_get_freq_hz(SOC_MOD_CLK_XTAL32K, ESP_CLK_TREE_SRC_FREQ_PRECISION_EXACT, &clk_freq) &&
+            (clk_freq > 32700 && clk_freq < 33800) ) {
+            s_bt_lpclk_src = MODEM_CLOCK_LPCLK_SRC_XTAL32K;
+            s_bt_lpclk_freq = 32768;
         } else {
             ESP_LOGW(BTDM_LOG_TAG, "32.768kHz XTAL not detected, fall back to main XTAL as Bluetooth sleep clock");
             s_bt_lpclk_src = MODEM_CLOCK_LPCLK_SRC_MAIN_XTAL;
@@ -158,6 +154,51 @@ btdm_lp_timer_clk_init(esp_btdm_controller_config_t *cfg)
     btdm_lp_rtc_slow_clk_select(s_bt_lpclk_src);
 }
 
+modem_clock_lpclk_src_t btdm_lp_get_lpclk_src(void)
+{
+    return s_bt_lpclk_src;
+}
+
+extern esp_bt_controller_status_t esp_ble_controller_get_status(void);
+void btdm_lp_set_lpclk_src(modem_clock_lpclk_src_t clk_src)
+{
+    if (esp_ble_controller_get_status() != ESP_BT_CONTROLLER_STATUS_IDLE) {
+        return;
+    }
+
+    if (clk_src >= MODEM_CLOCK_LPCLK_SRC_MAX || clk_src <= MODEM_CLOCK_LPCLK_SRC_INVALID) {
+        return;
+    }
+
+    s_bt_lpclk_src = clk_src;
+}
+
+uint32_t btdm_lp_get_lpclk_freq(void)
+{
+    return s_bt_xtal_lpclk_freq;
+}
+
+void btdm_lp_set_lpclk_freq(uint32_t clk_freq)
+{
+    uint32_t xtal_freq;
+
+    if (esp_ble_controller_get_status() != ESP_BT_CONTROLLER_STATUS_IDLE) {
+        return;
+    }
+
+    if (!clk_freq) {
+        return;
+    }
+
+    xtal_freq = CONFIG_XTAL_FREQ * 1000000;
+    if (xtal_freq % clk_freq) {
+        return;
+    }
+
+    s_bt_xtal_lpclk_freq = clk_freq;
+}
+
+>>>>>>> d8bcda6a345 (change(bt): Fix build issues and do code clean up)
 static void
 btdm_lp_timer_clk_deinit(void)
 {
@@ -250,6 +291,12 @@ btdm_lp_enable_clock(esp_btdm_controller_config_t *cfg)
 {
     modem_clock_module_enable(PERIPH_BT_MODULE);
     modem_clock_module_mac_reset(PERIPH_BT_MODULE);
+#if CONFIG_IDF_TARGET_ESP32S31
+    // TODO: Remote this setting after WIFI is supported
+    REG_WRITE(MODEM_SYSCON_CLK_CONF1_REG, 0xffffffff);
+    // TODO: remove this include after low pwer clock init is performed in clk.c
+    REG_WRITE(HP_SYS_CLKRST_MODEM_CONF_REG, 0x3d);
+#endif
     // TODO: set the clock ion modem_clock_module_enable
     REG_WRITE(MODEM_SYSCON_CLK_CONF_POWER_ST_REG, 0XFFFFFFFF);
     btdm_lp_timer_clk_init(cfg);
@@ -335,9 +382,11 @@ btdm_lp_reset(bool enable_stage)
 #endif // CONFIG_PM_ENABLE
 
         esp_phy_enable(PHY_MODEM_BT);
+#if CONFIG_IDF_TARGET_ESP32H4
         // TODO: Need to be deleted.
         void phy_set_rfpll_xpd(bool en);
         phy_set_rfpll_xpd(0);
+#endif
         esp_btbb_enable();
         s_bt_active = true;
     } else {
