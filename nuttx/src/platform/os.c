@@ -37,7 +37,6 @@
 #ifdef CONFIG_PM
 #include "espressif/esp_pm.h"
 #endif
-#include "esp_hr_timer.h"
 
 #include "esp_private/critical_section.h"
 #include "esp_sleep.h"
@@ -81,87 +80,6 @@ esp_err_t esp_errno_to_esp_err(int errno_value)
 
   return ESP_FAIL;
 }
-
-#ifdef CONFIG_IDF_TARGET_ARCH_RISCV
-#  include "esp_timer.h"
-
-/****************************************************************************
- * RISC-V only: esp_timer API adapter layer
- *
- * Adapts esp_hr_timer (NuttX) to the esp_timer (IDF) API: argument types
- * and return codes (int/errno vs esp_err_t). Temporary until a full
- * esp_timer replacement is available for RISC-V.
- ****************************************************************************/
-
-uint64_t esp_timer_get_time(void)
-{
-  return esp_hr_timer_time_us();
-}
-
-esp_err_t esp_timer_create(const esp_timer_create_args_t *create_args,
-                           esp_timer_handle_t *out_handle)
-{
-  struct esp_hr_timer_args_s args;
-
-  args.callback = create_args->callback;
-  args.arg = create_args->arg;
-  args.name = create_args->name;
-  args.skip_unhandled_events = create_args->skip_unhandled_events;
-
-  struct esp_hr_timer_s *handle = NULL;
-  int ret = esp_hr_timer_create(&args, &handle);
-
-  if (ret != 0)
-    {
-      return esp_errno_to_esp_err(ret);
-    }
-
-  *out_handle = (esp_timer_handle_t)handle;
-  return ESP_OK;
-}
-
-esp_err_t esp_timer_start_once(esp_timer_handle_t timer, uint64_t timeout_us)
-{
-  int ret = esp_hr_timer_start_once((struct esp_hr_timer_s *)timer,
-                                    timeout_us);
-  return esp_errno_to_esp_err(ret);
-}
-
-esp_err_t esp_timer_start_periodic(esp_timer_handle_t timer, uint64_t period_us)
-{
-  int ret = esp_hr_timer_start_periodic((struct esp_hr_timer_s *)timer,
-                                        period_us);
-  return esp_errno_to_esp_err(ret);
-}
-
-esp_err_t esp_timer_stop(esp_timer_handle_t timer)
-{
-  int ret = esp_hr_timer_stop((struct esp_hr_timer_s *)timer);
-  return esp_errno_to_esp_err(ret);
-}
-
-esp_err_t esp_timer_delete(esp_timer_handle_t timer)
-{
-  int ret = esp_hr_timer_delete((struct esp_hr_timer_s *)timer);
-  return esp_errno_to_esp_err(ret);
-}
-
-void esp_timer_private_set(uint64_t new_us)
-{
-  esp_hr_timer_set(new_us);
-}
-
-void esp_timer_private_lock(void)
-{
-  esp_hr_timer_lock();
-}
-
-void esp_timer_private_unlock(void)
-{
-  esp_hr_timer_unlock();
-}
-
-#endif /* CONFIG_IDF_TARGET_ARCH_RISCV */
 
 /****************************************************************************
  * Pre-processor Definitions
