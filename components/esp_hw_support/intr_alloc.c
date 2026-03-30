@@ -101,6 +101,12 @@ struct shared_vector_desc_t {
 /* Define an alias for visibility flags */
 #define VECDESC_FL_PRIVATE      (VECDESC_FL_NONSHARED)
 
+#define VECDESC_IS_PUBLIC_SHARED(vd)    ((((vd)->flags & (VECDESC_FL_SHARED | VECDESC_FL_PRIVATE)) == VECDESC_FL_SHARED))
+#define VECDESC_IS_NONSHARED(vd)        ((((vd)->flags & VECDESC_FL_NONSHARED) != 0) && (((vd)->flags & VECDESC_FL_SHARED) == 0))
+#define VECDESC_IS_PRIVATE_SHARED(vd)   ((((vd)->flags & (VECDESC_FL_SHARED | VECDESC_FL_PRIVATE)) == (VECDESC_FL_SHARED | VECDESC_FL_PRIVATE)))
+#define VECDESC_IS_SHARED_FAMILY(vd)    (VECDESC_IS_PUBLIC_SHARED(vd) || VECDESC_IS_PRIVATE_SHARED(vd))
+#define VECDESC_IS_UNINITIALIZED(vd)    (((vd)->flags & (VECDESC_FL_SHARED | VECDESC_FL_NONSHARED)) == 0)
+
 
 #if SOC_CPU_HAS_FLEXIBLE_INTC
 /* On targets that have configurable interrupts levels, store the assigned level in the flags */
@@ -211,7 +217,7 @@ static vector_desc_t * find_desc_for_source(int source, int cpu)
 {
     vector_desc_t *vd = vector_desc_head;
     while(vd != NULL) {
-        if (!(vd->flags & VECDESC_FL_SHARED)) {
+        if (!VECDESC_IS_SHARED_FAMILY(vd)) {
             if (vd->source == source && cpu == vd->cpu) {
                 break;
             }
@@ -352,13 +358,13 @@ static bool is_vect_desc_usable(vector_desc_t *vd, int flags, int cpu, int force
     }
 
     //check if interrupt is already in use by a non-shared interrupt
-    if ((vd->flags & VECDESC_FL_NONSHARED) != 0 && (vd->flags & VECDESC_FL_SHARED) == 0) {
+    if (VECDESC_IS_NONSHARED(vd)) {
         ALCHLOG("....Unusable: already in (non-shared) use.");
         return false;
     }
     //Check shared interrupt flags
-    if ((vd->flags & VECDESC_FL_SHARED) != 0) {
-        const bool vect_private = (vd->flags & VECDESC_FL_PRIVATE) != 0;
+    if (VECDESC_IS_SHARED_FAMILY(vd)) {
+        const bool vect_private = VECDESC_IS_PRIVATE_SHARED(vd);
         const bool flag_shared = (flags & ESP_INTR_FLAG_SHARED) != 0;
         const bool flag_shared_private = (flags & ESP_INTR_FLAG_SHARED_PRIVATE) != 0;
 
@@ -473,11 +479,11 @@ static int get_available_int(int flags, int cpu, int force, int source, bool new
             continue;
         }
 
-        if (flags & ESP_INTR_FLAG_SHARED) {
+        if (flags & (ESP_INTR_FLAG_SHARED | ESP_INTR_FLAG_SHARED_PRIVATE)) {
             //We're allocating a shared int.
 
             //See if int is already used as a shared interrupt.
-            if (vd->flags & VECDESC_FL_SHARED) {
+            if (VECDESC_IS_SHARED_FAMILY(vd)) {
                 //We can use this already-marked-as-shared interrupt. Count the already attached isrs in order to see
                 //how useful it is.
                 int no = 0;
@@ -672,6 +678,7 @@ bool esp_intr_ptr_in_isr_region(void* ptr)
         /* Sanity check, should not occur */
         if (shared_handle->vector_desc == NULL) {
             esp_os_exit_critical(&spinlock);
+            free(ret);
             return ESP_ERR_INVALID_STATE;
         }
         /* If a shared vector was given, force the current interrupt source to same CPU interrupt line */
@@ -731,6 +738,11 @@ bool esp_intr_ptr_in_isr_region(void* ptr)
         //Populate vector entry and add to linked list.
         shared_vector_desc_t *sh_vec = heap_caps_malloc(sizeof(shared_vector_desc_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
         if (sh_vec == NULL) {
+            if (create_new_group) {
+                assert(vd->group_name != NULL);
+                free(vd->group_name);
+                vd->group_name = NULL;
+            }
             esp_os_exit_critical(&spinlock);
             free(ret);
             return ESP_ERR_NO_MEM;
@@ -881,7 +893,7 @@ esp_err_t ESP_INTR_IRAM_ATTR esp_intr_set_in_iram(intr_handle_t handle, bool is_
         return ESP_ERR_INVALID_ARG;
     }
     vector_desc_t *vd = handle->vector_desc;
-    if (vd->flags & VECDESC_FL_SHARED) {
+    if (VECDESC_IS_SHARED_FAMILY(vd)) {
         return ESP_ERR_INVALID_ARG;
     }
     esp_os_enter_critical(&spinlock);
@@ -939,7 +951,7 @@ static esp_err_t intr_free_for_current_cpu(intr_handle_t handle)
 
     esp_os_enter_critical(&spinlock);
     esp_intr_disable(handle);
-    if (handle->vector_desc->flags & VECDESC_FL_SHARED) {
+    if (VECDESC_IS_SHARED_FAMILY(handle->vector_desc)) {
         //Find and kill the shared int
         shared_vector_desc_t *svd = handle->vector_desc->shared_vec_info;
         shared_vector_desc_t *prevsvd = NULL;
@@ -973,7 +985,7 @@ static esp_err_t intr_free_for_current_cpu(intr_handle_t handle)
                        free_shared_vector ? "empty now." : "still in use");
     }
 
-    if ((handle->vector_desc->flags & VECDESC_FL_NONSHARED) || free_shared_vector) {
+    if (VECDESC_IS_NONSHARED(handle->vector_desc) || free_shared_vector) {
         ESP_EARLY_LOGV(TAG, "esp_intr_free: Disabling int, killing handler");
 #if CONFIG_ESP_TRACE_ENABLE
         if (!free_shared_vector) {
@@ -1209,7 +1221,7 @@ esp_err_t esp_intr_dump(FILE *stream)
             } else if (intr_desc.flags & ESP_CPU_INTR_DESC_FLAG_SPECIAL) {
                 fprintf(stream, "CPU-internal");
             } else {
-                if (vd == NULL || (vd->flags & (VECDESC_FL_RESERVED | VECDESC_FL_NONSHARED | VECDESC_FL_SHARED)) == 0) {
+                if (vd == NULL || VECDESC_IS_UNINITIALIZED(vd)) {
                     fprintf(stream, "Free");
                     if (is_general_use) {
                         ++general_use_ints_free;
@@ -1218,9 +1230,9 @@ esp_err_t esp_intr_dump(FILE *stream)
                     }
                 } else if (vd->flags & VECDESC_FL_RESERVED)  {
                     fprintf(stream, "Reserved (run-time)");
-                } else if (vd->flags & VECDESC_FL_NONSHARED) {
+                } else if (VECDESC_IS_NONSHARED(vd)) {
                     fprintf(stream, "Used: %s", esp_isr_names[vd->source]);
-                } else if (vd->flags & VECDESC_FL_SHARED) {
+                } else if (VECDESC_IS_SHARED_FAMILY(vd)) {
                     fprintf(stream, "Shared: ");
                     for (shared_vector_desc_t *svd = vd->shared_vec_info; svd != NULL; svd = svd->next) {
                         fprintf(stream, "%s ", esp_isr_names[svd->source]);
