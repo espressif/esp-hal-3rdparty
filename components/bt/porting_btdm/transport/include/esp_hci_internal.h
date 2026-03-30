@@ -12,8 +12,9 @@ extern "C" {
 #endif
 #include <stdint.h>
 #include "esp_hci_driver.h"
-#include "ble_mbuf.h"
 
+// forward declaration
+struct ble_mbuf;
 
 /* The leadingspace in user info header for ACL data */
 #define ESP_HCI_INTERNAL_ACL_MBUF_LEADINGSPCAE  (4)

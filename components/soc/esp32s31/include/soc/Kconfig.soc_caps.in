@@ -231,6 +231,10 @@ config SOC_IEEE802154_SUPPORTED
     bool
     default y
 
+config SOC_BT_SUPPORTED
+    bool
+    default y
+
 config SOC_PHY_CALIBRATION_CLOCK_IS_INDEPENDENT
     bool
     default y
@@ -1130,3 +1134,51 @@ config SOC_WIFI_NAN_SUPPORT
 config SOC_WIFI_LIGHT_SLEEP_CLK_WIDTH
     int
     default 12
+
+config SOC_BT_CLASSIC_SUPPORTED
+    bool
+    default y
+
+config SOC_BLE_SUPPORTED
+    bool
+    default y
+
+config SOC_ESP_NIMBLE_CONTROLLER
+    bool
+    default y
+
+config SOC_BLE_50_SUPPORTED
+    bool
+    default y
+
+config SOC_BLE_DEVICE_PRIVACY_SUPPORTED
+    bool
+    default y
+
+config SOC_BLE_POWER_CONTROL_SUPPORTED
+    bool
+    default y
+
+config SOC_BLE_MULTI_CONN_OPTIMIZATION
+    bool
+    default y
+
+config SOC_BLE_PERIODIC_ADV_ENH_SUPPORTED
+    bool
+    default y
+
+config SOC_BLE_CTE_SUPPORTED
+    bool
+    default y
+
+config SOC_BLE_SUBRATE_SUPPORTED
+    bool
+    default y
+
+config SOC_BLE_PERIODIC_ADV_WITH_RESPONSE
+    bool
+    default y
+
+config SOC_BLE_ISO_SUPPORTED
+    bool
+    default y

@@ -59,6 +59,10 @@ extern tBTA_HF_CLIENT_CB  bta_hf_client_cb;
 #define BTA_HF_CLIENT_INDICATOR_CALLSETUP   "callsetup"
 #define BTA_HF_CLIENT_INDICATOR_CALLHELD    "callheld"
 
+#if defined(MIN)
+#undef MIN
+#endif
+
 #define MIN(a, b) \
     ({ __typeof__(a) _a = (a); __typeof__(b) _b = (b); (_a < _b) ? _a : _b; })
 

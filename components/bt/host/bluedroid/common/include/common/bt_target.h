@@ -1415,6 +1415,19 @@
 #define BTM_BLE_CONFORMANCE_TESTING           FALSE
 #endif
 
+#if (CLASSIC_BT_INCLUDED == TRUE)
+#if (BT_CONTROLLER_INCLUDED == TRUE) && (CONFIG_IDF_TARGET_ESP32)
+#define BR_EDR_SET_CTRL_SCO_DATAPATH     (TRUE)
+#else
+#define BR_EDR_SET_CTRL_SCO_DATAPATH     (FALSE)
+#endif
+
+#if (BT_CONTROLLER_INCLUDED == TRUE) && (CONFIG_IDF_TARGET_ESP32)
+#define BR_EDR_GET_EIR_TX_PWR_LEVEL      (TRUE)
+#else
+#define BR_EDR_GET_EIR_TX_PWR_LEVEL      (FALSE)
+#endif
+#endif
 /******************************************************************************
 **
 ** CONTROLLER TO HOST FLOW CONTROL

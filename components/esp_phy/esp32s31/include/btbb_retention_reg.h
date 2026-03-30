@@ -16,9 +16,12 @@ extern "C" {
 #define BB_PART_0_SIZE 128
 #define BB_PART_1_SIZE 68
 #define BB_PART_2_SIZE 19
-#define BB_PART_0_ADDR 0x600A2000
-#define BB_PART_1_ADDR 0x600A2800
-#define BB_PART_2_ADDR 0x600A2C00
+#define BB_PART_3_SIZE 64
+
+#define BB_PART_0_ADDR 0x20102000
+#define BB_PART_1_ADDR 0x20102800
+#define BB_PART_2_ADDR 0x20102C00
+#define BB_PART_3_ADDR 0x20102400
 
 #ifdef __cplusplus
 }

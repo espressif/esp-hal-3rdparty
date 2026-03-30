@@ -39,19 +39,19 @@ typedef hci_driver_packet_t *(hci_h4_alloc_cmd)(void);
 typedef void *(hci_h4_alloc_evt)(int);
 typedef struct ble_mbuf *(hci_h4_alloc_acl)(void);
 typedef void *(hci_h4_alloc_iso)(uint32_t);
-#if CONFIG_BTDM_CTRL_MODE_BR_EDR_ONLY || CONFIG_BTDM_CTRL_MODE_BTDM
+#if CONFIG_BT_CTRL_BREDR_ENABLE
 typedef hci_driver_packet_t *(hci_h4_alloc_sync)(uint16_t);
 typedef hci_driver_packet_t *(hci_h4_alloc_bredr_acl)(uint16_t);
-#endif // CONFIG_BTDM_CTRL_MODE_BR_EDR_ONLY || CONFIG_BTDM_CTRL_MODE_BTDM
+#endif // #if CONFIG_BT_CTRL_BREDR_ENABLE
 struct hci_h4_allocators {
     hci_h4_alloc_cmd *cmd;
     hci_h4_alloc_acl *acl;
     hci_h4_alloc_evt *evt;
     hci_h4_alloc_iso *iso;
-#if CONFIG_BTDM_CTRL_MODE_BR_EDR_ONLY || CONFIG_BTDM_CTRL_MODE_BTDM
+#if CONFIG_BT_CTRL_BREDR_ENABLE
     hci_h4_alloc_sync *sync;
     hci_h4_alloc_bredr_acl *bredr_acl;
-#endif // CONFIG_BTDM_CTRL_MODE_BR_EDR_ONLY || CONFIG_BTDM_CTRL_MODE_BTDM
+#endif // #if CONFIG_BT_CTRL_BREDR_ENABLE
 };
 
 extern const struct hci_h4_allocators hci_h4_allocs_from_ll;
@@ -62,20 +62,20 @@ typedef void (hci_h4_free_evt)(void * ptr);
 typedef int  (hci_h4_free_acl)(struct ble_mbuf *om);
 typedef void  (hci_h4_free_iso)(void *ptr);
 typedef void (hci_h4_free_le_evt)(uint8_t *buf);
-#if CONFIG_BTDM_CTRL_MODE_BR_EDR_ONLY || CONFIG_BTDM_CTRL_MODE_BTDM
+#if CONFIG_BT_CTRL_BREDR_ENABLE
 typedef void (hci_h4_free_sync)(void *ptr);
 typedef void (hci_h4_free_bredr_acl)(void *ptr);
-#endif // CONFIG_BTDM_CTRL_MODE_BR_EDR_ONLY || CONFIG_BTDM_CTRL_MODE_BTDM
+#endif // CONFIG_BT_CTRL_BREDR_ENABLE
 struct hci_h4_frees {
     hci_h4_free_cmd *cmd;
     hci_h4_free_acl *acl;
     hci_h4_free_evt *evt;
     hci_h4_free_iso *iso;
     hci_h4_free_le_evt *le_evt;
-#if CONFIG_BTDM_CTRL_MODE_BR_EDR_ONLY || CONFIG_BTDM_CTRL_MODE_BTDM
+#if CONFIG_BT_CTRL_BREDR_ENABLE
     hci_h4_free_sync *sync;
     hci_h4_free_bredr_acl *bredr_acl;
-#endif // CONFIG_BTDM_CTRL_MODE_BR_EDR_ONLY || CONFIG_BTDM_CTRL_MODE_BTDM
+#endif // CONFIG_BT_CTRL_BREDR_ENABLE
 };
 
 typedef int (hci_h4_frame_cb)(uint8_t pkt_type, void *data, int len, uint8_t data_source);

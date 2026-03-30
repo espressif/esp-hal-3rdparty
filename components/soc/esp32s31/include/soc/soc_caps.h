@@ -111,7 +111,8 @@
 
 #define SOC_PHY_SUPPORTED                1
 #define SOC_WIFI_SUPPORTED               1
-#define SOC_IEEE802154_SUPPORTED        1
+#define SOC_IEEE802154_SUPPORTED         1
+#define SOC_BT_SUPPORTED                 1
 #define SOC_PHY_CALIBRATION_CLOCK_IS_INDEPENDENT 1
 /*-------------------------- XTAL CAPS ---------------------------------------*/
 #define SOC_XTAL_SUPPORT_40M            1
@@ -468,6 +469,7 @@
 /*--------------------------- JPEG --------------------------------*/
 #define SOC_JPEG_DECODE_SUPPORTED                 (1)
 #define SOC_JPEG_ENCODE_SUPPORTED                 (1)
+
 /*------------------------------------ WI-FI CAPS ------------------------------------*/
 #define SOC_WIFI_HW_TSF                     (1)    /*!< Support hardware TSF */
 #define SOC_WIFI_FTM_SUPPORT                (1)    /*!< Support FTM */
@@ -481,3 +483,18 @@
 
 /*--------------- WIFI LIGHT SLEEP CLOCK WIDTH CAPS --------------------------*/
 #define SOC_WIFI_LIGHT_SLEEP_CLK_WIDTH  (12)
+
+/*---------------------------------- Bluetooth CAPS ----------------------------------*/
+#define SOC_BT_CLASSIC_SUPPORTED                    (1)     /*!< Support Bluetooth Classic hardware */
+#define SOC_BLE_SUPPORTED                           (1)     /*!< Support Bluetooth Low Energy hardware */
+// #define SOC_BLE_MESH_SUPPORTED                      (1)     /*!< Support BLE MESH */
+#define SOC_ESP_NIMBLE_CONTROLLER                   (1)     /*!< Support BLE EMBEDDED controller V1 */
+#define SOC_BLE_50_SUPPORTED                        (1)     /*!< Support Bluetooth 5.0 */
+#define SOC_BLE_DEVICE_PRIVACY_SUPPORTED            (1)     /*!< Support BLE device privacy mode */
+#define SOC_BLE_POWER_CONTROL_SUPPORTED             (1)     /*!< Support Bluetooth Power Control */
+#define SOC_BLE_MULTI_CONN_OPTIMIZATION             (1)     /*!< Support multiple connections optimization */
+#define SOC_BLE_PERIODIC_ADV_ENH_SUPPORTED          (1)     /*!< Support For BLE Periodic Adv Enhancements */
+#define SOC_BLE_CTE_SUPPORTED                       (1)     /*!< Support Bluetooth LE Constant Tone Extension (CTE) */
+#define SOC_BLE_SUBRATE_SUPPORTED                   (1)     /*!< Support Bluetooth LE Connection Subrating */
+#define SOC_BLE_PERIODIC_ADV_WITH_RESPONSE          (1)     /*!< Support Bluetooth LE Periodic Advertising with Response (PAwR) */
+#define SOC_BLE_ISO_SUPPORTED                       (1)     /*!< Support Bluetooth ISO */

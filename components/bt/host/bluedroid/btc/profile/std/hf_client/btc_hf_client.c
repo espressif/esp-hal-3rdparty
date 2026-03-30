@@ -201,7 +201,7 @@ bt_status_t btc_hf_client_init(void)
 
     clear_state();
 
-#if (BT_CONTROLLER_INCLUDED == TRUE)
+#if (BR_EDR_SET_CTRL_SCO_DATAPATH == TRUE)
 #if BTM_SCO_HCI_INCLUDED
     uint8_t data_path = ESP_SCO_DATA_PATH_HCI;
 #else
