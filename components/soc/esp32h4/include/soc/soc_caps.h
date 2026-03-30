@@ -530,7 +530,7 @@
 
 /*---------------------------------- Bluetooth CAPS ----------------------------------*/
 #define SOC_BLE_SUPPORTED                           (1)     /*!< Support Bluetooth Low Energy hardware */
-// #define SOC_BLE_MESH_SUPPORTED                      (1)     /*!< Support BLE MESH */
+#define SOC_BLE_MESH_SUPPORTED                      (1)     /*!< Support BLE MESH */
 #define SOC_BLE_ISO_SUPPORTED                       (1)     /*!< Support BLE ISO */
 #define SOC_BLE_AUDIO_SUPPORTED                     (1)     /*!< Support BLE Audio */
 #define SOC_ESP_NIMBLE_CONTROLLER                   (1)     /*!< Support BLE EMBEDDED controller V1 */
