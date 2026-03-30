@@ -1,12 +1,12 @@
 /*
- * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
- * @note TX and RX channels are index from 0 in the LL driver, i.e. tx_channel = [0,1], rx_channel = [0,1]
- */
+* @note TX and RX channels are index from 0 in the LL driver, i.e. tx_channel = [0,3], rx_channel = [0,3]
+*/
 
 #pragma once
 
@@ -17,8 +17,8 @@
 #include "hal/assert.h"
 #include "hal/rmt_types.h"
 #include "soc/rmt_struct.h"
-#include "soc/pcr_struct.h"
-#include "soc/retention_periph_defs.h"
+#include "soc/hp_sys_clkrst_struct.h"
+#include "soc/hp_system_struct.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,9 +30,9 @@ extern "C" {
 
 // SoC-based capabilities
 #define RMT_LL_INST_NUM                       (1)  /*!< Number of RMT group */
-#define RMT_LL_TX_CANDIDATES_PER_INST         (2)  /*!< Number of channels that capable of Transmit */
-#define RMT_LL_RX_CANDIDATES_PER_INST         (2)  /*!< Number of channels that capable of Receive */
-#define RMT_LL_CHANS_PER_INST                 (4)  /*!< Total 4 channels */
+#define RMT_LL_TX_CANDIDATES_PER_INST         (4)  /*!< Number of channels that capable of Transmit in each group */
+#define RMT_LL_RX_CANDIDATES_PER_INST         (4)  /*!< Number of channels that capable of Receive in each group */
+#define RMT_LL_CHANS_PER_INST                 (8)  /*!< Total 8 channels */
 #define RMT_LL_SUPPORT_RX_DEMODULATION        (1)  /*!< Support signal demodulation on RX path (i.e. remove carrier) */
 #define RMT_LL_SUPPORT_ASYNC_STOP             (1)  /*!< Support stop transmission asynchronously */
 #define RMT_LL_SUPPORT_TX_SYNCHRO             (1)  /*!< Support coordinate a group of TX channels to start simultaneously */
@@ -42,9 +42,9 @@ extern "C" {
 #define RMT_LL_EVENT_TX_THRES(channel)    (1 << ((channel) + 8))
 #define RMT_LL_EVENT_TX_LOOP_END(channel) (1 << ((channel) + 12))
 #define RMT_LL_EVENT_TX_ERROR(channel)    (1 << ((channel) + 4))
-#define RMT_LL_EVENT_RX_DONE(channel)     (1 << ((channel) + 2))
-#define RMT_LL_EVENT_RX_THRES(channel)    (1 << ((channel) + 10))
-#define RMT_LL_EVENT_RX_ERROR(channel)    (1 << ((channel) + 6))
+#define RMT_LL_EVENT_RX_DONE(channel)     (1 << ((channel) + 16))
+#define RMT_LL_EVENT_RX_THRES(channel)    (1 << ((channel) + 24))
+#define RMT_LL_EVENT_RX_ERROR(channel)    (1 << ((channel) + 20))
 #define RMT_LL_EVENT_TX_MASK(channel)     (RMT_LL_EVENT_TX_DONE(channel) | RMT_LL_EVENT_TX_THRES(channel) | RMT_LL_EVENT_TX_LOOP_END(channel))
 #define RMT_LL_EVENT_RX_MASK(channel)     (RMT_LL_EVENT_RX_DONE(channel) | RMT_LL_EVENT_RX_THRES(channel))
 
@@ -62,7 +62,10 @@ typedef enum {
 } rmt_ll_mem_owner_t;
 
 typedef enum {
-    RMT_LL_MEM_LP_MODE_SHUT_DOWN,   // power down memory during low power stage
+    RMT_LL_MEM_LP_MODE_DEEP_SLEEP,    // memory will enter deep sleep during low power stage, keep memory data
+    RMT_LL_MEM_LP_MODE_LIGHT_SLEEP,   // memory will enter light sleep during low power stage, keep memory data
+    RMT_LL_MEM_LP_MODE_SHUT_DOWN,     // memory will be powered down during low power stage
+    RMT_LL_MEM_LP_MODE_DISABLE,       // disable the low power stage
 } rmt_ll_mem_lp_mode_t;
 
 /**
@@ -74,7 +77,7 @@ typedef enum {
 static inline void rmt_ll_enable_bus_clock(int group_id, bool enable)
 {
     (void)group_id;
-    PCR.rmt_conf.rmt_clk_en = enable;
+    HP_SYS_CLKRST.rmt_ctrl0.reg_rmt_sys_clk_en = enable;
 }
 
 /**
@@ -85,8 +88,8 @@ static inline void rmt_ll_enable_bus_clock(int group_id, bool enable)
 static inline void rmt_ll_reset_register(int group_id)
 {
     (void)group_id;
-    PCR.rmt_conf.rmt_rst_en = 1;
-    PCR.rmt_conf.rmt_rst_en = 0;
+    HP_SYS_CLKRST.rmt_ctrl0.reg_rmt_rst_en = 1;
+    HP_SYS_CLKRST.rmt_ctrl0.reg_rmt_rst_en = 0;
 }
 
 /**
@@ -96,8 +99,9 @@ static inline void rmt_ll_reset_register(int group_id)
  */
 static inline void rmt_ll_mem_force_power_on(rmt_dev_t *dev)
 {
-    PCR.rmt_pd_ctrl.rmt_mem_force_pu = 1;
-    PCR.rmt_pd_ctrl.rmt_mem_force_pd = 0;
+    (void)dev;
+    HP_SYSTEM.sys_rmt_mem_lp_ctrl.sys_rmt_mem_lp_force_ctrl = 1;
+    HP_SYSTEM.sys_rmt_mem_lp_ctrl.sys_rmt_mem_lp_en = 0;
 }
 
 /**
@@ -107,19 +111,22 @@ static inline void rmt_ll_mem_force_power_on(rmt_dev_t *dev)
  */
 static inline void rmt_ll_mem_force_low_power(rmt_dev_t *dev)
 {
-    PCR.rmt_pd_ctrl.rmt_mem_force_pd = 1;
-    PCR.rmt_pd_ctrl.rmt_mem_force_pu = 0;
+    (void)dev;
+    HP_SYSTEM.sys_rmt_mem_lp_ctrl.sys_rmt_mem_lp_force_ctrl = 1;
+    HP_SYSTEM.sys_rmt_mem_lp_ctrl.sys_rmt_mem_lp_en = 1;
 }
 
 /**
  * @brief Power control the RMT memory block by the outside PMU logic
  *
  * @param dev Peripheral instance address
+ * @param mode RMT memory low power mode in low power stage
  */
 static inline void rmt_ll_mem_power_by_pmu(rmt_dev_t *dev)
 {
-    PCR.rmt_pd_ctrl.rmt_mem_force_pd = 0;
-    PCR.rmt_pd_ctrl.rmt_mem_force_pu = 0;
+    (void)dev;
+    HP_SYSTEM.sys_rmt_mem_lp_ctrl.sys_rmt_mem_lp_en = 0;
+    HP_SYSTEM.sys_rmt_mem_lp_ctrl.sys_rmt_mem_lp_force_ctrl = 0;
 }
 
 /**
@@ -131,7 +138,7 @@ static inline void rmt_ll_mem_power_by_pmu(rmt_dev_t *dev)
 static inline void rmt_ll_mem_set_low_power_mode(rmt_dev_t *dev, rmt_ll_mem_lp_mode_t mode)
 {
     (void)dev;
-    HAL_ASSERT(mode == RMT_LL_MEM_LP_MODE_SHUT_DOWN);
+    HP_SYSTEM.sys_rmt_mem_lp_ctrl.sys_rmt_mem_lp_mode = mode;
 }
 
 /**
@@ -158,21 +165,22 @@ static inline void rmt_ll_enable_mem_access_nonfifo(rmt_dev_t *dev, bool enable)
 static inline void rmt_ll_set_group_clock_src(rmt_dev_t *dev, uint32_t channel, rmt_clock_source_t src,
                                               uint32_t divider_integral, uint32_t divider_denominator, uint32_t divider_numerator)
 {
+    (void)dev;
     // Formula: rmt_sclk = module_clock_src / (1 + div_num + div_a / div_b)
     (void)channel; // the source clock is set for all channels
     HAL_ASSERT(divider_integral >= 1);
-    HAL_FORCE_MODIFY_U32_REG_FIELD(PCR.rmt_sclk_conf, rmt_sclk_div_num, divider_integral - 1);
-    PCR.rmt_sclk_conf.rmt_sclk_div_a = divider_numerator;
-    PCR.rmt_sclk_conf.rmt_sclk_div_b = divider_denominator;
+    HAL_FORCE_MODIFY_U32_REG_FIELD(HP_SYS_CLKRST.rmt_ctrl0, reg_rmt_clk_div_num, divider_integral - 1);
+    HAL_FORCE_MODIFY_U32_REG_FIELD(HP_SYS_CLKRST.rmt_ctrl0, reg_rmt_clk_div_numerator, divider_numerator);
+    HAL_FORCE_MODIFY_U32_REG_FIELD(HP_SYS_CLKRST.rmt_ctrl0, reg_rmt_clk_div_denominator, divider_denominator);
     switch (src) {
     case RMT_CLK_SRC_PLL_F80M:
-        PCR.rmt_sclk_conf.rmt_sclk_sel = 2;
+        HP_SYS_CLKRST.rmt_ctrl0.reg_rmt_clk_src_sel = 2;
         break;
     case RMT_CLK_SRC_RC_FAST:
-        PCR.rmt_sclk_conf.rmt_sclk_sel = 1;
+        HP_SYS_CLKRST.rmt_ctrl0.reg_rmt_clk_src_sel = 1;
         break;
     case RMT_CLK_SRC_XTAL:
-        PCR.rmt_sclk_conf.rmt_sclk_sel = 0;
+        HP_SYS_CLKRST.rmt_ctrl0.reg_rmt_clk_src_sel = 0;
         break;
     default:
         HAL_ASSERT(false);
@@ -189,7 +197,7 @@ static inline void rmt_ll_set_group_clock_src(rmt_dev_t *dev, uint32_t channel, 
 static inline void rmt_ll_enable_group_clock(rmt_dev_t *dev, bool en)
 {
     (void)dev;
-    PCR.rmt_sclk_conf.rmt_sclk_en = en;
+    HP_SYS_CLKRST.rmt_ctrl0.reg_rmt_clk_en = en;
 }
 
 ////////////////////////////////////////TX Channel Specific/////////////////////////////////////////////////////////////
@@ -203,7 +211,7 @@ static inline void rmt_ll_enable_group_clock(rmt_dev_t *dev, bool en)
 static inline void rmt_ll_tx_reset_channels_clock_div(rmt_dev_t *dev, uint32_t channel_mask)
 {
     // write 1 to reset
-    dev->ref_cnt_rst.val |= channel_mask & 0x03;
+    dev->ref_cnt_rst.val |= channel_mask & 0x0F;
 }
 
 /**
@@ -236,6 +244,19 @@ static inline void rmt_ll_tx_reset_pointer(rmt_dev_t *dev, uint32_t channel)
     dev->chnconf0[channel].mem_rd_rst_chn = 0;
     dev->chnconf0[channel].apb_mem_rst_chn = 1;
     dev->chnconf0[channel].apb_mem_rst_chn = 0;
+}
+
+/**
+ * @brief Enable DMA access for TX channel
+ *
+ * @param dev Peripheral instance address
+ * @param channel RMT TX channel number
+ * @param enable True to enable, False to disable
+ */
+static inline void rmt_ll_tx_enable_dma(rmt_dev_t *dev, uint32_t channel, bool enable)
+{
+    HAL_ASSERT(channel == 3 && "only TX channel 3 has DMA ability");
+    dev->chnconf0[channel].dma_access_en_chn = enable;
 }
 
 /**
@@ -374,7 +395,7 @@ static inline void rmt_ll_tx_enable_sync(rmt_dev_t *dev, bool enable)
  */
 static inline void rmt_ll_tx_clear_sync_group(rmt_dev_t *dev)
 {
-    dev->tx_sim.val &= ~(0x03);
+    dev->tx_sim.val &= ~(0x0F);
 }
 
 /**
@@ -385,7 +406,7 @@ static inline void rmt_ll_tx_clear_sync_group(rmt_dev_t *dev)
  */
 static inline void rmt_ll_tx_sync_group_add_channels(rmt_dev_t *dev, uint32_t channel_mask)
 {
-    dev->tx_sim.val |= (channel_mask & 0x03);
+    dev->tx_sim.val |= (channel_mask & 0x0F);
 }
 
 /**
@@ -495,7 +516,7 @@ static inline void rmt_ll_tx_enable_carrier_always_on(rmt_dev_t *dev, uint32_t c
 static inline void rmt_ll_rx_reset_channels_clock_div(rmt_dev_t *dev, uint32_t channel_mask)
 {
     // write 1 to reset
-    dev->ref_cnt_rst.val |= ((channel_mask & 0x03) << 2);
+    dev->ref_cnt_rst.val |= ((channel_mask & 0x0F) << 4);
 }
 
 /**
@@ -528,6 +549,19 @@ static inline void rmt_ll_rx_reset_pointer(rmt_dev_t *dev, uint32_t channel)
     dev->chmconf[channel].conf1.mem_wr_rst_chm = 0;
     dev->chmconf[channel].conf1.apb_mem_rst_chm = 1;
     dev->chmconf[channel].conf1.apb_mem_rst_chm = 0;
+}
+
+/**
+ * @brief Enable DMA access for RX channel
+ *
+ * @param dev Peripheral instance address
+ * @param channel RMT RX channel number
+ * @param enable True to enable, False to disable
+ */
+static inline void rmt_ll_rx_enable_dma(rmt_dev_t *dev, uint32_t channel, bool enable)
+{
+    HAL_ASSERT(channel == 3 && "only RX channel 3 has DMA ability");
+    dev->chmconf[channel].conf0.dma_access_en_chm = enable;
 }
 
 /**
@@ -619,7 +653,7 @@ static inline void rmt_ll_rx_set_filter_thres(rmt_dev_t *dev, uint32_t channel, 
 __attribute__((always_inline))
 static inline uint32_t rmt_ll_rx_get_memory_writer_offset(rmt_dev_t *dev, uint32_t channel)
 {
-    return dev->chmstatus[channel].mem_waddr_ex_chm - (channel + 2) * 48;
+    return dev->chmstatus[channel].mem_waddr_ex_chm - (channel + 4) * 48;
 }
 
 /**

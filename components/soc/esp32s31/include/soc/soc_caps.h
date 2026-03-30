@@ -54,7 +54,7 @@
 #define SOC_EFUSE_SUPPORTED             1         // TODO: [ESP32S31] IDF-14688
 #define SOC_RTC_FAST_MEM_SUPPORTED      1
 #define SOC_RTC_MEM_SUPPORTED           1      // TODO: [ESP32S31] IDF-14645
-// #define SOC_RMT_SUPPORTED               1      // TODO: [ESP32S31] IDF-14794
+#define SOC_RMT_SUPPORTED               1
 // #define SOC_I2S_SUPPORTED               1      // TODO: [ESP32S31] IDF-14771
 #define SOC_SDM_SUPPORTED               1
 // #define SOC_GPSPI_SUPPORTED             1      // TODO: [ESP32S31] IDF-14734
@@ -207,6 +207,14 @@
 /*-------------------------- LEDC CAPS ---------------------------------------*/
 // TODO: [ESP32S31] IDF-14709
 #define SOC_LEDC_CHANNEL_NUM                (6)
+
+/*--------------------------- RMT CAPS ---------------------------------------*/
+#define SOC_RMT_MEM_WORDS_PER_CHANNEL         48 /*!< Each channel owns 48 words memory (1 word = 4 Bytes) */
+#define SOC_RMT_SUPPORT_RX_PINGPONG           1  /*!< Support Ping-Pong mode on RX path */
+#define SOC_RMT_SUPPORT_TX_LOOP_COUNT         1  /*!< Support transmit specified number of cycles in loop mode */
+#define SOC_RMT_SUPPORT_TX_LOOP_AUTO_STOP     1  /*!< Hardware support of auto-stop in loop mode */
+#define SOC_RMT_SUPPORT_DMA                   1  /*!< RMT peripheral can connect to DMA channel */
+#define SOC_RMT_SUPPORT_SLEEP_RETENTION       1  /*!< The sleep retention feature can help back up RMT registers before sleep */
 
 /*-------------------------- MMU CAPS ----------------------------------------*/
 #define SOC_MMU_PERIPH_NUM                    (2U)
