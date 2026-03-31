@@ -18,14 +18,18 @@
 #include "soc/hp_sys_clkrst_struct.h"
 #include "soc/hp_system_struct.h"
 
+// Number of 2D-DMA instances
 #define DMA2D_LL_INST_NUM       1
 #define DMA2D_LL_GET_HW(id)     (((id) == 0) ? (&DMA2D) : NULL)
 
 #define DMA2D_LL_GET(_attr)     DMA2D_LL_ ## _attr
 
+// Number of 2D-DMA TX (OUT) channels in each instance
 #define DMA2D_LL_TX_CHANS_PER_INST      4
+// Number of 2D-DMA RX (IN) channels in each instance
 #define DMA2D_LL_RX_CHANS_PER_INST      3
 
+// 2D-DMA interrupts
 #define DMA2D_LL_RX_EVENT_MASK               (0x3FFF)
 #define DMA2D_LL_TX_EVENT_MASK               (0x1FFF)
 
@@ -40,9 +44,9 @@
 #define DMA2D_LL_EVENT_RX_FIFO_L1_UDF        (1<<5)
 #define DMA2D_LL_EVENT_RX_FIFO_L1_OVF        (1<<4)
 #define DMA2D_LL_EVENT_RX_DESC_ERROR         (1<<3)
-#define DMA2D_LL_EVENT_RX_ERR_EOF            (1<<2)
-#define DMA2D_LL_EVENT_RX_SUC_EOF            (1<<1)
-#define DMA2D_LL_EVENT_RX_DONE               (1<<0)
+#define DMA2D_LL_EVENT_RX_ERR_EOF            (1<<2)     // Raised when the err_eof bit in the descriptor is set by auto writeback (Only JPEG)
+#define DMA2D_LL_EVENT_RX_SUC_EOF            (1<<1)     // Raised when the suc_eof bit in the descriptor is set by auto writeback
+#define DMA2D_LL_EVENT_RX_DONE               (1<<0)     // Raised when all data descripted in the descriptor are processed (every succeed descriptor will have one RX_DONE interrupt)
 
 #define DMA2D_LL_EVENT_TX_DESC_TASK_OVF      (1<<12)
 #define DMA2D_LL_EVENT_TX_FIFO_REORDER_UDF   (1<<11)
@@ -58,17 +62,21 @@
 #define DMA2D_LL_EVENT_TX_EOF                (1<<1)
 #define DMA2D_LL_EVENT_TX_DONE               (1<<0)
 
-#define DMA2D_LL_TX_CHANNEL_SUPPORT_RO_MASK        (0U | BIT0)
-#define DMA2D_LL_TX_CHANNEL_SUPPORT_CSC_MASK       (0U | BIT0 | BIT1 | BIT2 | BIT3)
-#define DMA2D_LL_RX_CHANNEL_SUPPORT_RO_MASK        (0U | BIT0)
-#define DMA2D_LL_RX_CHANNEL_SUPPORT_CSC_MASK       (0U | BIT0)
+// Bit masks that are used to indicate availability of some sub-features in the channels
+#define DMA2D_LL_TX_CHANNEL_SUPPORT_RO_MASK        (0U | BIT0) // TX channels that support reorder feature
+#define DMA2D_LL_TX_CHANNEL_SUPPORT_CSC_MASK       (0U | BIT0 | BIT1 | BIT2 | BIT3) // TX channels that support color space conversion feature
+#define DMA2D_LL_RX_CHANNEL_SUPPORT_RO_MASK        (0U | BIT0) // RX channels that support reorder feature
+#define DMA2D_LL_RX_CHANNEL_SUPPORT_CSC_MASK       (0U | BIT0) // RX channels that support color space conversion feature
 
+// Any "dummy" peripheral selection ID can be used for M2M mode
 #define DMA2D_LL_TX_CHANNEL_PERIPH_M2M_AVAILABLE_ID_MASK   (0xF0)
 #define DMA2D_LL_RX_CHANNEL_PERIPH_M2M_AVAILABLE_ID_MASK   (0xF8)
+// Peripheral selection ID that disconnects 2D-DMA channel from any peripherals
 #define DMA2D_LL_CHANNEL_PERIPH_NO_CHOICE          (7)
+// Peripheral selection ID register field width
 #define DMA2D_LL_CHANNEL_PERIPH_SEL_BIT_WIDTH      (3)
 
-#define DMA2D_LL_DESC_ALIGNMENT 8
+#define DMA2D_LL_DESC_ALIGNMENT 8 // Descriptor must be aligned to 8 bytes
 
 #ifdef __cplusplus
 extern "C" {
@@ -84,6 +92,9 @@ typedef enum {
 ///////////////////////////////////// Common /////////////////////////////////////////
 /**
  * @brief Enable the bus clock for 2D-DMA module
+ *
+ * @param group_id Group ID
+ * @param enable True to enable; false to disable
  */
 static inline void dma2d_ll_enable_bus_clock(int group_id, bool enable)
 {
@@ -93,6 +104,8 @@ static inline void dma2d_ll_enable_bus_clock(int group_id, bool enable)
 
 /**
  * @brief Reset the 2D-DMA module
+ *
+ * @param group_id Group ID
  */
 static inline void dma2d_ll_reset_register(int group_id)
 {
@@ -161,10 +174,13 @@ static inline void dma2d_ll_mem_set_low_power_mode(dma2d_dev_t *dev, dma2d_ll_me
 static inline void dma2d_ll_hw_enable(dma2d_dev_t *dev, bool enable)
 {
     dev->rst_conf.clk_en = enable;
+    // Reset AXI master read data FIFO
     dev->rst_conf.axim_rd_rst = 1;
     dev->rst_conf.axim_rd_rst = 0;
+    // Reset AXI master write data FIFO
     dev->rst_conf.axim_wr_rst = 1;
     dev->rst_conf.axim_wr_rst = 0;
+    // Disable TX/RX arbiter weight config
     dev->out_arb_config.val = 0;
     dev->in_arb_config.val = 0;
 }
@@ -189,17 +205,24 @@ static inline uint32_t dma2d_ll_get_scramble_order_sel(dma2d_scramble_order_t or
     case DMA2D_SCRAMBLE_ORDER_BYTE0_1_2:
         return 5;
     default:
+        // Unsupported scramble order
         abort();
     }
 }
 
 /////////////////////////////////////// RX ///////////////////////////////////////////
+/**
+ * @brief Get 2D-DMA RX channel interrupt status word
+ */
 __attribute__((always_inline))
 static inline uint32_t dma2d_ll_rx_get_interrupt_status(dma2d_dev_t *dev, uint32_t channel)
 {
     return dev->in_channel[channel].in_int_st.val & DMA2D_LL_RX_EVENT_MASK;
 }
 
+/**
+ * @brief Enable 2D-DMA RX channel interrupt
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_rx_enable_interrupt(dma2d_dev_t *dev, uint32_t channel, uint32_t mask, bool enable)
 {
@@ -210,29 +233,44 @@ static inline void dma2d_ll_rx_enable_interrupt(dma2d_dev_t *dev, uint32_t chann
     }
 }
 
+/**
+ * @brief Clear 2D-DMA RX channel interrupt
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_rx_clear_interrupt_status(dma2d_dev_t *dev, uint32_t channel, uint32_t mask)
 {
     dev->in_channel[channel].in_int_clr.val = (mask & DMA2D_LL_RX_EVENT_MASK);
 }
 
+/**
+ * @brief Get 2D-DMA RX channel interrupt status register address
+ */
 static inline volatile void *dma2d_ll_rx_get_interrupt_status_reg(dma2d_dev_t *dev, uint32_t channel)
 {
     return (volatile void *)(&dev->in_channel[channel].in_int_st);
 }
 
+/**
+ * @brief Enable 2D-DMA RX channel to check the owner bit in the descriptor, disabled by default
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_rx_enable_owner_check(dma2d_dev_t *dev, uint32_t channel, bool enable)
 {
     dev->in_channel[channel].in_conf0.in_check_owner_chn = enable;
 }
 
+/**
+ * @brief Enable 2D-DMA RX channel page boundary wrap
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_rx_enable_page_bound_wrap(dma2d_dev_t *dev, uint32_t channel, bool enable)
 {
     dev->in_channel[channel].in_conf0.in_page_bound_en_chn = enable;
 }
 
+/**
+ * @brief Set 2D-DMA RX channel maximum burst reading data length in bytes
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_rx_set_data_burst_length(dma2d_dev_t *dev, uint32_t channel, uint32_t length)
 {
@@ -254,17 +292,24 @@ static inline void dma2d_ll_rx_set_data_burst_length(dma2d_dev_t *dev, uint32_t 
         sel = 4;
         break;
     default:
+        // Unsupported data burst length
         abort();
     }
     dev->in_channel[channel].in_conf0.in_mem_burst_length_chn = sel;
 }
 
+/**
+ * @brief Enable 2D-DMA RX channel burst reading descriptor link, disabled by default
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_rx_enable_descriptor_burst(dma2d_dev_t *dev, uint32_t channel, bool enable)
 {
     dev->in_channel[channel].in_conf0.indscr_burst_en_chn = enable;
 }
 
+/**
+ * @brief Reset 2D-DMA RX channel FSM and FIFO pointer
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_rx_reset_channel(dma2d_dev_t *dev, uint32_t channel)
 {
@@ -272,24 +317,36 @@ static inline void dma2d_ll_rx_reset_channel(dma2d_dev_t *dev, uint32_t channel)
     dev->in_channel[channel].in_conf0.in_rst_chn = 0;
 }
 
+/**
+ * @brief Check if 2D-DMA RX channel is safe to reset
+ */
 __attribute__((always_inline))
 static inline bool dma2d_ll_rx_is_reset_avail(dma2d_dev_t *dev, uint32_t channel)
 {
     return dev->in_channel[channel].in_state.in_reset_avail_chn;
 }
 
+/**
+ * @brief Disable 2D-DMA RX channel via a command
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_rx_abort(dma2d_dev_t *dev, uint32_t channel, bool disable)
 {
     dev->in_channel[channel].in_conf0.in_cmd_disable_chn = disable;
 }
 
+/**
+ * @brief Enable 2D-DMA RX channel to obtain descriptor from IP port (here referring the PPA module)
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_rx_enable_dscr_port(dma2d_dev_t *dev, uint32_t channel, bool enable)
 {
     dev->in_channel[channel].in_conf0.in_dscr_port_en_chn = enable;
 }
 
+/**
+ * @brief Select 2D-DMA RX channel macro block size (Only useful in mode 1 of the link descriptor)
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_rx_set_macro_block_size(dma2d_dev_t *dev, uint32_t channel, dma2d_macro_block_size_t size)
 {
@@ -308,11 +365,15 @@ static inline void dma2d_ll_rx_set_macro_block_size(dma2d_dev_t *dev, uint32_t c
         sel = 2;
         break;
     default:
+        // Unsupported macro block size
         abort();
     }
     dev->in_channel[channel].in_conf0.in_macro_block_size_chn = sel;
 }
 
+/**
+ * @brief Pop data from 2D-DMA RX FIFO
+ */
 __attribute__((always_inline))
 static inline uint32_t dma2d_ll_rx_pop_data(dma2d_dev_t *dev, uint32_t channel)
 {
@@ -320,66 +381,99 @@ static inline uint32_t dma2d_ll_rx_pop_data(dma2d_dev_t *dev, uint32_t channel)
     return dev->in_channel[channel].in_pop.infifo_rdata_chn;
 }
 
+/**
+ * @brief Set the descriptor link base address for RX channel
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_rx_set_desc_addr(dma2d_dev_t *dev, uint32_t channel, uint32_t addr)
 {
     dev->in_channel[channel].in_link_addr.inlink_addr_chn = addr;
 }
 
+/**
+ * @brief Start dealing with RX descriptors
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_rx_start(dma2d_dev_t *dev, uint32_t channel)
 {
     dev->in_channel[channel].in_link_conf.inlink_start_chn = 1;
 }
 
+/**
+ * @brief Stop dealing with RX descriptors
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_rx_stop(dma2d_dev_t *dev, uint32_t channel)
 {
     dev->in_channel[channel].in_link_conf.inlink_stop_chn = 1;
 }
 
+/**
+ * @brief Restart a new inlink right after the last descriptor
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_rx_restart(dma2d_dev_t *dev, uint32_t channel)
 {
     dev->in_channel[channel].in_link_conf.inlink_restart_chn = 1;
 }
 
+/**
+ * @brief Configure the value of the owner field written back to the 2D-DMA RX descriptor
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_rx_set_auto_return_owner(dma2d_dev_t *dev, uint32_t channel, int owner)
 {
     dev->in_channel[channel].in_link_conf.inlink_auto_ret_chn = owner;
 }
 
+/**
+ * @brief Check if 2D-DMA RX descriptor FSM is in IDLE state
+ */
 __attribute__((always_inline))
 static inline bool dma2d_ll_rx_is_desc_fsm_idle(dma2d_dev_t *dev, uint32_t channel)
 {
     return dev->in_channel[channel].in_link_conf.inlink_park_chn;
 }
 
+/**
+ * @brief Check if 2D-DMA RX FSM is in IDLE state
+ */
 __attribute__((always_inline))
 static inline bool dma2d_ll_rx_is_fsm_idle(dma2d_dev_t *dev, uint32_t channel)
 {
     return (dev->in_channel[channel].in_state.in_state_chn == 0);
 }
 
+/**
+ * @brief Get RX success EOF descriptor's address
+ */
 __attribute__((always_inline))
 static inline uint32_t dma2d_ll_rx_get_success_eof_desc_addr(dma2d_dev_t *dev, uint32_t channel)
 {
     return dev->in_channel[channel].in_suc_eof_des_addr.val;
 }
 
+/**
+ * @brief Get RX error EOF descriptor's address
+ */
 __attribute__((always_inline))
 static inline uint32_t dma2d_ll_rx_get_error_eof_desc_addr(dma2d_dev_t *dev, uint32_t channel)
 {
     return dev->in_channel[channel].in_err_eof_des_addr.val;
 }
 
+/**
+ * @brief Get the pre-fetched RX descriptor's address
+ */
 __attribute__((always_inline))
 static inline uint32_t dma2d_ll_rx_get_prefetched_desc_addr(dma2d_dev_t *dev, uint32_t channel)
 {
     return dev->in_channel[channel].in_dscr.val;
 }
 
+/**
+ * @brief Connect 2D-DMA RX channel to a given peripheral
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_rx_connect_to_periph(dma2d_dev_t *dev, uint32_t channel, dma2d_trigger_peripheral_t periph, int periph_id)
 {
@@ -387,6 +481,9 @@ static inline void dma2d_ll_rx_connect_to_periph(dma2d_dev_t *dev, uint32_t chan
     dev->in_channel[channel].in_conf0.in_mem_trans_en_chn = (periph == DMA2D_TRIG_PERIPH_M2M);
 }
 
+/**
+ * @brief Disconnect 2D-DMA RX channel from peripheral
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_rx_disconnect_from_periph(dma2d_dev_t *dev, uint32_t channel)
 {
@@ -394,20 +491,33 @@ static inline void dma2d_ll_rx_disconnect_from_periph(dma2d_dev_t *dev, uint32_t
     dev->in_channel[channel].in_conf0.in_mem_trans_en_chn = false;
 }
 
+// REORDER FUNCTION (Only CH0 supports this feature)
+
+/**
+ * @brief Enable 2D-DMA RX channel macro block reorder function
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_rx_enable_reorder(dma2d_dev_t *dev, uint32_t channel, bool enable)
 {
     dev->in_channel[channel].in_conf0.in_reorder_en_chn = enable;
 }
 
+// COLOR SPACE CONVERSION FUNCTION
+
+/**
+ * @brief Configure 2D-DMA RX channel color space conversion parameters
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_rx_configure_color_space_conv(dma2d_dev_t *dev, uint32_t channel, dma2d_csc_rx_option_t csc_sel)
 {
-    HAL_ASSERT(channel == 0);
-    uint32_t input_sel = 7;
-    bool proc_en = false;
+    HAL_ASSERT(channel == 0); // Only channel 0 supports color space conversion
+    // L1
+    uint32_t input_sel = 7; // Disable CSC
+    // L2
+    bool proc_en = false; // Disable generic color convert module between color input & color output
     int (*table)[4] = NULL;
-    uint32_t output_sel = 1;
+    // L3
+    uint32_t output_sel = 1; // Output directly
 
     const int color_space_conv_param_yuv2rgb_bt601_table[3][4] = DMA2D_COLOR_SPACE_CONV_PARAM_YUV2RGB_BT601;
     const int color_space_conv_param_yuv2rgb_bt709_table[3][4] = DMA2D_COLOR_SPACE_CONV_PARAM_YUV2RGB_BT709;
@@ -417,7 +527,7 @@ static inline void dma2d_ll_rx_configure_color_space_conv(dma2d_dev_t *dev, uint
         input_sel = 7;
         break;
     case DMA2D_CSC_RX_SCRAMBLE:
-        input_sel = 1;
+        input_sel = 1; // Or 2
         proc_en = false;
         output_sel = 1;
         break;
@@ -491,6 +601,7 @@ static inline void dma2d_ll_rx_configure_color_space_conv(dma2d_dev_t *dev, uint
         output_sel = 0;
         break;
     default:
+        // Unsupported color space conversion type
         abort();
     }
 
@@ -526,42 +637,67 @@ static inline void dma2d_ll_rx_configure_color_space_conv(dma2d_dev_t *dev, uint
     }
 }
 
+/**
+ * @brief Configure 2D-DMA RX channel data scramble before color conversion
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_rx_set_csc_pre_scramble(dma2d_dev_t *dev, uint32_t channel, dma2d_scramble_order_t order)
 {
-    HAL_ASSERT(channel == 0);
+    HAL_ASSERT(channel == 0); // Only channel 0 supports scramble
     dev->in_channel[channel].in_scramble.in_scramble_sel_pre_chn = dma2d_ll_get_scramble_order_sel(order);
 }
 
+/**
+ * @brief Configure 2D-DMA RX channel data scramble after color conversion
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_rx_set_csc_post_scramble(dma2d_dev_t *dev, uint32_t channel, dma2d_scramble_order_t order)
 {
-    HAL_ASSERT(channel == 0);
+    HAL_ASSERT(channel == 0); // Only channel 0 supports scramble
     dev->in_channel[channel].in_scramble.in_scramble_sel_post_chn = dma2d_ll_get_scramble_order_sel(order);
 }
 
+// Arbiter
+
+/**
+ * @brief Enable 2D-DMA RX side arbiter weight configuration
+ */
 static inline void dma2d_ll_rx_enable_arb_weight(dma2d_dev_t *dev, bool enable)
 {
     dev->in_arb_config.in_weight_en = enable;
 }
 
+/**
+ * @brief Set 2D-DMA RX side arbiter period
+ *
+ * @param timeout_num Number of AXI clock cycles (240MHz) in one arbiter period
+ */
 static inline void dma2d_ll_rx_set_arb_timeout(dma2d_dev_t *dev, uint32_t timeout_num)
 {
     HAL_FORCE_MODIFY_U32_REG_FIELD(dev->in_arb_config, in_arb_timeout_num, timeout_num);
 }
 
+/**
+ * @brief Set 2D-DMA RX channel arbiter token number
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_rx_set_arb_token_num(dma2d_dev_t *dev, uint32_t channel, uint32_t token_num)
 {
     dev->in_channel[channel].in_arb.in_arb_token_num_chn = token_num;
 }
 
+/**
+ * @brief Get 2D-DMA RX channel arbiter token number
+ */
 __attribute__((always_inline))
 static inline uint32_t dma2d_ll_rx_get_arb_token_num(dma2d_dev_t *dev, uint32_t channel)
 {
     return dev->in_channel[channel].in_arb.in_arb_token_num_chn;
 }
 
+/**
+ * @brief Set priority for 2D-DMA RX channel
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_rx_set_priority(dma2d_dev_t *dev, uint32_t channel, uint32_t priority)
 {
@@ -569,12 +705,18 @@ static inline void dma2d_ll_rx_set_priority(dma2d_dev_t *dev, uint32_t channel, 
 }
 
 /////////////////////////////////////// TX ///////////////////////////////////////////
+/**
+ * @brief Get 2D-DMA TX channel interrupt status word
+ */
 __attribute__((always_inline))
 static inline uint32_t dma2d_ll_tx_get_interrupt_status(dma2d_dev_t *dev, uint32_t channel)
 {
     return dev->out_channel[channel].out_int_st.val & DMA2D_LL_TX_EVENT_MASK;
 }
 
+/**
+ * @brief Enable 2D-DMA TX channel interrupt
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_tx_enable_interrupt(dma2d_dev_t *dev, uint32_t channel, uint32_t mask, bool enable)
 {
@@ -585,41 +727,62 @@ static inline void dma2d_ll_tx_enable_interrupt(dma2d_dev_t *dev, uint32_t chann
     }
 }
 
+/**
+ * @brief Clear 2D-DMA TX channel interrupt
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_tx_clear_interrupt_status(dma2d_dev_t *dev, uint32_t channel, uint32_t mask)
 {
     dev->out_channel[channel].out_int_clr.val = (mask & DMA2D_LL_TX_EVENT_MASK);
 }
 
+/**
+ * @brief Get 2D-DMA TX channel interrupt status register address
+ */
 static inline volatile void *dma2d_ll_tx_get_interrupt_status_reg(dma2d_dev_t *dev, uint32_t channel)
 {
     return (volatile void *)(&dev->out_channel[channel].out_int_st);
 }
 
+/**
+ * @brief Enable 2D-DMA TX channel to check the owner bit in the descriptor, disabled by default
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_tx_enable_owner_check(dma2d_dev_t *dev, uint32_t channel, bool enable)
 {
     dev->out_channel[channel].out_conf0.out_check_owner_chn = enable;
 }
 
+/**
+ * @brief Enable 2D-DMA TX channel EOF flag generation mode to be EOF flag is generated when data has been popped from DMA FIFO
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_tx_enable_eof_mode(dma2d_dev_t *dev, uint32_t channel, bool enable)
 {
     dev->out_channel[channel].out_conf0.out_eof_mode_chn = enable;
 }
 
+/**
+ * @brief Enable 2D-DMA TX channel automatic write results back to descriptor after all data has been sent out, disabled by default
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_tx_enable_auto_write_back(dma2d_dev_t *dev, uint32_t channel, bool enable)
 {
     dev->out_channel[channel].out_conf0.out_auto_wrback_chn = enable;
 }
 
+/**
+ * @brief Enable 2D-DMA TX channel page boundary wrap
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_tx_enable_page_bound_wrap(dma2d_dev_t *dev, uint32_t channel, bool enable)
 {
     dev->out_channel[channel].out_conf0.out_page_bound_en_chn = enable;
 }
 
+/**
+ * @brief Set 2D-DMA TX channel maximum burst reading data length in bytes
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_tx_set_data_burst_length(dma2d_dev_t *dev, uint32_t channel, uint32_t length)
 {
@@ -641,17 +804,24 @@ static inline void dma2d_ll_tx_set_data_burst_length(dma2d_dev_t *dev, uint32_t 
         sel = 4;
         break;
     default:
+        // Unsupported data burst length
         abort();
     }
     dev->out_channel[channel].out_conf0.out_mem_burst_length_chn = sel;
 }
 
+/**
+ * @brief Enable 2D-DMA TX channel burst reading descriptor link, disabled by default
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_tx_enable_descriptor_burst(dma2d_dev_t *dev, uint32_t channel, bool enable)
 {
     dev->out_channel[channel].out_conf0.outdscr_burst_en_chn = enable;
 }
 
+/**
+ * @brief Reset 2D-DMA TX channel FSM and FIFO pointer
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_tx_reset_channel(dma2d_dev_t *dev, uint32_t channel)
 {
@@ -659,24 +829,36 @@ static inline void dma2d_ll_tx_reset_channel(dma2d_dev_t *dev, uint32_t channel)
     dev->out_channel[channel].out_conf0.out_rst_chn = 0;
 }
 
+/**
+ * @brief Check if 2D-DMA TX channel is safe to reset
+ */
 __attribute__((always_inline))
 static inline bool dma2d_ll_tx_is_reset_avail(dma2d_dev_t *dev, uint32_t channel)
 {
     return dev->out_channel[channel].out_state.out_reset_avail_chn;
 }
 
+/**
+ * @brief Disable 2D-DMA TX channel via a command
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_tx_abort(dma2d_dev_t *dev, uint32_t channel, bool disable)
 {
     dev->out_channel[channel].out_conf0.out_cmd_disable_chn = disable;
 }
 
+/**
+ * @brief Enable 2D-DMA TX channel to obtain descriptor from IP port (here referring the PPA module)
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_tx_enable_dscr_port(dma2d_dev_t *dev, uint32_t channel, bool enable)
 {
     dev->out_channel[channel].out_conf0.out_dscr_port_en_chn = enable;
 }
 
+/**
+ * @brief Set 2D-DMA TX channel block size in dscr-port mode
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_tx_set_dscr_port_block_size(dma2d_dev_t *dev, uint32_t channel, uint32_t blk_h, uint32_t blk_v)
 {
@@ -684,6 +866,9 @@ static inline void dma2d_ll_tx_set_dscr_port_block_size(dma2d_dev_t *dev, uint32
     dev->out_channel[channel].out_dscr_port_blk.out_dscr_port_blk_v_chn = blk_v;
 }
 
+/**
+ * @brief Select 2D-DMA TX channel macro block size
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_tx_set_macro_block_size(dma2d_dev_t *dev, uint32_t channel, dma2d_macro_block_size_t size)
 {
@@ -702,11 +887,15 @@ static inline void dma2d_ll_tx_set_macro_block_size(dma2d_dev_t *dev, uint32_t c
         sel = 2;
         break;
     default:
+        // Unsupported macro block size
         abort();
     }
     dev->out_channel[channel].out_conf0.out_macro_block_size_chn = sel;
 }
 
+/**
+ * @brief Push data into 2D-DMA TX FIFO
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_tx_push_data(dma2d_dev_t *dev, uint32_t channel, uint32_t data)
 {
@@ -714,54 +903,81 @@ static inline void dma2d_ll_tx_push_data(dma2d_dev_t *dev, uint32_t channel, uin
     dev->out_channel[channel].out_push.outfifo_push_chn = 1;
 }
 
+/**
+ * @brief Set the descriptor link base address for TX channel
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_tx_set_desc_addr(dma2d_dev_t *dev, uint32_t channel, uint32_t addr)
 {
     dev->out_channel[channel].out_link_addr.outlink_addr_chn = addr;
 }
 
+/**
+ * @brief Start dealing with TX descriptors
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_tx_start(dma2d_dev_t *dev, uint32_t channel)
 {
     dev->out_channel[channel].out_link_conf.outlink_start_chn = 1;
 }
 
+/**
+ * @brief Stop dealing with TX descriptors
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_tx_stop(dma2d_dev_t *dev, uint32_t channel)
 {
     dev->out_channel[channel].out_link_conf.outlink_stop_chn = 1;
 }
 
+/**
+ * @brief Restart a new outlink right after the last descriptor
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_tx_restart(dma2d_dev_t *dev, uint32_t channel)
 {
     dev->out_channel[channel].out_link_conf.outlink_restart_chn = 1;
 }
 
+/**
+ * @brief Check if 2D-DMA TX descriptor FSM is in IDLE state
+ */
 __attribute__((always_inline))
 static inline bool dma2d_ll_tx_is_desc_fsm_idle(dma2d_dev_t *dev, uint32_t channel)
 {
     return dev->out_channel[channel].out_link_conf.outlink_park_chn;
 }
 
+/**
+ * @brief Check if 2D-DMA TX FSM is in IDLE state
+ */
 __attribute__((always_inline))
 static inline bool dma2d_ll_tx_is_fsm_idle(dma2d_dev_t *dev, uint32_t channel)
 {
     return (dev->out_channel[channel].out_state.out_state_chn == 0);
 }
 
+/**
+ * @brief Get TX EOF descriptor's address
+ */
 __attribute__((always_inline))
 static inline uint32_t dma2d_ll_tx_get_eof_desc_addr(dma2d_dev_t *dev, uint32_t channel)
 {
     return dev->out_channel[channel].out_eof_des_addr.val;
 }
 
+/**
+ * @brief Get the pre-fetched TX descriptor's address
+ */
 __attribute__((always_inline))
 static inline uint32_t dma2d_ll_tx_get_prefetched_desc_addr(dma2d_dev_t *dev, uint32_t channel)
 {
     return dev->out_channel[channel].out_dscr.val;
 }
 
+/**
+ * @brief Connect 2D-DMA TX channel to a given peripheral
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_tx_connect_to_periph(dma2d_dev_t *dev, uint32_t channel, dma2d_trigger_peripheral_t periph, int periph_id)
 {
@@ -769,25 +985,41 @@ static inline void dma2d_ll_tx_connect_to_periph(dma2d_dev_t *dev, uint32_t chan
     dev->out_channel[channel].out_peri_sel.out_peri_sel_chn = periph_id;
 }
 
+/**
+ * @brief Disconnect 2D-DMA TX channel from peripheral
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_tx_disconnect_from_periph(dma2d_dev_t *dev, uint32_t channel)
 {
     dev->out_channel[channel].out_peri_sel.out_peri_sel_chn = DMA2D_LL_CHANNEL_PERIPH_NO_CHOICE;
 }
 
+// REORDER FUNCTION (Only CH0 supports this feature)
+
+/**
+ * @brief Enable 2D-DMA TX channel macro block reorder function
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_tx_enable_reorder(dma2d_dev_t *dev, uint32_t channel, bool enable)
 {
     dev->out_channel[channel].out_conf0.out_reorder_en_chn = enable;
 }
 
+// COLOR SPACE CONVERSION FUNCTION
+
+/**
+ * @brief Configure 2D-DMA TX channel color space conversion parameters
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_tx_configure_color_space_conv(dma2d_dev_t *dev, uint32_t channel, dma2d_csc_tx_option_t csc_sel)
 {
-    uint32_t input_sel = 7;
-    bool proc_en = false;
+    // L1
+    uint32_t input_sel = 7; // Disable CSC
+    // L2
+    bool proc_en = false; // Disable generic color convert module between color input & color output
     int (*table)[4] = NULL;
-    uint32_t output_sel = 2;
+    // L3
+    uint32_t output_sel = 2; // Output directly
 
     const int color_space_conv_param_rgb2yuv_bt601_table[3][4] = DMA2D_COLOR_SPACE_CONV_PARAM_RGB2YUV_BT601;
     const int color_space_conv_param_rgb2yuv_bt709_table[3][4] = DMA2D_COLOR_SPACE_CONV_PARAM_RGB2YUV_BT709;
@@ -799,7 +1031,7 @@ static inline void dma2d_ll_tx_configure_color_space_conv(dma2d_dev_t *dev, uint
         input_sel = 7;
         break;
     case DMA2D_CSC_TX_SCRAMBLE:
-        input_sel = 2;
+        input_sel = 2; // Or 3
         proc_en = false;
         output_sel = 2;
         break;
@@ -862,6 +1094,7 @@ static inline void dma2d_ll_tx_configure_color_space_conv(dma2d_dev_t *dev, uint
         output_sel = 2;
         break;
     default:
+        // Unsupported color space conversion type
         abort();
     }
 
@@ -896,34 +1129,56 @@ static inline void dma2d_ll_tx_configure_color_space_conv(dma2d_dev_t *dev, uint
     }
 }
 
+/**
+ * @brief Configure 2D-DMA TX channel data scramble before color conversion
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_tx_set_csc_pre_scramble(dma2d_dev_t *dev, uint32_t channel, dma2d_scramble_order_t order)
 {
     dev->out_channel[channel].out_scramble.out_scramble_sel_pre_chn = dma2d_ll_get_scramble_order_sel(order);
 }
 
+// Arbiter
+
+/**
+ * @brief Enable 2D-DMA TX side arbiter weight configuration
+ */
 static inline void dma2d_ll_tx_enable_arb_weight(dma2d_dev_t *dev, bool enable)
 {
     dev->out_arb_config.out_weight_en = enable;
 }
 
+/**
+ * @brief Set 2D-DMA TX side arbiter period
+ *
+ * @param timeout_num Number of AXI clock cycles (240MHz) in one arbiter period
+ */
 static inline void dma2d_ll_tx_set_arb_timeout(dma2d_dev_t *dev, uint32_t timeout_num)
 {
     HAL_FORCE_MODIFY_U32_REG_FIELD(dev->out_arb_config, out_arb_timeout_num, timeout_num);
 }
 
+/**
+ * @brief Set 2D-DMA TX channel arbiter token number
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_tx_set_arb_token_num(dma2d_dev_t *dev, uint32_t channel, uint32_t token_num)
 {
     dev->out_channel[channel].out_arb.out_arb_token_num_chn = token_num;
 }
 
+/**
+ * @brief Get 2D-DMA TX channel arbiter token number
+ */
 __attribute__((always_inline))
 static inline uint32_t dma2d_ll_tx_get_arb_token_num(dma2d_dev_t *dev, uint32_t channel)
 {
     return dev->out_channel[channel].out_arb.out_arb_token_num_chn;
 }
 
+/**
+ * @brief Set priority for 2D-DMA TX channel
+ */
 __attribute__((always_inline))
 static inline void dma2d_ll_tx_set_priority(dma2d_dev_t *dev, uint32_t channel, uint32_t priority)
 {
