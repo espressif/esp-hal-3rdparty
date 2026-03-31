@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2015-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -75,6 +75,37 @@ bt_osi_mem_free_internal(void *ptr)
     if (ptr) {
         heap_caps_free(ptr);
     }
+}
+
+void *
+bt_osi_mem_malloc(size_t size)
+{
+    void *mem_ptr;
+
+#if CONFIG_BT_LE_MEM_CHECK_ENABLED
+    if (mem_count_limit) {
+        if (curr_mem_count > mem_count_limit) {
+            return NULL;
+        }
+        curr_mem_count ++;
+    }
+#endif  // CONFIG_BT_LE_MEM_CHECK_ENABLED
+
+    mem_ptr = heap_caps_malloc(size, MALLOC_CAP_INTERNAL|MALLOC_CAP_8BIT);
+
+#if CONFIG_BT_LE_USED_MEM_STATISTICS_ENABLED
+    if (mem_ptr) {
+        controller_mem_used_size += heap_caps_get_allocated_size(mem_ptr);
+    }
+#endif // CONFIG_BT_LE_USED_MEM_STATISTICS_ENABLED
+
+    return mem_ptr;
+}
+
+void
+bt_osi_mem_free(void *ptr)
+{
+    bt_osi_mem_free_internal(ptr);
 }
 
 #if CONFIG_BT_LE_MEM_CHECK_ENABLED

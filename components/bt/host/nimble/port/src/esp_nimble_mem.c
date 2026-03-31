@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2015-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -255,7 +255,7 @@ void *nimble_mem_dbg_realloc(void *ptr, size_t new_size, const char *func, int l
 #if !CONFIG_BT_NIMBLE_LOW_SPEED_MODE
 IRAM_ATTR
 #endif
-void *bt_osi_mem_malloc(size_t size)
+void *nimble_mem_malloc(size_t size)
 {
     void *mem = NULL;
 #ifdef CONFIG_BT_NIMBLE_MEM_ALLOC_MODE_INTERNAL
@@ -286,7 +286,7 @@ void *bt_osi_mem_malloc(size_t size)
 #if !CONFIG_BT_NIMBLE_LOW_SPEED_MODE
 IRAM_ATTR
 #endif
-void *bt_osi_mem_calloc(size_t n, size_t size)
+void *nimble_mem_calloc(size_t n, size_t size)
 {
     void *mem = NULL;
 #ifdef CONFIG_BT_NIMBLE_MEM_ALLOC_MODE_INTERNAL
@@ -309,7 +309,7 @@ void *bt_osi_mem_calloc(size_t n, size_t size)
 #if !CONFIG_BT_NIMBLE_LOW_SPEED_MODE
 IRAM_ATTR
 #endif
-void bt_osi_mem_free(void *ptr)
+void nimble_mem_free(void *ptr)
 {
 #if CONFIG_BT_LE_USED_MEM_STATISTICS_ENABLED
     if (ptr) {
@@ -325,7 +325,7 @@ void bt_osi_mem_free(void *ptr)
 
 #if CONFIG_BT_LE_USED_MEM_STATISTICS_ENABLED
 size_t
-bt_osi_mem_used_size_get(void)
+nimble_mem_used_size_get(void)
 {
     return host_mem_used_size;
 }
@@ -333,7 +333,7 @@ bt_osi_mem_used_size_get(void)
 #if CONFIG_BT_NIMBLE_ENABLED
 uint32_t esp_host_used_heap_size_get(void)
 {
-    return bt_osi_mem_used_size_get();
+    return nimble_mem_used_size_get();
 }
 #endif // CONFIG_BT_NIMBLE_ENABLED
 #endif // CONFIG_BT_LE_USED_MEM_STATISTICS_ENABLED

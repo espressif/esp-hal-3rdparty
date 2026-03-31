@@ -500,14 +500,10 @@ static void IRAM_ATTR osi_assert_wrapper(const uint32_t ln, const char *fn,
 
 static uint32_t IRAM_ATTR osi_random_wrapper(void)
 {
-    static bool first = true;
+    //TODO: use esp_ramdom
+    // return esp_ramdom();
 
-    if (first) {
-        first = false;
-        srand(esp_random());
-    }
-
-    return rand();
+    return btdm_osal_rand();
 }
 
 static int esp_ecc_gen_key_pair(uint8_t *pub, uint8_t *priv)
@@ -532,12 +528,6 @@ static int esp_ecc_gen_dh_key(const uint8_t *peer_pub_key_x, const uint8_t *peer
 static int esp_ecc_aes_cmac(const uint8_t *key, const uint8_t *in, size_t len, uint8_t *out)
 {
     return ble_sm_ecc_aes_cmac(key, in, len, out);
-}
-
-static int ble_hci_unregistered_hook(void*, void*)
-{
-    ESP_LOGD(NIMBLE_PORT_LOG_TAG,"%s ble hci rx_evt is not registered.",__func__);
-    return 0;
 }
 
 #if CONFIG_FREERTOS_USE_TICKLESS_IDLE
@@ -766,6 +756,9 @@ esp_err_t esp_ble_controller_deinit(void)
 
     r_ble_controller_deinit();
 
+    extern int esp_ble_unregister_bb_funcs(void);
+    esp_ble_unregister_bb_funcs();
+
 #if CONFIG_BT_LE_CONTROLLER_LOG_ENABLED
     esp_bt_controller_log_deinit();
 #endif // CONFIG_BT_LE_CONTROLLER_LOG_ENABLED
@@ -780,52 +773,6 @@ esp_err_t esp_ble_controller_deinit(void)
     ble_controller_status = ESP_BT_CONTROLLER_STATUS_IDLE;
 
     return ESP_OK;
-}
-
-static
-esp_err_t esp_ble_controller_enable(esp_bt_mode_t mode)
-{
-    esp_err_t ret = ESP_OK;
-
-    // if (mode != ESP_BT_MODE_BLE) {
-    //     ESP_LOGW(NIMBLE_PORT_LOG_TAG, "invalid controller mode");
-    //     return ESP_FAIL;
-    // }
-    if (ble_controller_status != ESP_BT_CONTROLLER_STATUS_INITED) {
-        ESP_LOGW(NIMBLE_PORT_LOG_TAG, "invalid controller state");
-        return ESP_FAIL;
-    }
-    // esp_btbb_enable();
-// #if CONFIG_SW_COEXIST_ENABLE
-//     coex_enable();
-// #endif // CONFIG_SW_COEXIST_ENABLE
-
-
-// *******************************   BTDM TODO *****************************************************
-    ret = ble_stack_enable();
-    printf("ble_stack_enable:%d\n", ret);
-    if (ret) {
-        goto error;
-    }
-
-    int btdm_task_enable(void);
-    ret = btdm_task_enable();
-    printf("btdm_task_enable:%d\n", ret);
-    if (ret) {
-        goto error;
-    }
-
-// *************************************************************************************************
-
-    // if (ble_controller_enable(mode) != 0) {
-    //     ret = ESP_FAIL;
-    //     goto error;
-    // }
-    ble_controller_status = ESP_BT_CONTROLLER_STATUS_ENABLED;
-    return ESP_OK;
-
-error:
-    return ret;
 }
 
 esp_err_t esp_ble_controller_disable(void)
@@ -1181,8 +1128,6 @@ exit:
 
     return 0;
 #endif // CONFIG_BT_NIMBLE_CRYPTO_STACK_MBEDTLS
-    // Calculation successful, return 0
-    return 0;
 }
 
 #endif // CONFIG_BT_NIMBLE_ENABLED
@@ -1611,7 +1556,7 @@ int ble_stack_enable(void)
 #if CONFIG_BT_LE_ERROR_SIM_ENABLED
     rc = conn_errorSim_enable();
     if (rc) {
-        ESP_LOGW(conn_errorSim_enable, "conn_errorSim_enable failed %d", rc);
+        ESP_LOGW(NIMBLE_PORT_LOG_TAG, "conn_errorSim_enable failed %d", rc);
         return rc;
     }
 #endif // CONFIG_BT_LE_ERROR_SIM_ENABLED

@@ -17,7 +17,6 @@
 #include "btdm_user_cfg.h"
 
 #if CONFIG_BTDM_CTRL_MODE_BLE_ONLY || CONFIG_BTDM_CTRL_MODE_BTDM
-// #include "nimble/nimble_npl.h"
 #include "ble_user_cfg.h"
 #endif /* CONFIG_BTDM_CTRL_MODE_BLE_ONLY || CONFIG_BTDM_CTRL_MODE_BTDM */
 
@@ -29,57 +28,8 @@
 extern "C" {
 #endif
 
-#define ESP_BT_HCI_TL_MAGIC_VALUE   0xfadebead
-#define ESP_BT_HCI_TL_VERSION       0x00010000
-
 /**
- * @brief Bluetooth audio data transport path
- */
-typedef enum {
-    ESP_SCO_DATA_PATH_HCI = 0,            /*!< data over HCI transport */
-    ESP_SCO_DATA_PATH_PCM = 1,            /*!< data over PCM interface */
-} esp_sco_data_path_t;
-
-/**
- * @brief Type of controller HCI transport layer
- */
-typedef enum {
-    ESP_BT_CTRL_HCI_TL_UART = 0,      /*!< HCI UART h4 transport layer */
-    ESP_BT_CTRL_HCI_TL_VHCI = 1,      /*!< VHCI interface */
-} esp_bt_ctrl_hci_tl_t;
-
-#define ESP_BT_HCI_TL_STATUS_OK            (0)   /*!< HCI_TL Tx/Rx operation status OK */
-
-/**
- * @brief callback function for HCI Transport Layer send/receive operations
- */
-typedef void (* esp_bt_hci_tl_callback_t) (void *arg, uint8_t status);
-
-#if CONFIG_BT_CTRL_HCI_MODE_CHOICE_VHCI
-#define CFG_HCI_TL_TYPE 1
-#else
-#define CFG_HCI_TL_TYPE 0
-#endif
-
-/**
- * @brief Controller HCI transport layer function structure
- *        This structure shall be registered when HCI transport layer is UART
- */
-typedef struct {
-    uint32_t _magic;                        /* Magic number */
-    uint32_t _version;                      /* version number of the defined structure */
-    uint32_t _reserved;                     /* reserved for future use */
-    int (* _open)(void);                    /* hci tl open */
-    void (* _close)(void);                  /* hci tl close */
-    void (* _finish_transfers)(void);       /* hci tl finish transfers */
-    void (* _recv)(uint8_t *buf, uint32_t len, esp_bt_hci_tl_callback_t callback, void* arg); /* hci tl recv */
-    void (* _send)(uint8_t *buf, uint32_t len, esp_bt_hci_tl_callback_t callback, void* arg); /* hci tl send */
-    bool (* _flow_off)(void); /* hci tl flow off */
-    void (* _flow_on)(void); /* hci tl flow on */
-} esp_bt_hci_tl_t;
-
-/**
- * @brief Bluetooth mode for controller enable/disable
+ * @brief Bluetooth mode for controller enable/disable.
  */
 typedef enum {
     ESP_BT_MODE_IDLE       = 0x00,   /*!< Bluetooth is not running */
@@ -163,14 +113,6 @@ typedef enum {
 } esp_ble_enhanced_power_type_t;
 
 /**
- * @brief Address type and address value.
- */
-typedef struct {
-    uint8_t type;     /*!< Type of the Bluetooth address (public, random, etc.) */
-    uint8_t val[6];   /*!< Array containing the 6-byte Bluetooth address value */
-} esp_ble_addr_t;
-
-/**
  * @brief Select buffers
 */
 typedef enum {
@@ -179,40 +121,13 @@ typedef enum {
 } esp_ble_log_buf_t;
 
 /**
- * @brief  Set BLE TX power
- *         Connection Tx power should only be set after connection created.
- * @param  power_type : The type of which tx power, could set Advertising/Connection/Default and etc
- * @param  power_level: Power level(index) corresponding to absolute value(dbm)
- * @return              ESP_OK - success, other - failed
+ * @brief Address type and address value.
  */
-esp_err_t esp_ble_tx_power_set(esp_ble_power_type_t power_type, esp_power_level_t power_level);
+ typedef struct {
+    uint8_t type;     /*!< Type of the Bluetooth address (public, random, etc.) */
+    uint8_t val[6];   /*!< Array containing the 6-byte Bluetooth address value */
+} esp_ble_addr_t;
 
-/**
- * @brief  Get BLE TX power
- *         Connection Tx power should only be get after connection created.
- * @param  power_type : The type of which tx power, could set Advertising/Connection/Default and etc
- * @return             >= 0 - Power level, < 0 - Invalid
- */
-esp_power_level_t esp_ble_tx_power_get(esp_ble_power_type_t power_type);
-
-/**
- * @brief  ENHANCED API for Setting BLE TX power
- *         Connection Tx power should only be set after connection created.
- * @param  power_type : The enhanced type of which tx power, could set Advertising/Connection/Default and etc
- * @param  handle : The handle of Advertising or Connection and the value 0 for other enhanced power types.
- * @param  power_level: Power level(index) corresponding to absolute value(dbm)
- * @return              ESP_OK - success, other - failed
- */
-esp_err_t esp_ble_tx_power_set_enhanced(esp_ble_enhanced_power_type_t power_type, uint16_t handle, esp_power_level_t power_level);
-
-/**
- * @brief  ENHANCED API of Getting BLE TX power
- *         Connection Tx power should only be get after connection created.
- * @param  power_type : The enhanced type of which tx power, could set Advertising/Connection/Default and etc
- * @param  handle : The handle of Advertising or Connection and the value 0 for other enhanced power types.
- * @return             >= 0 - Power level, < 0 - Invalid
- */
-esp_power_level_t esp_ble_tx_power_get_enhanced(esp_ble_enhanced_power_type_t power_type, uint16_t handle);
 
 #define BLE_CONFIG_VERSION  0x20241029
 #define BLE_CONFIG_MAGIC    0x5A5AA5A5
@@ -223,17 +138,20 @@ esp_power_level_t esp_ble_tx_power_get_enhanced(esp_ble_enhanced_power_type_t po
 /* Types definition
  ************************************************************************
  */
+/**
+ * @brief BTDM controller common configuration options
+ */
 typedef struct {
-    uint32_t version;
+    uint32_t version;                   /*!< Version number of the defined structure */
     uint16_t task_stack_size;           /*!< Size of Bluetooth controller task stack */
     uint8_t task_prio;                  /*!< Priority of the Bluetooth controller task */
     uint8_t task_run_cpu;               /*!< CPU number on which the Bluetooth controller task runs */
     uint8_t hci_cmd_num;                /*!< HCI command buffer number */
     uint8_t hci_conn_num;               /*!< HCI level connection number */
-    uint8_t sleep_en;
-    uint8_t version_num;
+    uint8_t sleep_en;                   /*!< Enable sleep functionality */
+    uint8_t version_num;                /*!< Hardware version number of this chip */
     uint8_t bluetooth_mode;             /*!< Controller mode: BR/EDR, BLE or Dual Mode */
-    uint32_t magic;
+    uint32_t magic;                     /*!< Magic number for configuration validation */
 }esp_btdm_controller_config_t;
 
 /**
@@ -286,26 +204,26 @@ typedef struct {
         uint8_t main_xtal_freq;                      /*!< Main crystal frequency */
         uint8_t ignore_wl_for_direct_adv;            /*!< Ignore the white list for directed advertising */
         uint8_t enable_pcl;                          /*!< Enable power control */
-        uint8_t csa2_select;
-        uint8_t enable_csr;
-    	int8_t backoff_rssi;
-        bool iso_enabled;
-        bool iso_bqb_test;
-        bool iso_fra_unseg;
-        bool iso_nsfc_en;
-        uint8_t iso_nsfc_num;
-        uint8_t iso_buf_count;
-        uint16_t iso_buf_size;
-        uint8_t iso_big_count;
-        uint16_t iso_bis_count;
-        uint8_t iso_bis_per_big;
-        uint8_t iso_cig_count;
-        uint16_t iso_cis_count;
-        uint8_t iso_cis_per_cig;
+        uint8_t csa2_select;                         /*!< Select CSA2 */
+        uint8_t enable_csr;                          /*!< Enable connection subrate */
+    	int8_t backoff_rssi;                         /*!< Set the lowest rssi threshold for backoff */
+        bool iso_enabled;                            /*!< Enable ISO */
+        bool iso_bqb_test;                           /*!< Enable ISO BQB test */
+        bool iso_fra_unseg;                          /*!< Enable ISO FRA unsegmented */
+        bool iso_nsfc_en;                            /*!< Enable ISO NSCF */
+        uint8_t iso_nsfc_num;                        /*!< Number of ISO NSCF */
+        uint8_t iso_buf_count;                       /*!< Number of ISO buffer */
+        uint16_t iso_buf_size;                       /*!< Size of ISO buffer */
+        uint8_t iso_big_count;                       /*!< Number of ISO big */
+        uint16_t iso_bis_count;                      /*!< Number of ISO bis */
+        uint8_t iso_bis_per_big;                     /*!< Number of ISO bis per big */
+        uint8_t iso_cig_count;                       /*!< Number of ISO cig */
+        uint16_t iso_cis_count;                      /*!< Number of ISO cis */
+        uint8_t iso_cis_per_cig;                     /*!< Number of ISO cis per cig */
         uint32_t config_magic;                       /*!< Configuration magic value */
-    } ble;                                           /* Bluetooth LE controller configuration options */
+    } ble;                                           /*!< Bluetooth LE controller configuration options */
 
-    esp_btdm_controller_config_t btdm;               /*!< BTDM controller common configuration options */                                          /*!< BTDM controller common configuration options */
+    esp_btdm_controller_config_t btdm;               /*!< BTDM controller common configuration options */
 } esp_bt_controller_config_t;
 
 #if defined(CONFIG_BTDM_CTRL_MODE_BLE_ONLY)
@@ -314,28 +232,6 @@ typedef struct {
 #define BTDM_CONTROLLER_MODE_EFF                    ESP_BT_MODE_CLASSIC_BT
 #else
 #define BTDM_CONTROLLER_MODE_EFF                    ESP_BT_MODE_BTDM
-#endif
-
-#if defined(CONFIG_BT_CTRL_BR_EDR_TEST_MODE_EN)
-#define BT_CTRL_BR_EDR_TEST_MODE_EN               1
-#else
-#define BT_CTRL_BR_EDR_TEST_MODE_EN               0
-#endif
-
-#ifndef CONFIG_BT_CTRL_BR_EDR_DTM_EN_EFF
-#define CONFIG_BT_CTRL_BR_EDR_DTM_EN_EFF          false
-#endif
-
-#if defined(CONFIG_BT_CTRL_BR_EDR_TX_CCA_ENABLED)
-    #define BT_CTRL_BR_EDR_TX_CCA_ENABLED (CONFIG_BT_CTRL_BR_EDR_TX_CCA_ENABLED)
-#else
-    #define BT_CTRL_BR_EDR_TX_CCA_ENABLED (0)
-#endif
-
-#if defined(CONFIG_BT_CTRL_BR_EDR_CCA_RSSI_THRESH)
-    #define BT_CTRL_BR_EDR_CCA_RSSI_THRESH (CONFIG_BT_CTRL_BR_EDR_CCA_RSSI_THRESH)
-#else
-    #define BT_CTRL_BR_EDR_CCA_RSSI_THRESH (50)
 #endif
 
 #if defined(CONFIG_BT_LE_ISO_SUPPORT)
@@ -450,6 +346,41 @@ typedef struct {
     },                                                                                      \
 }
 
+/**
+ * @brief  Set BLE TX power
+ *         Connection Tx power should only be set after connection created.
+ * @param  power_type : The type of which tx power, could set Advertising/Connection/Default and etc
+ * @param  power_level: Power level(index) corresponding to absolute value(dbm)
+ * @return              ESP_OK - success, other - failed
+ */
+esp_err_t esp_ble_tx_power_set(esp_ble_power_type_t power_type, esp_power_level_t power_level);
+
+/**
+ * @brief  Get BLE TX power
+ *         Connection Tx power should only be get after connection created.
+ * @param  power_type : The type of which tx power, could set Advertising/Connection/Default and etc
+ * @return             >= 0 - Power level, < 0 - Invalid
+ */
+esp_power_level_t esp_ble_tx_power_get(esp_ble_power_type_t power_type);
+
+/**
+ * @brief  ENHANCED API for Setting BLE TX power
+ *         Connection Tx power should only be set after connection created.
+ * @param  power_type : The enhanced type of which tx power, could set Advertising/Connection/Default and etc
+ * @param  handle : The handle of Advertising or Connection and the value 0 for other enhanced power types.
+ * @param  power_level: Power level(index) corresponding to absolute value(dbm)
+ * @return              ESP_OK - success, other - failed
+ */
+esp_err_t esp_ble_tx_power_set_enhanced(esp_ble_enhanced_power_type_t power_type, uint16_t handle, esp_power_level_t power_level);
+
+/**
+ * @brief  ENHANCED API of Getting BLE TX power
+ *         Connection Tx power should only be get after connection created.
+ * @param  power_type : The enhanced type of which tx power, could set Advertising/Connection/Default and etc
+ * @param  handle : The handle of Advertising or Connection and the value 0 for other enhanced power types.
+ * @return             >= 0 - Power level, < 0 - Invalid
+ */
+esp_power_level_t esp_ble_tx_power_get_enhanced(esp_ble_enhanced_power_type_t power_type, uint16_t handle);
 
 /**
  * @brief       Initialize BT controller to allocate task and other resource.
@@ -465,14 +396,6 @@ esp_err_t esp_bt_controller_init(esp_bt_controller_config_t *cfg);
  * @return status value
  */
 esp_bt_controller_status_t esp_bt_controller_get_status(void);
-
-/**
- * @brief  Get BLE TX power
- *         Connection Tx power should only be get after connection created.
- * @param  power_type : The type of which tx power, could set Advertising/Connection/Default and etc
- * @return             >= 0 - Power level, < 0 - Invalid
- */
-esp_power_level_t esp_ble_tx_power_get(esp_ble_power_type_t power_type);
 
 /**
  * @brief  De-initialize BT controller to free resource and delete task.
@@ -501,13 +424,6 @@ esp_err_t esp_bt_controller_enable(esp_bt_mode_t mode);
  * @return       ESP_OK - success, other - failed
  */
 esp_err_t esp_bt_controller_disable(void);
-
-/**
- * @brief  Get BT controller is initialised/de-initialised/enabled/disabled
- * @return status value
- */
-esp_bt_controller_status_t esp_bt_controller_get_status(void);
-
 
 /** @brief esp_vhci_host_callback
  *  used for vhci call host function to notify what host need to do

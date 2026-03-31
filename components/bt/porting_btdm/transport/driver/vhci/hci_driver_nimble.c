@@ -68,7 +68,7 @@ hci_driver_ops_t hci_driver_vhci_ops = {
 
 /* Special APIs used by host to send message. */
 int
-hci_driver_host_cmd_tx(uint8_t *data, uint32_t length)
+hci_driver_host_cmd_tx(uint8_t *data)
 {
 #if 0
     hci_driver_packet_t *pkt = NULL;
@@ -83,7 +83,7 @@ hci_driver_host_cmd_tx(uint8_t *data, uint32_t length)
     r_ble_hci_trans_buf_free(data);
     return s_hci_driver_vhci_env.forward_cb(HCI_DRIVER_TYPE_CMD, (uint8_t *)pkt, pkt_len, HCI_DRIVER_DIR_H2C, HCI_DRIVER_CMD);
 #else
-    return s_hci_driver_vhci_env.forward_cb(HCI_DRIVER_TYPE_CMD, data, length, HCI_DRIVER_DIR_H2C, HCI_DRIVER_CMD);
+    return s_hci_driver_vhci_env.forward_cb(HCI_DRIVER_TYPE_CMD, data, 0, HCI_DRIVER_DIR_H2C, HCI_DRIVER_CMD);
 #endif
 }
 

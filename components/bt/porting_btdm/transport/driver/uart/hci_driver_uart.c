@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2022-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2022-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -61,7 +61,7 @@ hci_driver_uart_tx(hci_driver_data_type_t data_type, uint8_t *data, uint32_t len
             data_source = HCI_DRIVER_LE_ISO;
         }
     }
-#if UC_BTDM_CTRL_BR_EDR_IS_ENABLE
+#if UC_BT_CTRL_BR_EDR_IS_ENABLE
     else if (dir == HCI_DRIVER_DIR_BREDRC2H) {
         if (data_type == HCI_DRIVER_TYPE_ACL) {
             data_source = HCI_DRIVER_BREDR_ACL;
@@ -71,7 +71,7 @@ hci_driver_uart_tx(hci_driver_data_type_t data_type, uint8_t *data, uint32_t len
             data_source = HCI_DRIVER_BREDR_EVT;
         }
     }
-#endif // UC_BTDM_CTRL_BR_EDR_IS_ENABLE
+#endif // UC_BT_CTRL_BR_EDR_IS_ENABLE
     else {
         assert(0);
     }
@@ -158,19 +158,19 @@ hci_driver_uart_task_create(void)
 {
     /* !TODO: Set the core id by menuconfig */
     xTaskCreatePinnedToCore(hci_driver_uart_tx_task, "hci_driver_uart_tx_task",
-                            UC_BTDM_CTRL_HCI_TRANS_TASK_STACK_SIZE, NULL,
+                            UC_BT_CTRL_HCI_TRANS_TASK_STACK_SIZE, NULL,
                             ESP_TASK_BT_CONTROLLER_PRIO, &s_hci_driver_uart_env.tx_task_handler,
                             0);
     assert(s_hci_driver_uart_env.tx_task_handler);
 
     xTaskCreatePinnedToCore(hci_driver_uart_rx_task, "hci_driver_uart_rx_task",
-                            UC_BTDM_CTRL_HCI_TRANS_TASK_STACK_SIZE, NULL,
+                            UC_BT_CTRL_HCI_TRANS_TASK_STACK_SIZE, NULL,
                             ESP_TASK_BT_CONTROLLER_PRIO, &s_hci_driver_uart_env.rx_task_handler,
                             0);
     assert(s_hci_driver_uart_env.rx_task_handler);
 
     ESP_LOGI(TAG, "hci transport task create successfully, prio:%d, stack size: %ld",
-             ESP_TASK_BT_CONTROLLER_PRIO, UC_BTDM_CTRL_HCI_TRANS_TASK_STACK_SIZE);
+             ESP_TASK_BT_CONTROLLER_PRIO, UC_BT_CTRL_HCI_TRANS_TASK_STACK_SIZE);
 
     return 0;
 }
@@ -228,8 +228,8 @@ hci_driver_uart_init(hci_driver_forward_fn *cb)
     hci_driver_uart_config(s_hci_driver_uart_env.hci_uart_params);
     /* Currently, the queue size is set to 1. It will be considered as semaphore. */
     ESP_ERROR_CHECK(uart_driver_install(s_hci_driver_uart_env.hci_uart_params->hci_uart_port,
-                                        UC_BTDM_CTRL_HCI_UART_RX_BUFFER_SIZE,
-                                        UC_BTDM_CTRL_HCI_UART_TX_BUFFER_SIZE,
+                                        UC_BT_CTRL_HCI_UART_RX_BUFFER_SIZE,
+                                        UC_BT_CTRL_HCI_UART_TX_BUFFER_SIZE,
                                         1, &s_hci_driver_uart_env.rx_event_queue,
                                         0));
 
@@ -254,8 +254,8 @@ hci_driver_uart_reconfig_pin(int tx_pin, int rx_pin, int cts_pin, int rts_pin)
     hci_driver_uart_pin_update(tx_pin, rx_pin, cts_pin, rts_pin);
     /* Currently, the queue size is set to 1. It will be considered as semaphore. */
     ESP_ERROR_CHECK(uart_driver_install(s_hci_driver_uart_env.hci_uart_params->hci_uart_port,
-                                        UC_BTDM_CTRL_HCI_UART_RX_BUFFER_SIZE,
-                                        UC_BTDM_CTRL_HCI_UART_TX_BUFFER_SIZE,
+                                        UC_BT_CTRL_HCI_UART_RX_BUFFER_SIZE,
+                                        UC_BT_CTRL_HCI_UART_TX_BUFFER_SIZE,
                                         1, &s_hci_driver_uart_env.rx_event_queue,
                                         0));
     rc = hci_driver_uart_task_create();

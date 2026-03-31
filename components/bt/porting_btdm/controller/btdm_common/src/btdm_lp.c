@@ -190,7 +190,7 @@ btdm_lp_wake_up_cb(void *arg)
     s_bt_active = true;
 }
 
-#ifdef CONFIG_FREERTOS_USE_TICKLESS_IDLE
+#if UC_BT_CTRL_SLEEP_ENABLE && CONFIG_FREERTOS_USE_TICKLESS_IDLE
 static esp_err_t
 btdm_lp_modem_retention_create(void)
 {
@@ -204,10 +204,12 @@ btdm_lp_modem_retention_create(void)
     }
 
 #if UC_BT_CTRL_BR_EDR_IS_ENABLE
+    // TODO: check the return value
     sleep_modem_bredr_mac_modem_state_init();
 #endif // UC_BT_CTRL_BR_EDR_IS_ENABLE
 
 #if UC_BT_CTRL_BLE_IS_ENABLE
+    // TODO: check the return value
     sleep_modem_ble_mac_modem_state_init();
 #endif // UC_BT_CTRL_BLE_IS_ENABLE
     return err;
@@ -235,7 +237,7 @@ btdm_lp_modem_state_deinit(void)
         assert(err == ESP_OK);
     }
 }
-#endif // CONFIG_FREERTOS_USE_TICKLESS_IDLE
+#endif // UC_BT_CTRL_SLEEP_ENABLE && CONFIG_FREERTOS_USE_TICKLESS_IDLE
 
 /*
  ***************************************************************************************************
@@ -250,7 +252,7 @@ btdm_lp_enable_clock(esp_btdm_controller_config_t *cfg)
     modem_clock_module_mac_reset(PERIPH_BT_MODULE);
     // TODO: set the clock ion modem_clock_module_enable
     REG_WRITE(MODEM_SYSCON_CLK_CONF_POWER_ST_REG, 0XFFFFFFFF);
-    // btdm_lp_timer_clk_init(cfg);
+    btdm_lp_timer_clk_init(cfg);
 }
 
 void
@@ -333,6 +335,9 @@ btdm_lp_reset(bool enable_stage)
 #endif // CONFIG_PM_ENABLE
 
         esp_phy_enable(PHY_MODEM_BT);
+        // TODO: Need to be deleted.
+        void phy_set_rfpll_xpd(bool en);
+        phy_set_rfpll_xpd(0);
         esp_btbb_enable();
         s_bt_active = true;
     } else {

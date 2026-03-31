@@ -34,8 +34,10 @@
 #define _OS_MEMPOOL_H_
 
 #include <stdbool.h>
-#include "os/os.h"
+
+#include "os/os_error.h"
 #include "os/queue.h"
+#include "btdm_mempool.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -76,9 +78,10 @@ struct os_mempool {
     SLIST_HEAD(,os_memblock);
     /** Name for memory block */
     const char *name;
-    /** The number of allocated blocks. */
-    uint32_t mp_alloc_blocks;
 };
+
+static_assert(sizeof(struct os_mempool) == sizeof(struct btdm_mempool),
+              "Error: size of os_mempool");
 
 /**
  * Indicates an extended mempool.  Address can be safely cast to

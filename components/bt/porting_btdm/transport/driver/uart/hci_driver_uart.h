@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2021-2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2021-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -33,16 +33,16 @@ typedef struct hci_driver_uart_params_config
 }  hci_driver_uart_params_config_t;
 
 #define BT_HCI_DRIVER_UART_CONFIG_DEFAULT() {                                      \
-    .hci_uart_port          = UC_BTDM_CTRL_HCI_UART_PORT,                          \
-    .hci_uart_baud          = UC_BTDM_CTRL_HCI_UART_BAUD,                          \
-    .hci_uart_tx_pin        = UC_BTDM_CTRL_HCI_UART_TX_PIN ,                       \
-    .hci_uart_rx_pin        = UC_BTDM_CTRL_HCI_UART_RX_PIN,                        \
-    .hci_uart_cts_pin       = UC_BTDM_CTRL_HCI_UART_CTS_PIN,                       \
-    .hci_uart_rts_pin       = UC_BTDM_CTRL_HCI_UART_RTS_PIN,                       \
-    .hci_uart_data_bits     = UC_BTDM_CTRL_HCI_UART_DATA_BITS,                     \
-    .hci_uart_stop_bits     = UC_BTDM_CTRL_HCI_UART_STOP_BITS,                     \
-    .hci_uart_flow_ctrl     = UC_BTDM_CTRL_HCI_UART_FLOW_CTRL,                     \
-    .hci_uart_parity        = UC_BTDM_CTRL_HCI_UART_PARITY,                        \
+    .hci_uart_port          = UC_BT_CTRL_HCI_UART_PORT,                            \
+    .hci_uart_baud          = UC_BT_CTRL_HCI_UART_BAUD,                            \
+    .hci_uart_tx_pin        = UC_BT_CTRL_HCI_UART_TX_PIN ,                         \
+    .hci_uart_rx_pin        = UC_BT_CTRL_HCI_UART_RX_PIN,                          \
+    .hci_uart_cts_pin       = UC_BT_CTRL_HCI_UART_CTS_PIN,                         \
+    .hci_uart_rts_pin       = UC_BT_CTRL_HCI_UART_RTS_PIN,                         \
+    .hci_uart_data_bits     = UC_BT_CTRL_HCI_UART_DATA_BITS,                       \
+    .hci_uart_stop_bits     = UC_BT_CTRL_HCI_UART_STOP_BITS,                       \
+    .hci_uart_flow_ctrl     = UC_BT_CTRL_HCI_UART_FLOW_CTRL,                       \
+    .hci_uart_parity        = UC_BT_CTRL_HCI_UART_PARITY,                          \
 }
 
 /**

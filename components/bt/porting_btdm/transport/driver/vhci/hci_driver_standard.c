@@ -61,6 +61,7 @@ hci_driver_vhci_host_recv_with_type(uint8_t data_type, uint8_t *data, uint16_t l
     return -1;
 }
 
+#if 0
 static void
 hci_driver_vhci_host_send_available(void)
 {
@@ -71,6 +72,7 @@ hci_driver_vhci_host_send_available(void)
         host_recv_cb->notify_host_send_available();
     }
 }
+#endif
 
 static int
 hci_driver_vhci_controller_tx(hci_driver_data_type_t data_type, uint8_t *data, uint32_t length, hci_driver_direction_t dir)

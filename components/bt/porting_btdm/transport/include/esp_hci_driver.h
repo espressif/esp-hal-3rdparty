@@ -78,10 +78,9 @@ int hci_driver_host_callback_register(hci_driver_host_recv_fn *callback);
 /**
  * @brief Called to send HCI commands form host to controller.
  * @param data      Point to the commands data
- * @param length    Length of data
  * @return int 0 on success, non-zero error code on failure.
  */
-int hci_driver_host_cmd_tx(uint8_t *data, uint32_t length);
+int hci_driver_host_cmd_tx(uint8_t *data);
 
 /**
  * @brief Called to send HCI ACL form host to controller.

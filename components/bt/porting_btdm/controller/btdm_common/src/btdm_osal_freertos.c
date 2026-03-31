@@ -1,11 +1,12 @@
 /*
- * SPDX-FileCopyrightText: 2015-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include <assert.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 #include "btdm_osal_freertos.h"
 #include "btdm_mempool.h"
@@ -258,8 +259,10 @@ wr_btdm_osal_eventq_remove(struct btdm_osal_eventq *evq, struct btdm_osal_event 
             portYIELD_FROM_ISR();
         }
     } else {
-        portMUX_TYPE btdm_osal_mut = portMUX_INITIALIZER_UNLOCKED;
-        portENTER_CRITICAL(&btdm_osal_mut);
+        /* RISK: For multi-core, this mutex can't protect the queue from being changed by other cores
+         * with wr_btdm_osal_eventq_put(). The count maybe less than the actual.
+         */
+        portENTER_CRITICAL(&s_btsm_osal_intr_mutex);
 
         count = uxQueueMessagesWaiting(eventq->q);
         for (i = 0; i < count; i++) {
@@ -274,7 +277,7 @@ wr_btdm_osal_eventq_remove(struct btdm_osal_eventq *evq, struct btdm_osal_event 
             BTDM_OSAL_ASSERT(ret == pdPASS);
         }
 
-        portEXIT_CRITICAL(&btdm_osal_mut);
+        portEXIT_CRITICAL(&s_btsm_osal_intr_mutex);
     }
 
     event->queued = 0;
@@ -1152,6 +1155,10 @@ wr_btdm_osal_mmgmt_block_malloc(uint32_t size)
 
     // TODO: Only ble controller uses this function
     addr = btdm_osal_malloc(size + 4, BTDM_OSAL_MALLOC_F_INTERNAL);
+    if (!addr) {
+        return NULL;
+    }
+
     *addr = (5 << 29) | ((size + 4) >> 2);
 
     return (void *)((uint32_t)addr + 4);
@@ -1201,131 +1208,22 @@ wr_btdm_osal_srand(uint32_t seed)
 int
 wr_btdm_osal_rand(void)
 {
+    // TODO: use esp_random
     // return (int)esp_random();
+
+    static bool first = true;
+
+    if (first) {
+        uint8_t mac[6];
+        uint32_t seed;
+
+        first = false;
+        btdm_osal_read_efuse_mac(mac);
+        seed = (mac[2] << 24) | (mac[3] << 16) | (mac[4] << 8) | mac[5];
+        srand(seed);
+    }
+
     return rand();
-}
-
-/*
- ***************************************************************************************************
- * BTDM OSAL ISO Mutex (TODO: should be deleted)
- ***************************************************************************************************
- */
-btdm_osal_error_t
-wr_btdm_osal_iso_mutex_init(struct btdm_osal_mutex *mu)
-{
-    struct btdm_osal_mutex_freertos *mutex;
-
-#if BTDM_MEMPOOL_ALLOC
-    if (!btdm_memblock_from(&s_btdm_osal_mutex_pool, mu->mutex)) {
-        mu->mutex = btdm_memblock_get(&s_btdm_osal_mutex_pool);
-        mutex = (struct btdm_osal_mutex_freertos *)mu->mutex;
-
-        if (!mutex) {
-            return BTDM_OSAL_INVALID_PARM;
-        }
-
-        memset(mutex, 0, sizeof(*mutex));
-        mutex->handle = xSemaphoreCreateMutex();
-        BTDM_OSAL_ASSERT(mutex->handle);
-    }
-#else
-    if (!mu->mutex) {
-        mu->mutex = malloc(sizeof(struct btdm_osal_mutex_freertos));
-        mutex = (struct btdm_osal_mutex_freertos *)mu->mutex;
-
-        if (!mutex) {
-            return BTDM_OSAL_INVALID_PARM;
-        }
-
-        memset(mutex, 0, sizeof(*mutex));
-        mutex->handle = xSemaphoreCreateMutex();
-        BTDM_OSAL_ASSERT(mutex->handle);
-    }
-#endif
-
-    return BTDM_OSAL_OK;
-}
-
-btdm_osal_error_t
-wr_btdm_osal_iso_mutex_deinit(struct btdm_osal_mutex *mu)
-{
-    struct btdm_osal_mutex_freertos *mutex;
-
-    BTDM_OSAL_ASSERT(mu);
-
-    mutex = (struct btdm_osal_mutex_freertos *)mu->mutex;
-    if (!mutex) {
-        return BTDM_OSAL_INVALID_PARM;
-    }
-
-    BTDM_OSAL_ASSERT(mutex->handle);
-    vSemaphoreDelete(mutex->handle);
-
-#if BTDM_MEMPOOL_ALLOC
-    btdm_memblock_put(&s_btdm_osal_mutex_pool, mutex);
-#else
-    free((void *)mutex);
-#endif
-    mu->mutex = NULL;
-
-    return BTDM_OSAL_OK;
-}
-
-btdm_osal_error_t IRAM_ATTR
-wr_btdm_osal_iso_mutex_pend(struct btdm_osal_mutex *mu, btdm_osal_time_t timeout)
-{
-    struct btdm_osal_mutex_freertos *mutex;
-    BaseType_t woken;
-    BaseType_t ret;
-
-    mutex = (struct btdm_osal_mutex_freertos *)mu->mutex;
-    if (!mutex) {
-        return BTDM_OSAL_INVALID_PARM;
-    }
-
-    BTDM_OSAL_ASSERT(mutex->handle);
-
-    if (in_isr()) {
-        (void)timeout;
-        ret = xSemaphoreTakeFromISR(mutex->handle, &woken);
-        if (woken == pdTRUE) {
-            portYIELD_FROM_ISR();
-        }
-    } else {
-        ret = xSemaphoreTake(mutex->handle, timeout);
-    }
-
-    return ret == pdPASS ? BTDM_OSAL_OK : BTDM_OSAL_TIMEOUT;
-}
-
-btdm_osal_error_t IRAM_ATTR
-wr_btdm_osal_iso_mutex_release(struct btdm_osal_mutex *mu)
-{
-    struct btdm_osal_mutex_freertos *mutex;
-    BaseType_t woken;
-    BaseType_t ret;
-
-    BTDM_OSAL_ASSERT(mu);
-
-    mutex = (struct btdm_osal_mutex_freertos *)mu->mutex;
-    if (!mutex) {
-        return BTDM_OSAL_INVALID_PARM;
-    }
-
-    BTDM_OSAL_ASSERT(mutex->handle);
-
-    if (in_isr()) {
-        ret = xSemaphoreGiveFromISR(mutex->handle, &woken);
-        if (woken == pdTRUE) {
-            portYIELD_FROM_ISR();
-        }
-    } else {
-        ret = xSemaphoreGive(mutex->handle);
-    }
-
-    BTDM_OSAL_ASSERT(ret == pdPASS);
-
-    return BTDM_OSAL_OK;
 }
 
 /*
@@ -1397,9 +1295,9 @@ btdm_osal_elem_mempool_init(btdm_osal_elem_num_t *elem_num)
         if (!s_btdm_osal_sem_buf) {
             return -7;
         }
-        rc =
-            btdm_mempool_init(&s_btdm_osal_sem_pool, elem_num->sem_count, sizeof(struct btdm_osal_sem_freertos),
-                              s_btdm_osal_sem_buf, "s_btdm_osal_sem_pool");
+        rc = btdm_mempool_init(&s_btdm_osal_sem_pool, elem_num->sem_count,
+                               sizeof(struct btdm_osal_sem_freertos),
+                               s_btdm_osal_sem_buf, "s_btdm_osal_sem_pool");
         if (rc) {
             return -8;
         }

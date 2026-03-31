@@ -56,7 +56,6 @@ hci_h4_frame_start(struct hci_h4_sm *rxs, uint8_t pkt_type)
 
     switch (rxs->pkt_type) {
     case HCI_H4_CMD:
-    case HCI_H4_SYNC:
         rxs->min_len = 3;
         break;
     case HCI_H4_ACL:
@@ -130,20 +129,20 @@ hci_h4_sm_w4_header(struct hci_h4_sm *h4sm, struct hci_h4_input_buffer *ib)
         conn_handle = btdm_get_le16(&h4sm->hdr[0]) & HCI_INTERNAL_CONN_MASK;
 #if UC_BT_CTRL_BLE_IS_ENABLE
         if (HCI_INTERNAL_CONN_IS_BLE(conn_handle)) {
-            assert(h4sm->allocs && h4sm->allocs->acl);
             h4sm->om = h4sm->allocs->acl();
             if (!h4sm->om) {
                 return -1;
             }
 
-            ble_mbuf_append(h4sm->om, h4sm->hdr, h4sm->len);
+            if (ble_mbuf_append(h4sm->om, h4sm->hdr, h4sm->len)) {
+                return -1;
+            }
             h4sm->exp_len = btdm_get_le16(&h4sm->hdr[2]) + 4;
             break;
         }
 #endif // UC_BT_CTRL_BLE_IS_ENABLE
 #if UC_BT_CTRL_BR_EDR_IS_ENABLE
         if (HCI_INTERNAL_CONN_IS_BREDR(conn_handle)) {
-            assert(h4sm->allocs && h4sm->allocs->bredr_acl);
             h4sm->exp_len = btdm_get_le16(&h4sm->hdr[2]) + 4;
             h4sm->pkt = h4sm->allocs->bredr_acl(conn_handle);
             if (!h4sm->pkt) {
@@ -152,9 +151,9 @@ hci_h4_sm_w4_header(struct hci_h4_sm *h4sm, struct hci_h4_input_buffer *ib)
             memcpy(h4sm->pkt->data, h4sm->hdr, h4sm->len);
             break;
         }
+        return -1;
     case HCI_H4_SYNC:
         conn_handle = btdm_get_le16(&h4sm->hdr[0]) & HCI_INTERNAL_CONN_MASK;
-        assert(h4sm->allocs && h4sm->allocs->sync);
         h4sm->exp_len = h4sm->hdr[2] + 3;
         h4sm->pkt = h4sm->allocs->sync(conn_handle);
         if (!h4sm->pkt) {
@@ -198,7 +197,6 @@ hci_h4_sm_w4_header(struct hci_h4_sm *h4sm, struct hci_h4_input_buffer *ib)
 #endif // !CONFIG_BT_CONTROLLER_ENABLED
 #if CONFIG_BT_LE_ISO_SUPPORT
     case HCI_H4_ISO:
-        assert(h4sm->allocs && h4sm->allocs->iso);
         h4sm->exp_len = (btdm_get_le16(&h4sm->hdr[2]) & 0x7fff) + 4;
         h4sm->buf = h4sm->allocs->iso(h4sm->exp_len);
         if (!h4sm->buf) {
@@ -209,8 +207,7 @@ hci_h4_sm_w4_header(struct hci_h4_sm *h4sm, struct hci_h4_input_buffer *ib)
         break;
 #endif // CONFIG_BT_LE_ISO_SUPPORT
     default:
-        assert(0);
-        break;
+        return -2;
     }
 
     return 0;
@@ -223,23 +220,21 @@ hci_h4_sm_w4_payload(struct hci_h4_sm *h4sm,
     uint16_t len;
 
     len = min(ib->len, h4sm->exp_len - h4sm->len);
-
-
     switch (h4sm->pkt_type) {
     case HCI_H4_CMD:
-    case HCI_H4_SYNC:
         if (h4sm->pkt) {
             memcpy(&h4sm->pkt->data[h4sm->len], ib->buf, len);
         }
         break;
-    case HCI_H4_EVT:
+#if !CONFIG_BT_CONTROLLER_ENABLED
+        case HCI_H4_EVT:
+#endif // !CONFIG_BT_CONTROLLER_ENABLED
     case HCI_H4_ISO:
         if (h4sm->buf) {
             memcpy(&h4sm->buf[h4sm->len], ib->buf, len);
         }
         break;
     case HCI_H4_ACL:
-        HCI_TRANS_ASSERT(h4sm->om, h4sm->pkt_type, len);
         uint16_t conn_handle = btdm_get_le16(&h4sm->hdr[0]) & HCI_INTERNAL_CONN_MASK;
 #if UC_BT_CTRL_BR_EDR_IS_ENABLE
         if (HCI_INTERNAL_CONN_IS_BREDR(conn_handle)) {
@@ -253,8 +248,8 @@ hci_h4_sm_w4_payload(struct hci_h4_sm *h4sm,
             int rc = ble_mbuf_append(h4sm->om, ib->buf, len);
             if (rc) {
                 /* Some data may already be appended so need to adjust h4sm only by
-                * the size of appended data.
-                */
+                 * the size of appended data.
+                 */
                 len = BLE_MBUF_PKTLEN(h4sm->om) - mbuf_len;
                 h4sm->len += len;
                 hci_h4_ib_consume(ib, len);
@@ -264,8 +259,7 @@ hci_h4_sm_w4_payload(struct hci_h4_sm *h4sm,
         break;
 #endif // UC_BT_CTRL_BLE_IS_ENABLE
     default:
-        assert(0);
-        break;
+        return -2;
     }
 
     h4sm->len += len;
@@ -281,7 +275,6 @@ hci_h4_sm_completed(struct hci_h4_sm *h4sm)
     int rc;
     uint8_t data_source = 0xFF;
 
-    HCI_TRANS_ASSERT(h4sm->frame_cb, 0, 0);
     switch (h4sm->pkt_type) {
 #if CONFIG_BT_CONTROLLER_ENABLED
     case HCI_H4_ACL:
@@ -306,15 +299,11 @@ hci_h4_sm_completed(struct hci_h4_sm *h4sm)
 #endif // UC_BT_CTRL_BR_EDR_IS_ENABLE
         break;
     case HCI_H4_CMD:
-    case HCI_H4_SYNC:
     case HCI_H4_ISO:
         if (h4sm->buf) {
             switch(h4sm->pkt_type) {
                 case HCI_H4_CMD:
                     data_source = HCI_DRIVER_CMD;
-                    break;
-                case HCI_H4_SYNC:
-                    data_source = HCI_DRIVER_BREDR_SYNC;
                     break;
                 case HCI_H4_ISO:
                     data_source = HCI_DRIVER_LE_ISO;
@@ -322,7 +311,6 @@ hci_h4_sm_completed(struct hci_h4_sm *h4sm)
             }
 
             rc = h4sm->frame_cb(h4sm->pkt_type, (void *)h4sm->buf, h4sm->len, data_source);
-            HCI_TRANS_ASSERT(rc == 0, rc, 0);
             h4sm->buf = NULL;
         }
         break;
@@ -330,7 +318,6 @@ hci_h4_sm_completed(struct hci_h4_sm *h4sm)
     case HCI_H4_CMD:
     case HCI_H4_EVT:
         if (h4sm->buf) {
-            assert(h4sm->frame_cb);
             rc = h4sm->frame_cb(h4sm->pkt_type, h4sm->buf);
             if (rc != 0) {
                 ble_transport_free(h4sm->buf);
@@ -341,7 +328,6 @@ hci_h4_sm_completed(struct hci_h4_sm *h4sm)
     case HCI_H4_ACL:
     case HCI_H4_ISO:
         if (h4sm->om) {
-            assert(h4sm->frame_cb);
             rc = h4sm->frame_cb(h4sm->pkt_type, h4sm->om);
             if (rc != 0) {
                 os_mbuf_free_chain(h4sm->om);
@@ -416,7 +402,6 @@ hci_h4_sm_free_buf(struct hci_h4_sm *h4sm)
     return 0;
 }
 
-
 int
 hci_h4_sm_rx(struct hci_h4_sm *h4sm, const uint8_t *buf, uint16_t len)
 {
@@ -439,18 +424,18 @@ hci_h4_sm_rx(struct hci_h4_sm *h4sm, const uint8_t *buf, uint16_t len)
         /* no break */
         case HCI_H4_SM_W4_HEADER:
             rc = hci_h4_sm_w4_header(h4sm, &ib);
-            assert(rc >= 0);
             if (rc) {
                 break;
             }
+
             h4sm->state = HCI_H4_SM_W4_PAYLOAD;
         /* no break */
         case HCI_H4_SM_W4_PAYLOAD:
             rc = hci_h4_sm_w4_payload(h4sm, &ib);
-            assert(rc >= 0);
             if (rc) {
                 break;
             }
+
             h4sm->state = HCI_H4_SM_COMPLETED;
         /* no break */
         case HCI_H4_SM_COMPLETED:
@@ -462,6 +447,11 @@ hci_h4_sm_rx(struct hci_h4_sm *h4sm, const uint8_t *buf, uint16_t len)
         }
     }
 
+    if (rc < 0) {
+        hci_h4_sm_free_buf(h4sm);
+        h4sm->state = HCI_H4_SM_W4_PKT_TYPE;
+        return -1;
+    }
     /* Calculate consumed bytes
      *
      * Note: we should always consume some bytes unless there is an oom error.

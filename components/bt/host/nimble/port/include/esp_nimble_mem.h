@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2015-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -13,14 +13,14 @@
 extern "C" {
 #endif
 
-void *bt_osi_mem_malloc(size_t size);
+void *nimble_mem_malloc(size_t size);
 
-void *bt_osi_mem_calloc(size_t n, size_t size);
+void *nimble_mem_calloc(size_t n, size_t size);
 
-void bt_osi_mem_free(void *ptr);
+void nimble_mem_free(void *ptr);
 
 #if CONFIG_BT_LE_USED_MEM_STATISTICS_ENABLED
-size_t bt_osi_mem_used_size_get(void);
+size_t nimble_mem_used_size_get(void);
 #endif // CONFIG_BT_LE_USED_MEM_STATISTICS_ENABLED
 
 #if CONFIG_BT_NIMBLE_MEM_DEBUG
@@ -109,7 +109,7 @@ void *nimble_mem_dbg_realloc(void *ptr, size_t new_size, const char *func, int l
 ({                                                              \
     void *p;                                                    \
     do {                                                        \
-        p = bt_osi_mem_malloc(size);                            \
+        p = nimble_mem_malloc(size);                            \
         nimble_mem_dbg_record(p, size, __func__, __LINE__);     \
     } while (0);                                                \
     p;                                                          \
@@ -119,7 +119,7 @@ void *nimble_mem_dbg_realloc(void *ptr, size_t new_size, const char *func, int l
 ({                                                              \
     void *p;                                                    \
     do {                                                        \
-        p = bt_osi_mem_calloc(count, size);                     \
+        p = nimble_mem_calloc(count, size);                     \
         nimble_mem_dbg_record(p, (count) * (size), __func__, __LINE__); \
     } while (0);                                                \
     p;                                                          \
@@ -135,18 +135,18 @@ void *nimble_mem_dbg_realloc(void *ptr, size_t new_size, const char *func, int l
 })
 
 #define nimble_platform_mem_free(ptr)                            \
-do {                                                              \
-    void *tmp_ptr = (void *)(ptr);                                \
+do {                                                             \
+    void *tmp_ptr = (void *)(ptr);                               \
     nimble_mem_dbg_clean(tmp_ptr, __func__, __LINE__);           \
-    bt_osi_mem_free(tmp_ptr);                                     \
+    nimble_mem_free(tmp_ptr);                                    \
 } while (0)
 
 #else
 
-#define nimble_platform_mem_malloc bt_osi_mem_malloc
-#define nimble_platform_mem_calloc bt_osi_mem_calloc
+#define nimble_platform_mem_malloc nimble_mem_malloc
+#define nimble_platform_mem_calloc nimble_mem_calloc
 #define nimble_platform_mem_realloc realloc
-#define nimble_platform_mem_free bt_osi_mem_free
+#define nimble_platform_mem_free nimble_mem_free
 
 #endif // CONFIG_BT_NIMBLE_MEM_DEBUG
 
