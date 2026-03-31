@@ -229,3 +229,11 @@ static void start_cpu0_default(void)
 
     ESP_INFINITE_LOOP();
 }
+
+#if CONFIG_IDF_TARGET_LINUX && !defined(ESP_SYSTEM_LINUX_NO_MAIN)
+__attribute__((weak)) int main(int argc, char **argv)
+{
+    start_cpu0();
+    return 0;
+}
+#endif // CONFIG_IDF_TARGET_LINUX
