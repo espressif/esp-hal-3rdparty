@@ -863,7 +863,7 @@ FORCE_INLINE_ATTR void pm_step_tick(int64_t slept_us, TickType_t xExpectedIdleTi
             ;
         }
 #else
-        portYIELD_WITHIN_API();
+        OS_PORT_YIELD_WITHIN_API();
 #endif
     }
 }

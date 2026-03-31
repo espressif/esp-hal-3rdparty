@@ -14,14 +14,42 @@
  * standard NuttX kernel memory allocation functions are used instead.
  */
 
+#include <nuttx/config.h>
 #include <string.h>
 #include <malloc.h>
 
+#include <nuttx/compiler.h>
 #include <nuttx/kmalloc.h>
 
 #include "esp_heap_caps.h"
+#ifdef CONFIG_ESPRESSIF_RETENTION_HEAP
+#  include "esp_retentionheap.h"
+#endif
 
 static esp_alloc_failed_hook_t alloc_failed_callback;
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+#ifdef CONFIG_ESPRESSIF_RETENTION_HEAP
+
+static bool esp_heap_caps_retention_caps_exact(uint32_t caps)
+{
+  return (caps & MALLOC_CAP_RETENTION) != 0 &&
+         (caps & ~MALLOC_CAP_RETENTION) == 0;
+}
+
+#else
+#  define esp_heap_caps_retention_caps_exact(caps)    false
+#  define esp_retentionheap_malloc(size)              NULL
+#  define esp_retentionheap_calloc(n, elem_size)      NULL
+#  define esp_retentionheap_memalign(alignment, size) NULL
+#  define esp_retentionheap_realloc(ptr, size)        NULL
+#  define esp_retentionheap_free(mem)
+#  define esp_retentionheap_heapmember(mem)           false
+#  define esp_retentionheap_malloc_size(mem)          0
+#endif
 
 /****************************************************************************
  * Public Functions
@@ -46,14 +74,24 @@ esp_err_t heap_caps_register_failed_alloc_callback(
  * Name: heap_caps_malloc
  *
  * Description:
- *   Allocate memory with the given capabilities. Since NuttX doesn't
- *   support capability-based allocation, this simply calls kmm_malloc.
+ *   Allocate memory with the given capabilities.  Most requests use
+ *   kmm_malloc; with CONFIG_ESPRESSIF_RETENTION_HEAP, MALLOC_CAP_RETENTION
+ *   only uses the retention mm heap.
  *
  ****************************************************************************/
 
 void *heap_caps_malloc(size_t size, uint32_t caps)
 {
-  void *ptr = kmm_malloc(size);
+  FAR void *ptr;
+
+  if (esp_heap_caps_retention_caps_exact(caps))
+    {
+      ptr = esp_retentionheap_malloc(size);
+    }
+  else
+    {
+      ptr = kmm_malloc(size);
+    }
 
   if (ptr == NULL && alloc_failed_callback)
     {
@@ -74,7 +112,14 @@ void *heap_caps_malloc(size_t size, uint32_t caps)
 
 void heap_caps_free(void *ptr)
 {
-  kmm_free(ptr);
+  if (esp_retentionheap_heapmember(ptr))
+    {
+      esp_retentionheap_free(ptr);
+    }
+  else
+    {
+      kmm_free(ptr);
+    }
 }
 
 /****************************************************************************
@@ -88,7 +133,27 @@ void heap_caps_free(void *ptr)
 
 void *heap_caps_realloc(void *ptr, size_t size, uint32_t caps)
 {
-  void *new_ptr = kmm_realloc(ptr, size);
+  FAR void *new_ptr;
+
+  if (ptr == NULL)
+    {
+      return heap_caps_malloc(size, caps);
+    }
+
+  if (esp_retentionheap_heapmember(ptr))
+    {
+      if (size == 0)
+        {
+          esp_retentionheap_free(ptr);
+          return NULL;
+        }
+
+      new_ptr = esp_retentionheap_realloc(ptr, size);
+    }
+  else
+    {
+      new_ptr = kmm_realloc(ptr, size);
+    }
 
   if (new_ptr == NULL && size > 0 && alloc_failed_callback)
     {
@@ -108,11 +173,21 @@ void *heap_caps_realloc(void *ptr, size_t size, uint32_t caps)
 
 void *heap_caps_calloc(size_t n, size_t size, uint32_t caps)
 {
-  void *ptr = kmm_calloc(n, size);
+  size_t total = n * size;
+  void *ptr;
+
+  if (esp_heap_caps_retention_caps_exact(caps))
+    {
+      ptr = esp_retentionheap_calloc(n, size);
+    }
+  else
+    {
+      ptr = kmm_calloc(n, size);
+    }
 
   if (ptr == NULL && alloc_failed_callback)
     {
-      alloc_failed_callback(n * size, caps, __func__);
+      alloc_failed_callback(total, caps, __func__);
     }
 
   return ptr;
@@ -128,7 +203,16 @@ void *heap_caps_calloc(size_t n, size_t size, uint32_t caps)
 
 void *heap_caps_aligned_alloc(size_t alignment, size_t size, uint32_t caps)
 {
-  void *ptr = kmm_memalign(alignment, size);
+  FAR void *ptr;
+
+  if (esp_heap_caps_retention_caps_exact(caps))
+    {
+      ptr = esp_retentionheap_memalign(alignment, size);
+    }
+  else
+    {
+      ptr = kmm_memalign(alignment, size);
+    }
 
   if (ptr == NULL && alloc_failed_callback)
     {
@@ -163,7 +247,16 @@ void *heap_caps_aligned_calloc(size_t alignment, size_t n, size_t size,
                                uint32_t caps)
 {
   size_t total = n * size;
-  void *ptr = kmm_memalign(alignment, total);
+  FAR void *ptr;
+
+  if (esp_heap_caps_retention_caps_exact(caps))
+    {
+      ptr = esp_retentionheap_memalign(alignment, total);
+    }
+  else
+    {
+      ptr = kmm_memalign(alignment, total);
+    }
 
   if (ptr != NULL)
     {
@@ -344,11 +437,21 @@ void heap_caps_dump_all(void)
 
 size_t heap_caps_get_allocated_size(void *ptr)
 {
+  if (esp_retentionheap_heapmember(ptr))
+    {
+      return esp_retentionheap_malloc_size(ptr);
+    }
+
   return kmm_malloc_size(ptr);
 }
 
 size_t heap_caps_get_containing_block_size(void *ptr)
 {
+  if (esp_retentionheap_heapmember(ptr))
+    {
+      return esp_retentionheap_malloc_size(ptr);
+    }
+
   return kmm_malloc_size(ptr);
 }
 

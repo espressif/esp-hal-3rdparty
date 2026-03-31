@@ -61,6 +61,7 @@
 #endif
 
 #define OS_PORT_YIELD_FROM_ISR()
+#define OS_PORT_YIELD_WITHIN_API()
 #define OS_PORT_MAX_DELAY           0xfffffffful
 #define OS_PORT_TICKS_TO_MS(ticks)  MSEC2TICK(ticks)
 #define OS_BASE_TYPE                int
