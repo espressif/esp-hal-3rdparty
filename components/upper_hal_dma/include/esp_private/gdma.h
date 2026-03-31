@@ -24,6 +24,7 @@ typedef struct gdma_channel_t *gdma_channel_handle_t;
  * @brief Collection of configuration items that used for allocating GDMA channel
  */
 typedef struct {
+    int intr_priority;           /*!< DMA interrupt priority, if set to 0, the driver will try to allocate an interrupt with a relative low priority (1,2,3) */
     struct {
         int isr_cache_safe: 1;  /*!< If set, DMA channel allocator would allocate interrupt in cache-safe region, and ISR is serviceable when cache is disabled */
     } flags;
