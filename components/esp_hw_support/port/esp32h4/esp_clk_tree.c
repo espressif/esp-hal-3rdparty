@@ -161,5 +161,5 @@ esp_err_t esp_clk_tree_enable_src(soc_module_clk_t clk_src, bool enable)
             break;
         }
     }
-    return ESP_OK; // TODO: PM-456
+    return ESP_OK;
 }
