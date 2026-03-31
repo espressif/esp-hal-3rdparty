@@ -23,6 +23,7 @@
 #include "soc/rtc_wdt_reg.h"
 #include "hal/rwdt_ll.h"
 #endif
+#include "soc/hp_sys_clkrst_reg.h"
 #include "soc/pmu_reg.h"
 #include "hal/regi2c_ctrl_ll.h"
 #include "hal/modem_lpcon_ll.h"
@@ -31,6 +32,13 @@ ESP_LOG_ATTR_TAG(TAG, "boot.esp32s31");
 
 static inline void bootloader_hardware_init(void)
 {
+    // IDF-15507: Work around ESP32-S31 cache/MSPI issues by keeping the cache path clocks ungated.
+    REG_SET_BIT(HP_SYS_CLKRST_CACHE_CTRL0_REG,
+                HP_SYS_CLKRST_REG_CPU_ACACHE_CPU_CLK_FORCE_ON |
+                HP_SYS_CLKRST_REG_ROM_ACACHE_MEM_CLK_FORCE_ON |
+                HP_SYS_CLKRST_REG_CPU_CACHE_CPU_CLK_FORCE_ON |
+                HP_SYS_CLKRST_REG_MSPI_CACHE_SYS_CLK_FORCE_ON);
+
     /* Disable RF pll by default */
     REG_SET_FIELD(PMU_RF_PWC_REG, PMU_XPD_RF_CIRCUIT, 0xFFFF);
 
