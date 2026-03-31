@@ -378,7 +378,6 @@ esp_err_t dma2d_acquire_pool(const dma2d_pool_config_t *config, dma2d_pool_handl
             pre_alloc_group->rx_channel_reserved_mask = dma2d_rx_channel_reserved_mask[group_id];
             pre_alloc_group->tx_periph_m2m_free_id_mask = DMA2D_LL_TX_CHANNEL_PERIPH_M2M_AVAILABLE_ID_MASK;
             pre_alloc_group->rx_periph_m2m_free_id_mask = DMA2D_LL_RX_CHANNEL_PERIPH_M2M_AVAILABLE_ID_MASK;
-            pre_alloc_group->intr_priority = -1;
             for (int i = 0; i < DMA2D_LL_GET(TX_CHANS_PER_INST); i++) {
                 pre_alloc_group->tx_chans[i] = &pre_alloc_tx_channels[i];
                 dma2d_tx_channel_t *tx_chan = pre_alloc_group->tx_chans[i];
@@ -713,7 +712,11 @@ esp_err_t dma2d_set_desc_addr(dma2d_channel_handle_t dma2d_chan, intptr_t desc_b
     esp_err_t ret = ESP_OK;
     ESP_GOTO_ON_FALSE_ISR(dma2d_chan && desc_base_addr, ESP_ERR_INVALID_ARG, err, TAG, "invalid argument");
     // 2D-DMA descriptor addr needs 8-byte alignment and not in SPM (addr not in SPM is IDF restriction)
-    ESP_GOTO_ON_FALSE_ISR((desc_base_addr & 0x7) == 0 && !esp_ptr_in_spm((void *)desc_base_addr), ESP_ERR_INVALID_ARG, err, TAG, "invalid argument");
+    bool addr_in_spm = false;
+#if SOC_MEM_SPM_SUPPORTED
+    addr_in_spm = esp_ptr_in_spm((void *)desc_base_addr);
+#endif
+    ESP_GOTO_ON_FALSE_ISR((desc_base_addr & 0x7) == 0 && !addr_in_spm, ESP_ERR_INVALID_ARG, err, TAG, "invalid argument");
     // When flash encryption is enabled, the descriptor must be in internal RAM because descriptor size is not 16-byte aligned, which breaks flash encryption alignment restriction
     ESP_GOTO_ON_FALSE_ISR(!esp_efuse_is_flash_encryption_enabled() || esp_ptr_internal((void *)desc_base_addr), ESP_ERR_INVALID_ARG, err, TAG, "invalid argument");
 
