@@ -31,10 +31,9 @@
 #if (defined(MBEDTLS_MAJOR_VERSION) && (MBEDTLS_MAJOR_VERSION < 4))
 #include "mbedtls/mbedtls_config.h"
 #endif // MBEDTLS_MAJOR_VERSION < 4
+#ifndef CONFIG_IDF_TARGET_LINUX
 #include "soc/soc_caps.h"
 
-
-#ifndef CONFIG_IDF_TARGET_LINUX
 #undef MBEDTLS_PSA_BUILTIN_GET_ENTROPY
 #define MBEDTLS_PSA_DRIVER_GET_ENTROPY
 #define MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG
