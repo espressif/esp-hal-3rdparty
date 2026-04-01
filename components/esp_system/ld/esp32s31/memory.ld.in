@@ -12,8 +12,6 @@
  * Restrict to simple macros with numeric values, and/or #if/#endif blocks.
  */
 
-/* This file might not accurate, please check [ESP32S31] IDF-14669 */
-
 #include "sdkconfig.h"
 #include "ld.common"
 

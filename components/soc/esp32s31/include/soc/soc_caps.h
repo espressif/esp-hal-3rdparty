@@ -204,7 +204,6 @@
 #define SOC_LEDC_CHANNEL_NUM                (6)
 
 /*-------------------------- MMU CAPS ----------------------------------------*/
-// TODO: [ESP32S31] IDF-14669
 #define SOC_MMU_PERIPH_NUM                    (2U)
 #define SOC_MMU_LINEAR_ADDRESS_REGION_NUM     (2U)
 #define SOC_MMU_DI_VADDR_SHARED               (1) /*!< D/I vaddr are shared */

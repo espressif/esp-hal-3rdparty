@@ -134,8 +134,6 @@
 #define  XTAL_CLK_FREQ                               (40*1000000)
 //}}
 
-// TODO: to be checked IDF-14669
-
 /* Overall memory map */
 /* Note: We should not use MACROs similar in cache_memory.h
  * those are defined during run-time. But the MACROs here
