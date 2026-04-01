@@ -433,7 +433,8 @@ bool esp_flash_encryption_cfg_verify_release_mode(void)
     // are mutually exclusive because this will make the chip not functional.
     // Only one type key must be configured in eFuses.
     secure = false;
-    for (unsigned i = 0; i < sizeof(purposes) / sizeof(esp_efuse_purpose_t); i++) {
+    size_t purpose_count = sizeof(purposes) / sizeof(esp_efuse_purpose_t);
+    for (size_t i = 0; i < purpose_count; i++) {
         esp_efuse_block_t block;
         if (esp_efuse_find_purpose(purposes[i], &block)) {
             secure = esp_efuse_get_key_dis_read(block);

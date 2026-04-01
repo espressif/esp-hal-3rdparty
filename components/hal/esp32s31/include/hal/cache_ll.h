@@ -15,6 +15,7 @@
 #include "hal/cache_types.h"
 #include "hal/assert.h"
 #include "esp32s31/rom/cache.h"
+#include "soc/hp_sys_clkrst_struct.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -50,6 +51,18 @@ typedef enum {
     CACHE_LL_PRELOAD_AFTER_FETCH = 1,
     CACHE_LL_PRELOAD_ARBITRARY = 2,
 } cache_ll_preload_strategy_t;
+
+/**
+ * @brief Initialize the cache clock
+ */
+__attribute__((always_inline))
+static inline void cache_ll_clk_init(void)
+{
+    HP_SYS_CLKRST.cache_ctrl0.reg_cpu_acache_cpu_clk_force_on = 1;
+    HP_SYS_CLKRST.cache_ctrl0.reg_rom_acache_mem_clk_force_on = 1;
+    HP_SYS_CLKRST.cache_ctrl0.reg_cpu_cache_cpu_clk_force_on = 1;
+    HP_SYS_CLKRST.cache_ctrl0.reg_mspi_cache_sys_clk_force_on = 1;
+}
 
 /*------------------------------------------------------------------------------
  * Autoload

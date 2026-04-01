@@ -44,6 +44,15 @@ typedef enum {
 } cache_ll_preload_strategy_t;
 
 /**
+ * @brief Initialize the cache clock
+ */
+__attribute__((always_inline))
+static inline void cache_ll_clk_init(void)
+{
+    //for compatibility
+}
+
+/**
  * @brief Check if Cache auto preload is enabled or not.
  *
  * @param cache_level  level of the cache

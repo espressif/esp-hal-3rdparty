@@ -1,3 +1,4 @@
+
 /*
  * SPDX-FileCopyrightText: 2022-2026 Espressif Systems (Shanghai) CO LTD
  *
@@ -41,6 +42,15 @@ typedef enum {
     CACHE_LL_PRELOAD_AFTER_FETCH = 1,
     CACHE_LL_PRELOAD_ARBITRARY = 2,
 } cache_ll_preload_strategy_t;
+
+/**
+ * @brief Initialize the cache clock
+ */
+__attribute__((always_inline))
+static inline void cache_ll_clk_init(void)
+{
+    //for compatibility
+}
 
 /**
  * @brief Check if Cache auto preload is enabled or not.

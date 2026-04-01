@@ -81,6 +81,8 @@ void cache_hal_init(const cache_hal_config_t *config)
 {
     s_cache_hal_init_ctx();
 
+    cache_ll_clk_init();
+
     if (CACHE_LL_LEVEL_EXT_MEM == 1) {
         cache_ll_enable_cache(1, CACHE_TYPE_ALL, CACHE_LL_ID_ALL, ctx.l1.i_autoload_en, ctx.l1.d_autoload_en);
     } else if (CACHE_LL_LEVEL_EXT_MEM == 2) {

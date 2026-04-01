@@ -274,6 +274,23 @@ typedef enum {
     SPI_CLK_SRC_DEFAULT  = SOC_MOD_CLK_SPLL,        /*!< Select XTAL as default source clock */
 } soc_periph_spi_clk_src_t;
 
+/////////////////////////////////////////////////PSRAM////////////////////////////////////////////////////////////////////
+
+/**
+ * @brief Array initializer for all supported clock sources of PSRAM
+ */
+#define SOC_PSRAM_CLKS {SOC_MOD_CLK_XTAL, SOC_MOD_CLK_CPLL, SOC_MOD_CLK_MPLL}
+
+/**
+ * @brief Type of PSRAM clock source.
+ */
+typedef enum {
+    PSRAM_CLK_SRC_DEFAULT = SOC_MOD_CLK_MPLL,         /*!< Select SOC_MOD_CLK_MPLL as PSRAM source clock */
+    PSRAM_CLK_SRC_XTAL = SOC_MOD_CLK_XTAL,            /*!< Select SOC_MOD_CLK_XTAL as PSRAM source clock */
+    PSRAM_CLK_SRC_CPLL = SOC_MOD_CLK_CPLL,            /*!< Select SOC_MOD_CLK_CPLL as PSRAM source clock */
+    PSRAM_CLK_SRC_MPLL = SOC_MOD_CLK_MPLL,            /*!< Select SOC_MOD_CLK_MPLL as PSRAM source clock */
+} soc_periph_psram_clk_src_t;
+
 /////////////////////////////////////////////////FLASH////////////////////////////////////////////////////////////////////
 
 /**
