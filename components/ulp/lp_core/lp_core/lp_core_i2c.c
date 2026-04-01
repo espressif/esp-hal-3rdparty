@@ -13,7 +13,7 @@
 #include "soc/i2c_struct.h"
 #include "hal/i2c_ll.h"
 
-#if SOC_LP_I2C_SUPPORTED
+#if SOC_LP_CORE_SUPPORT_I2C
 
 #define LP_I2C_FIFO_LEN     I2C_LL_GET(LP_FIFO_LEN)
 #define LP_I2C_READ_MODE    I2C_MASTER_READ
@@ -471,4 +471,4 @@ esp_err_t lp_core_i2c_master_write_read_device(i2c_port_t lp_i2c_num, uint16_t d
     return ret;
 }
 
-#endif /* SOC_LP_I2C_SUPPORTED */
+#endif /* SOC_LP_CORE_SUPPORT_I2C */

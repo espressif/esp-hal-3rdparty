@@ -79,6 +79,24 @@ static void clear_test_cmds(void)
     ulp_command_resp = LP_CORE_NO_COMMAND;
 }
 
+TEST_CASE("LP core boots and executes code", "[lp_core]")
+{
+    ulp_lp_core_cfg_t cfg = {
+        .wakeup_source = ULP_LP_CORE_WAKEUP_SOURCE_HP_CPU,
+    };
+
+    ulp_counter = 0;
+
+    load_and_start_lp_core_firmware(&cfg, lp_core_main_counter_bin_start, lp_core_main_counter_bin_end);
+
+    int timeout_ms = 1000;
+    while (ulp_counter == 0 && timeout_ms-- > 0) {
+        vTaskDelay(pdMS_TO_TICKS(1));
+    }
+
+    TEST_ASSERT_MESSAGE(ulp_counter > 0, "LP core did not execute: counter stayed at 0");
+}
+
 TEST_CASE("LP core and main CPU are able to exchange data", "[lp_core]")
 {
     const uint32_t test_data = 0x12345678;
@@ -539,7 +557,7 @@ TEST_CASE("LP core can schedule next wake-up time by itself", "[ulp]")
     TEST_ASSERT_INT_WITHIN_MESSAGE(5, expected_run_count, ulp_set_timer_wakeup_counter, "LP Core did not wake up the expected number of times");
 }
 
-#if SOC_RTCIO_PIN_COUNT > 0
+#if SOC_RTCIO_PIN_COUNT > 0 && (SOC_RTCIO_INPUT_OUTPUT_SUPPORTED || SOC_LP_GPIO_MATRIX_SUPPORTED)
 TEST_CASE("LP core gpio tests", "[ulp]")
 {
     /* Load ULP firmware and start the coprocessor */
@@ -583,7 +601,7 @@ TEST_CASE("LP core ISR tests", "[ulp]")
     printf("ULP PMU ISR triggered %"PRIu32" times\n", ulp_pmu_isr_counter);
     TEST_ASSERT_EQUAL(ISR_TEST_ITERATIONS, ulp_pmu_isr_counter);
 
-#if SOC_RTCIO_PIN_COUNT > 0
+#if SOC_RTCIO_PIN_COUNT > 0 && (SOC_RTCIO_INPUT_OUTPUT_SUPPORTED || SOC_LP_GPIO_MATRIX_SUPPORTED)
     /* Test LP IO interrupt */
     rtc_gpio_init(IO_TEST_PIN);
     rtc_gpio_set_direction(IO_TEST_PIN, RTC_GPIO_MODE_INPUT_ONLY);

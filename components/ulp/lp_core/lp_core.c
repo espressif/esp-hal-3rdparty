@@ -1,11 +1,12 @@
 /*
- * SPDX-FileCopyrightText: 2023-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2023-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "sdkconfig.h"
 #include "esp_rom_caps.h"
+#include "soc/soc.h"
 #include "soc/soc_caps.h"
 #include "esp_log.h"
 #include "esp_assert.h"
@@ -85,6 +86,14 @@ esp_err_t ulp_lp_core_run(ulp_lp_core_cfg_t* cfg)
     lp_core_ll_set_app_boot_address(RESET_HANDLER_ADDR);
 
 #endif //ESP_ROM_HAS_LP_ROM
+
+#if SOC_LP_CORE_CONFIGURABLE_BOOT_ADDR
+    /* Chips without LP ROM but with a SW-configurable boot address register
+     * (e.g. ESP32-S31) must set the boot address explicitly.  The hardware
+     * default points to SOC_RTC_DRAM_LOW (the interrupt vector table base),
+     * not to reset_vector which is placed 0x80 bytes into LP RAM. */
+    lp_core_ll_set_boot_address((intptr_t)SOC_RTC_DRAM_LOW + 0x80);
+#endif // SOC_LP_CORE_CONFIGURABLE_BOOT_ADDR
 
     PERIPH_RCC_ATOMIC() {
 #if CONFIG_ULP_NORESET_UNDER_DEBUG
