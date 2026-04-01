@@ -137,6 +137,7 @@
 #define DR_REG_INTERRUPT_CORE0_BASE             DR_REG_INTR0_BASE
 #define DR_REG_INTERRUPT_CORE1_BASE             (DR_REG_INTR0_BASE + 0x800)
 #define DR_REG_LPPERI_BASE                      DR_REG_LP_PERICLKRST_BASE
+#define DR_REG_LP_PWR_BASE                      DR_REG_LP_PWR_REG_BASE  /* alias used by lp_pwr_reg.h */
 #define DR_REG_SDHOST_BASE                      DR_REG_SDMMC_BASE
 #define DR_REG_TRACE_BASE                       DR_REG_TRACE0_BASE
 #define DR_REG_MB_BASE                          DR_REG_LP_MAILBOX_BASE

@@ -100,7 +100,7 @@ esp_err_t lp_core_i2c_master_write_read_device(i2c_port_t lp_i2c_num, uint16_t d
  */
 void lp_core_i2c_master_set_ack_check_en(i2c_port_t lp_i2c_num, bool ack_check_en);
 
-#if SOC_LP_I2C_SUPPORTED
+#if SOC_LP_CORE_SUPPORT_I2C
 /**
  * @brief Enable LP I2C master-related interrupts at the peripheral
  *
@@ -126,7 +126,7 @@ static inline void ulp_lp_core_lp_i2c_intr_disable(i2c_port_t lp_i2c_num, uint32
     HAL_ASSERT(lp_i2c_num == LP_I2C_NUM_0);
     i2c_ll_disable_intr_mask(I2C_LL_GET_HW(lp_i2c_num), mask);
 }
-#endif /* SOC_LP_I2C_SUPPORTED */
+#endif /* SOC_LP_CORE_SUPPORT_I2C */
 
 #ifdef __cplusplus
 }
