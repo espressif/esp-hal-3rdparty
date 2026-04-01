@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2025-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -124,8 +124,26 @@ __attribute__((always_inline)) static inline bool mmu_ll_cache_encryption_enable
 __attribute__((always_inline))
 static inline mmu_page_size_t mmu_ll_get_page_size(uint32_t mmu_id)
 {
-    (void)mmu_id;
-    return MMU_PAGE_64KB;
+    uint32_t page_size_code = 0;
+    mmu_page_size_t page_size = MMU_PAGE_64KB;
+
+    if (mmu_id == MMU_LL_FLASH_MMU_ID) {
+        page_size_code = REG_GET_FIELD(SPI_MEM_C_MMU_POWER_CTRL_REG, SPI_MMU_PAGE_SIZE);
+        page_size = (page_size_code == 0) ? MMU_PAGE_256KB : \
+                    (page_size_code == 1) ? MMU_PAGE_128KB : \
+                    (page_size_code == 2) ? MMU_PAGE_64KB : \
+                    MMU_PAGE_32KB;
+    } else if (mmu_id == MMU_LL_PSRAM_MMU_ID) {
+        page_size_code = REG_GET_FIELD(SPI_MEM_S_MMU_POWER_CTRL_REG, SPI_MMU_PAGE_SIZE);
+        page_size = (page_size_code == 0) ? MMU_PAGE_64KB : \
+                    (page_size_code == 1) ? MMU_PAGE_32KB : \
+                    (page_size_code == 2) ? MMU_PAGE_16KB : \
+                    MMU_PAGE_8KB;
+    } else {
+        HAL_ASSERT(false);
+    }
+
+    return page_size;
 }
 
 /**
@@ -136,9 +154,21 @@ static inline mmu_page_size_t mmu_ll_get_page_size(uint32_t mmu_id)
 __attribute__((always_inline))
 static inline void mmu_ll_set_page_size(uint32_t mmu_id, uint32_t size)
 {
-    HAL_ASSERT(size == MMU_PAGE_64KB);
+    uint8_t reg_val = 0;
     if (mmu_id == MMU_LL_FLASH_MMU_ID) {
-        REG_SET_FIELD(SPI_MEM_C_MMU_POWER_CTRL_REG, SPI_MMU_PAGE_SIZE, 2);
+        reg_val = (size == MMU_PAGE_256KB) ? 0 : \
+                      (size == MMU_PAGE_128KB) ? 1 : \
+                      (size == MMU_PAGE_64KB)  ? 2 : \
+                      (size == MMU_PAGE_32KB)  ? 3 : 0;
+        REG_SET_FIELD(SPI_MEM_C_MMU_POWER_CTRL_REG, SPI_MMU_PAGE_SIZE, reg_val);
+    } else if (mmu_id == MMU_LL_PSRAM_MMU_ID) {
+        reg_val = (size == MMU_PAGE_64KB) ? 0 : \
+                      (size == MMU_PAGE_32KB) ? 1 : \
+                      (size == MMU_PAGE_16KB)  ? 2 : \
+                      (size == MMU_PAGE_8KB)  ? 3 : 0;
+        REG_SET_FIELD(SPI_MEM_S_MMU_POWER_CTRL_REG, SPI_MMU_PAGE_SIZE, reg_val);
+    } else {
+        HAL_ASSERT(false);
     }
 }
 
@@ -203,6 +233,12 @@ static inline uint32_t mmu_ll_get_entry_id(uint32_t mmu_id, uint32_t vaddr)
     mmu_page_size_t page_size = mmu_ll_get_page_size(mmu_id);
     uint32_t shift_code = 0;
     switch (page_size) {
+        case MMU_PAGE_256KB:
+            shift_code = 18;
+            break;
+        case MMU_PAGE_128KB:
+            shift_code = 17;
+            break;
         case MMU_PAGE_64KB:
             shift_code = 16;
             break;
@@ -238,6 +274,12 @@ static inline uint32_t mmu_ll_format_paddr(uint32_t mmu_id, uint32_t paddr, mmu_
     mmu_page_size_t page_size = mmu_ll_get_page_size(mmu_id);
     uint32_t shift_code = 0;
     switch (page_size) {
+        case MMU_PAGE_256KB:
+            shift_code = 18;
+            break;
+        case MMU_PAGE_128KB:
+            shift_code = 17;
+            break;
         case MMU_PAGE_64KB:
             shift_code = 16;
             break;
