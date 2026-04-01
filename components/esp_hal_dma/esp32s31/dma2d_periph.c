@@ -5,7 +5,13 @@
  */
 
 #include "hal/dma2d_periph.h"
+#include "hal/dma2d_types.h"
 #include "soc/interrupts.h"
+
+const int dma2d_csc_param_rgb2yuv_bt601_table[3][4] = DMA2D_COLOR_SPACE_CONV_PARAM_RGB2YUV_BT601;
+const int dma2d_csc_param_rgb2yuv_bt709_table[3][4] = DMA2D_COLOR_SPACE_CONV_PARAM_RGB2YUV_BT709;
+const int dma2d_csc_param_yuv2rgb_bt601_table[3][4] = DMA2D_COLOR_SPACE_CONV_PARAM_YUV2RGB_BT601;
+const int dma2d_csc_param_yuv2rgb_bt709_table[3][4] = DMA2D_COLOR_SPACE_CONV_PARAM_YUV2RGB_BT709;
 
 const dma2d_signal_conn_t dma2d_periph_signals = {
     .groups = {
