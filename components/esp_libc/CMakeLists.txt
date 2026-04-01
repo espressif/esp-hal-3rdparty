@@ -26,6 +26,7 @@ set(srcs
     "src/termios.c"
     "src/stdatomic.c"
     "src/time.c"
+    "src/timekeeping.c"
     "src/sysconf.c"
     "src/realpath.c"
     "src/scandir.c"
@@ -87,7 +88,7 @@ else()
 endif()
 
 set(ldfragments "")
-list(APPEND ldfragments "src/esp_libc.lf" "src/system_libs.lf")
+list(APPEND ldfragments "src/esp_libc.lf" "src/esp_libc_clock.lf" "src/system_libs.lf")
 
 if(CONFIG_LIBC_NEWLIB)
     list(APPEND ldfragments src/libc.lf)

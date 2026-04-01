@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2019-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2019-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -889,6 +889,14 @@ esp_err_t esp_eth_mac_adj_ptp_time(esp_eth_mac_t *mac, int32_t adj_ppb)
     return ESP_OK;
 }
 
+esp_err_t esp_eth_mac_adj_ptp_freq_ppb(esp_eth_mac_t *mac, int32_t adj_ppb)
+{
+    ESP_RETURN_ON_FALSE(mac, ESP_ERR_INVALID_ARG, TAG, "invalid argument, can't be NULL");
+    emac_esp32_t *emac = __containerof(mac, emac_esp32_t, parent);
+    ESP_RETURN_ON_ERROR(emac_hal_ptp_adj_freq(&emac->hal, adj_ppb), TAG, "failed to adjust PTP frequency");
+    return ESP_OK;
+}
+
 esp_err_t esp_eth_mac_set_target_time(esp_eth_mac_t *mac, const eth_mac_time_t *target)
 {
     ESP_RETURN_ON_FALSE(mac && target, ESP_ERR_INVALID_ARG, TAG, "invalid argument, can't be NULL");
@@ -928,6 +936,13 @@ esp_err_t esp_eth_mac_set_pps_out_freq(esp_eth_mac_t *mac, uint32_t freq_hz)
     emac_esp32_t *emac = __containerof(mac, emac_esp32_t, parent);
     ESP_RETURN_ON_ERROR(emac_hal_set_pps0_out_freq(&emac->hal, freq_hz), TAG, "failed to set PPS0 output frequency");
     return ESP_OK;
+}
+
+uint32_t esp_eth_mac_get_ts_resolution(esp_eth_mac_t *mac)
+{
+    ESP_RETURN_ON_FALSE(mac, ESP_ERR_INVALID_ARG, TAG, "invalid argument, can't be NULL");
+    emac_esp32_t *emac = __containerof(mac, emac_esp32_t, parent);
+    return emac_hal_get_ts_resolution(&emac->hal);
 }
 #endif // SOC_EMAC_IEEE1588V2_SUPPORTED
 
