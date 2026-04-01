@@ -76,8 +76,8 @@
 #define SOC_PMU_SUPPORTED                  1
 #define SOC_RTC_TIMER_SUPPORTED            1
 // #define SOC_ULP_LP_UART_SUPPORTED       1      // TODO: [ESP32S31] IDF-14634
-// #define SOC_LP_GPIO_MATRIX_SUPPORTED    1      // TODO: [ESP32S31] IDF-14785
-// #define SOC_LP_PERIPHERALS_SUPPORTED    1      // TODO: [ESP32S31] IDF-14785
+#define SOC_LP_GPIO_MATRIX_SUPPORTED    1
+#define SOC_LP_PERIPHERALS_SUPPORTED    1
 // #define SOC_LP_I2C_SUPPORTED            1      // TODO: [ESP32S31] IDF-14635
 // #define SOC_LP_SPI_SUPPORTED            1      // TODO: [ESP32S31] IDF-14639
 #define SOC_SPIRAM_SUPPORTED            1      // TODO: [ESP32S31] IDF-14718
@@ -195,6 +195,11 @@
 
 /*-------------------------- RTCIO CAPS --------------------------------------*/
 #define SOC_RTCIO_PIN_COUNT                 8
+#define SOC_RTCIO_INPUT_OUTPUT_SUPPORTED    1  /* This macro indicates that the target has separate RTC IOMUX hardware feature,
+                                                * so the RTC GPIOs can be used as general purpose RTC GPIOs.
+                                                */
+#define SOC_RTCIO_HOLD_SUPPORTED            1
+#define SOC_RTCIO_WAKE_SUPPORTED            1
 
 /*-------------------------- Sigma Delta Modulator CAPS -----------------*/
 #define SOC_SDM_SUPPORT_SLEEP_RETENTION     1
