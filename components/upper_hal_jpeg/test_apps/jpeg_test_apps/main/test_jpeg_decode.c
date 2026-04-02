@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Unlicense OR CC0-1.0
  */
@@ -24,12 +24,18 @@ extern const uint8_t image_esp1080_jpg_end[]   asm("_binary_esp1080_jpg_end");
 extern const uint8_t image_no_huff_jpg_start[] asm("_binary_no_huff_jpg_start");
 extern const uint8_t image_no_huff_jpg_end[]   asm("_binary_no_huff_jpg_end");
 
+#if CONFIG_IDF_TARGET_ESP32S31
+#define TIMEOUT_MS 80
+#else
+#define TIMEOUT_MS 40
+#endif
+
 TEST_CASE("JPEG decode driver memory leaking check", "[jpeg]")
 {
     jpeg_decoder_handle_t jpgd_handle;
 
     jpeg_decode_engine_cfg_t decode_eng_cfg = {
-        .timeout_ms = 40,
+        .timeout_ms = TIMEOUT_MS,
     };
 
     int size = esp_get_free_heap_size();
@@ -48,7 +54,7 @@ TEST_CASE("JPEG decode performance test for 1080*1920 YUV->RGB picture", "[jpeg]
 
     jpeg_decode_engine_cfg_t decode_eng_cfg = {
         .intr_priority = 0,
-        .timeout_ms = 40,
+        .timeout_ms = TIMEOUT_MS,
     };
 
     jpeg_decode_cfg_t decode_cfg = {
@@ -97,7 +103,7 @@ TEST_CASE("JPEG decode image without Huffman table JPEG->RGB picture", "[jpeg]")
 
     jpeg_decode_engine_cfg_t decode_eng_cfg = {
         .intr_priority = 0,
-        .timeout_ms = 40,
+        .timeout_ms = TIMEOUT_MS,
     };
 
     jpeg_decode_cfg_t decode_cfg = {

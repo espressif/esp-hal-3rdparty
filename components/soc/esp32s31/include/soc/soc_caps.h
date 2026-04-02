@@ -101,6 +101,7 @@
 // #define SOC_SIMD_INSTRUCTION_SUPPORTED  1      // TODO: [ESP32S31] IDF-14661
 #define SOC_CORDIC_SUPPORTED            1
 #define SOC_REGI2C_SUPPORTED            1
+#define SOC_JPEG_CODEC_SUPPORTED        1
 
 /*-------------------------- USB CAPS ----------------------------------------*/
 #define SOC_USB_OTG_PERIPH_NUM          (1U)
@@ -399,3 +400,7 @@
 #define SOC_MCPWM_SUPPORT_EVENT_COMPARATOR   (1)    ///< Support event comparator (based on ETM)
 #define SOC_MCPWM_CAPTURE_CLK_FROM_GROUP     (1)    ///< Capture timer shares clock with other PWM timers
 // #define SOC_MCPWM_SUPPORT_SLEEP_RETENTION    (1)    ///< Support back up registers before sleep
+
+/*--------------------------- JPEG --------------------------------*/
+#define SOC_JPEG_DECODE_SUPPORTED                 (1)
+#define SOC_JPEG_ENCODE_SUPPORTED                 (1)

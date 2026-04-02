@@ -283,8 +283,11 @@ esp_err_t jpeg_encoder_process(jpeg_encoder_handle_t encoder_engine, const jpeg_
     memset(encoder_engine->txlink, 0, encoder_engine->dma_desc_size);
     s_cfg_desc(encoder_engine, encoder_engine->txlink, JPEG_DMA2D_2D_ENABLE, DMA2D_DESCRIPTOR_BLOCK_RW_MODE_MULTIPLE, dma_vb, dma_hb, JPEG_DMA2D_EOF_NOT_LAST, dma2d_desc_pixel_format_to_pbyte_value(encoder_engine->picture_format), DMA2D_DESCRIPTOR_BUFFER_OWNER_DMA, encoder_engine->header_info->origin_v, encoder_engine->header_info->origin_h, raw_buffer, NULL);
 
-    ret = esp_cache_msync((void*)raw_buffer, inbuf_size, ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_UNALIGNED);
-    assert(ret == ESP_OK);
+    size_t cache_line_size = esp_cache_get_line_size_by_addr(raw_buffer);
+    if (cache_line_size > 0) {
+        ret = esp_cache_msync((void*)raw_buffer, inbuf_size, ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_UNALIGNED);
+        assert(ret == ESP_OK);
+    }
 
     dma2d_trans_config_t trans_desc = {
         .tx_channel_num = 1,
@@ -314,10 +317,16 @@ esp_err_t jpeg_encoder_process(jpeg_encoder_handle_t encoder_engine, const jpeg_
         }
 
         if (s_rcv_event.dma_evt & JPEG_DMA2D_RX_EOF) {
-            ESP_GOTO_ON_ERROR(esp_cache_msync((void*)encoder_engine->rxlink, encoder_engine->dma_desc_size, ESP_CACHE_MSYNC_FLAG_DIR_M2C), err1, TAG, "sync memory to cache failed");
+            size_t cache_line_size = esp_cache_get_line_size_by_addr(encoder_engine->rxlink);
+            if (cache_line_size > 0) {
+                ESP_GOTO_ON_ERROR(esp_cache_msync((void*)encoder_engine->rxlink, encoder_engine->dma_desc_size, ESP_CACHE_MSYNC_FLAG_DIR_M2C), err1, TAG, "sync memory to cache failed");
+            }
             compressed_size = s_dma_desc_get_len(encoder_engine->rxlink);
             uint32_t _compressed_size = JPEG_ALIGN_UP(compressed_size, cache_hal_get_cache_line_size(CACHE_LL_LEVEL_EXT_MEM, CACHE_TYPE_DATA));
-            ESP_GOTO_ON_ERROR(esp_cache_msync((void*)(bit_stream + encoder_engine->header_info->header_len), _compressed_size, ESP_CACHE_MSYNC_FLAG_DIR_M2C), err1, TAG, "sync memory to cache failed");
+            cache_line_size = esp_cache_get_line_size_by_addr(bit_stream + encoder_engine->header_info->header_len);
+            if (cache_line_size > 0) {
+                ESP_GOTO_ON_ERROR(esp_cache_msync((void*)(bit_stream + encoder_engine->header_info->header_len), _compressed_size, ESP_CACHE_MSYNC_FLAG_DIR_M2C), err1, TAG, "sync memory to cache failed");
+            }
             break;
         }
     }
@@ -540,9 +549,12 @@ static void s_cfg_desc(jpeg_encoder_handle_t encoder_engine, dma2d_descriptor_t 
     dsc->ha_length  = ha;
     dsc->buffer     = buf;
     dsc->next       = next_dsc;
-    esp_err_t ret = esp_cache_msync((void*)dsc, encoder_engine->dma_desc_size, ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_INVALIDATE);
-    assert(ret == ESP_OK);
-    (void)ret;
+    size_t cache_line_size = esp_cache_get_line_size_by_addr(dsc);
+    if (cache_line_size > 0) {
+        esp_err_t ret = esp_cache_msync((void*)dsc, encoder_engine->dma_desc_size, ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_INVALIDATE);
+        assert(ret == ESP_OK);
+        (void)ret;
+    }
 }
 
 static void s_jpeg_enc_config_picture_color_space(jpeg_encoder_handle_t encoder_engine)
