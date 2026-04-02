@@ -808,7 +808,7 @@ static esp_err_t _ledc_set_pin(int gpio_num, bool out_inv, ledc_mode_t speed_mod
     if (old_gpio_rsv_mask & BIT64(gpio_num)) {
         ESP_LOGW(LEDC_TAG, "GPIO %d is not usable, maybe conflict with others", gpio_num);
     }
-    gpio_matrix_output(gpio_num, ledc_periph_signal[0].speed_mode[speed_mode].sig_out0_idx + channel, out_inv, false);
+    gpio_matrix_output(gpio_num, ledc_periph_signal[0].speed_mode[speed_mode].sig_out_idx[channel], out_inv, false);
     portENTER_CRITICAL(&ledc_spinlock);
     p_ledc_obj[speed_mode]->occupied_pin_mask[channel] |= BIT64(gpio_num);
     portEXIT_CRITICAL(&ledc_spinlock);

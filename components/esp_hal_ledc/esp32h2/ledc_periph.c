@@ -15,7 +15,16 @@ const ledc_signal_conn_t ledc_periph_signal[1] = {
     {
         .irq_id = ETS_LEDC_INTR_SOURCE,
         .speed_mode = {
-            [0] = { .sig_out0_idx = LEDC_LS_SIG_OUT0_IDX },
+            [0] = {
+                .sig_out_idx = {
+                    LEDC_LS_SIG_OUT0_IDX,
+                    LEDC_LS_SIG_OUT1_IDX,
+                    LEDC_LS_SIG_OUT2_IDX,
+                    LEDC_LS_SIG_OUT3_IDX,
+                    LEDC_LS_SIG_OUT4_IDX,
+                    LEDC_LS_SIG_OUT5_IDX,
+                }
+            },
         },
     }
 };

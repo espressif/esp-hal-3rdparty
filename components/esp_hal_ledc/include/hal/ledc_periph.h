@@ -28,7 +28,7 @@ extern "C" {
 typedef struct {
     const int irq_id;
     struct {
-        const int sig_out0_idx;
+        const int sig_out_idx[SOC_LEDC_CHANNEL_NUM];
     } speed_mode[LEDC_SPEED_MODE_MAX];
 } ledc_signal_conn_t;
 
