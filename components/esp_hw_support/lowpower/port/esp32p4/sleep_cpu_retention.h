@@ -8,7 +8,7 @@
 #define __SLEEP_CPU_RETENTION_H__
 
 #include "rvsleep-frames.h"
-#include "freertos/FreeRTOS.h"
+#include "platform/os.h"
 #include "esp_err.h"
 
 #if CONFIG_PM_ESP_SLEEP_POWER_DOWN_CPU && !CONFIG_FREERTOS_UNICORE
@@ -40,9 +40,9 @@ typedef struct {
  */
 typedef struct {
     struct {
-        RvCoreCriticalSleepFrame *critical_frame[portNUM_PROCESSORS];
-        RvCoreNonCriticalSleepFrame *non_critical_frame[portNUM_PROCESSORS];
-        cpu_domain_dev_sleep_frame_t *clic_frame[portNUM_PROCESSORS];
+        RvCoreCriticalSleepFrame *critical_frame[OS_PORT_NUM_PROCESSORS];
+        RvCoreNonCriticalSleepFrame *non_critical_frame[OS_PORT_NUM_PROCESSORS];
+        cpu_domain_dev_sleep_frame_t *clic_frame[OS_PORT_NUM_PROCESSORS];
     } retent;
 } sleep_cpu_retention_t;
 
