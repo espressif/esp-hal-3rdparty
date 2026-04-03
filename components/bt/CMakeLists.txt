@@ -105,9 +105,15 @@ if(CONFIG_BT_ENABLED)
     list(APPEND priv_include_dirs
             common/btc/include
             common/include
+        )
+
+    if(NOT CONFIG_BT_DUAL_MODE_ARCH)
+        list(APPEND priv_include_dirs
             porting/mem/
             porting/include
         )
+    endif()
+
     list(APPEND include_dirs ${common_include_dirs})
 
     list(APPEND srcs "common/btc/core/btc_alarm.c"
@@ -672,7 +678,22 @@ if(CONFIG_BT_ENABLED)
         endif()
     endif()
 
-    if(CONFIG_BT_LE_CONTROLLER_NPL_OS_PORTING_SUPPORT)
+    if(CONFIG_BT_DUAL_MODE_ARCH)
+        add_subdirectory(porting_btdm)
+        list(APPEND srcs
+            ${porting_btdm_srcs}
+        )
+
+        if(CONFIG_BT_NIMBLE_ENABLED)
+            list(APPEND srcs
+                "host/nimble/nimble/nimble/transport/esp_ipc_btdm/src/hci_esp_ipc.c"
+            )
+        endif()
+
+        list(APPEND include_dirs
+            ${porting_btdm_include_dirs}
+        )
+    elseif(CONFIG_BT_LE_CONTROLLER_NPL_OS_PORTING_SUPPORT)
         list(APPEND srcs
                 "porting/npl/freertos/src/npl_os_freertos.c"
                 "porting/mem/os_msys_init.c"
@@ -867,9 +888,21 @@ if(CONFIG_BT_ENABLED)
 
             list(APPEND srcs
                 "host/nimble/nimble/porting/nimble/src/nimble_port.c"
-                "host/nimble/nimble/porting/npl/freertos/src/nimble_port_freertos.c"
                 "host/nimble/port/src/nvs_port.c"
+                "host/nimble/port/src/esp_nimble_mem.c"
             )
+            if(CONFIG_BT_DUAL_MODE_ARCH)
+                list(APPEND srcs
+                    "host/nimble/nimble/porting/npl/esp-idf/src/nimble_port_freertos.c"
+                )
+                list(APPEND include_dirs
+                    "host/nimble/nimble/porting/npl/esp-idf/include"
+                )
+            else()
+                list(APPEND srcs
+                    "host/nimble/nimble/porting/npl/freertos/src/nimble_port_freertos.c"
+                )
+            endif()
 
             list(APPEND include_dirs
                 host/nimble/nimble/porting/nimble/include
@@ -884,7 +917,7 @@ if(CONFIG_BT_ENABLED)
                 )
             endif()
 
-        if(NOT CONFIG_BT_LE_CONTROLLER_NPL_OS_PORTING_SUPPORT)
+        if((NOT CONFIG_BT_LE_CONTROLLER_NPL_OS_PORTING_SUPPORT) AND (NOT CONFIG_BT_DUAL_MODE_ARCH))
             list(APPEND srcs
                     "host/nimble/nimble/porting/nimble/src/endian.c"
                     "porting/mem/os_mempool.c"
@@ -1087,6 +1120,12 @@ if(CONFIG_BT_ENABLED)
             endif()
         endif()
         target_link_libraries(${COMPONENT_LIB} PRIVATE libble_app)
+
+        if(CONFIG_BT_DUAL_MODE_ARCH)
+            add_prebuilt_library(libbtdm_common
+                "controller/lib_${target_name}/${target_name}-bt-lib/libbtdm_common.a")
+            target_link_libraries(${COMPONENT_LIB} PRIVATE libbtdm_common)
+        endif()
     endif()
 
     set_source_files_properties(

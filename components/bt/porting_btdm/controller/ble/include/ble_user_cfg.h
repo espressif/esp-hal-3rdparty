@@ -1,16 +1,14 @@
 /*
- * SPDX-FileCopyrightText: 2015-2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef __ESP_BT_CFG_H__
-#define __ESP_BT_CFG_H__
+#ifndef __BLE_USER_CFG_H__
+#define __BLE_USER_CFG_H__
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "esp_err.h"
-#include "sdkconfig.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,8 +18,6 @@ extern "C" {
 #include "syscfg/syscfg.h"
 #endif
 
-#define NIMBLE_LL_STACK_SIZE CONFIG_BT_LE_CONTROLLER_TASK_STACK_SIZE
-
 #if CONFIG_BT_NIMBLE_ENABLED
 
     #if CONFIG_BT_NIMBLE_LL_CFG_FEAT_LE_CODED_PHY
@@ -29,7 +25,6 @@ extern "C" {
     #else
     #define BLE_LL_SCAN_PHY_NUMBER_N (1)
     #endif
-
     #define DEFAULT_BT_LE_MAX_PERIODIC_ADVERTISER_LIST MYNEWT_VAL(BLE_MAX_PERIODIC_ADVERTISER_LIST)
     #define DEFAULT_BT_LE_MAX_PERIODIC_SYNCS MYNEWT_VAL(BLE_MAX_PERIODIC_SYNCS)
     #define DEFAULT_BT_LE_MAX_CONNECTIONS MYNEWT_VAL(BLE_MAX_CONNECTIONS)
@@ -41,7 +36,8 @@ extern "C" {
     #define DEFAULT_BT_NIMBLE_WHITELIST_SIZE MYNEWT_VAL(BLE_LL_WHITELIST_SIZE)
     #define DEFAULT_BT_LE_HCI_EVT_HI_BUF_COUNT MYNEWT_VAL(BLE_TRANSPORT_EVT_COUNT)
     #define DEFAULT_BT_LE_HCI_EVT_LO_BUF_COUNT MYNEWT_VAL(BLE_TRANSPORT_EVT_DISCARDABLE_COUNT)
-
+    #define DEFAULT_BT_LE_COEX_PHY_CODED_TX_RX_TLIM_EFF CONFIG_BT_LE_COEX_PHY_CODED_TX_RX_TLIM_EFF
+    #define DEFAULT_BT_LE_POWER_CONTROL_ENABLED    MYNEWT_VAL(BLE_POWER_CONTROL)
 #else
 
     #if CONFIG_BT_LE_LL_CFG_FEAT_LE_CODED_PHY
@@ -116,35 +112,15 @@ extern "C" {
         #define DEFAULT_BT_LE_HCI_EVT_LO_BUF_COUNT (8)
     #endif
 
-    #if defined (CONFIG_BT_LE_HCI_UART_FLOWCTRL)
-        #define DEFAULT_BT_LE_HCI_UART_FLOW_CTRL (CONFIG_BT_LE_HCI_UART_FLOWCTRL)
-        #if DEFAULT_BT_LE_HCI_UART_FLOW_CTRL
-            #define DEFAULT_BT_LE_HCI_UART_CTS_PIN (CONFIG_BT_LE_HCI_UART_CTS_PIN)
-            #define DEFAULT_BT_LE_HCI_UART_RTS_PIN (CONFIG_BT_LE_HCI_UART_RTS_PIN)
-        #else
-            #define DEFAULT_BT_LE_HCI_UART_CTS_PIN (-1)
-            #define DEFAULT_BT_LE_HCI_UART_RTS_PIN (-1)
-        #endif
+    #define DEFAULT_BT_LE_COEX_PHY_CODED_TX_RX_TLIM_EFF CONFIG_BT_LE_COEX_PHY_CODED_TX_RX_TLIM_EFF
+
+    #if defined(CONFIG_BT_LE_POWER_CONTROL_ENABLED)
+        #define DEFAULT_BT_LE_POWER_CONTROL_ENABLED (CONFIG_BT_LE_POWER_CONTROL_ENABLED)
     #else
-        #define DEFAULT_BT_LE_HCI_UART_FLOW_CTRL (0)
-        #define DEFAULT_BT_LE_HCI_UART_CTS_PIN (-1)
-        #define DEFAULT_BT_LE_HCI_UART_RTS_PIN (-1)
+        #define DEFAULT_BT_LE_POWER_CONTROL_ENABLED (0)
     #endif
 #endif
 
-#define DEFAULT_BT_LE_COEX_PHY_CODED_TX_RX_TLIM_EFF CONFIG_BT_LE_COEX_PHY_CODED_TX_RX_TLIM_EFF
-
-#ifdef CONFIG_BT_LE_HCI_INTERFACE_USE_UART
-#define HCI_UART_EN CONFIG_BT_LE_HCI_INTERFACE_USE_UART
-#else
-#define HCI_UART_EN 0 // hci ram mode
-#endif
-
-#ifdef CONFIG_BT_LE_SLEEP_ENABLE
-#define NIMBLE_SLEEP_ENABLE CONFIG_BT_LE_SLEEP_ENABLE
-#else
-#define NIMBLE_SLEEP_ENABLE  0
-#endif
 
 
 #ifdef CONFIG_BT_LE_TX_CCA_ENABLED
@@ -161,24 +137,6 @@ extern "C" {
 
 #define DEFAULT_BT_LE_SCAN_RSP_DATA_MAX_LEN_N DEFAULT_BT_LE_EXT_ADV_MAX_SIZE
 
-
-#if HCI_UART_EN
-    #define DEFAULT_BT_LE_HCI_UART_TX_PIN (CONFIG_BT_LE_HCI_UART_TX_PIN)
-    #define DEFAULT_BT_LE_HCI_UART_RX_PIN (CONFIG_BT_LE_HCI_UART_RX_PIN)
-    #define DEFAULT_BT_LE_HCI_UART_PORT (CONFIG_BT_LE_HCI_UART_PORT)
-    #define DEFAULT_BT_LE_HCI_UART_BAUD (CONFIG_BT_LE_HCI_UART_BAUD)
-    #define DEFAULT_BT_LE_HCI_UART_DATA_BITS (UART_DATA_8_BITS)
-    #define DEFAULT_BT_LE_HCI_UART_STOP_BITS (UART_STOP_BITS_1)
-    #define DEFAULT_BT_LE_HCI_UART_PARITY (0)
-#else
-    #define DEFAULT_BT_LE_HCI_UART_TX_PIN (0)
-    #define DEFAULT_BT_LE_HCI_UART_RX_PIN (0)
-    #define DEFAULT_BT_LE_HCI_UART_PORT (0)
-    #define DEFAULT_BT_LE_HCI_UART_BAUD (0)
-    #define DEFAULT_BT_LE_HCI_UART_DATA_BITS (0)
-    #define DEFAULT_BT_LE_HCI_UART_STOP_BITS (0)
-    #define DEFAULT_BT_LE_HCI_UART_PARITY (0)
-#endif
 
 /* Unchanged configuration */
 
@@ -200,26 +158,21 @@ extern "C" {
 
 #define BLE_LL_CONN_DEF_AUTH_PYLD_TMO_N     (3000)
 
-#if CONFIG_RTC_CLK_SRC_EXT_CRYS
 #define RTC_FREQ_N                          (32768) /* in Hz */
+
+#define BLE_LL_TX_PWR_DBM_N                 (9)
+
+#ifdef CONFIG_BT_LE_BQB_TEST_EN
+#define RUN_BQB_TEST                        (CONFIG_BT_LE_BQB_TEST_EN)
 #else
-#define RTC_FREQ_N                          (32000) /* in Hz */
-#if CONFIG_RTC_CLK_SRC_EXT_OSC || CONFIG_RTC_CLK_SRC_INT_RC32K
-#pragma message "RTC clock source may not available"
-#endif
-#endif
-
-
-#define BLE_LL_TX_PWR_DBM_N                 (0)
-
-
 #define RUN_BQB_TEST                        (0)
+#endif // CONFIG_BT_LE_BQB_TEST_EN
+
 #define RUN_QA_TEST                         (0)
 #define NIMBLE_DISABLE_SCAN_BACKOFF         (0)
-
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __ESP_BT_CFG_H__ */
+#endif /* __BLE_USER_CFG_H__ */

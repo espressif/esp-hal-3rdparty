@@ -46,7 +46,7 @@
 #define SOC_ETM_SUPPORTED               1
 #define SOC_PARLIO_SUPPORTED            1
 #define SOC_PARLIO_LCD_SUPPORTED        1
-// #define SOC_BT_SUPPORTED                1
+#define SOC_BT_SUPPORTED                1
 #define SOC_IEEE802154_BLE_ONLY         1
 #define SOC_PHY_SUPPORTED               1
 #define SOC_IEEE802154_SUPPORTED        1
@@ -534,15 +534,18 @@
 #define SOC_TOUCH_SAMPLE_CFG_NUM                    (3)     /*!< The sample configurations number in total, each sampler can be used to sample on one frequency */
 
 /*---------------------------------- Bluetooth CAPS ----------------------------------*/
-// #define SOC_BLE_SUPPORTED               (1)    /*!< Support Bluetooth Low Energy hardware */
-// #define SOC_BLE_MESH_SUPPORTED          (1)    /*!< Support BLE MESH */
-// #define SOC_ESP_NIMBLE_CONTROLLER       (1)    /*!< Support BLE EMBEDDED controller V1 */
-// #define SOC_BLE_50_SUPPORTED            (1)    /*!< Support Bluetooth 5.0 */
-// #define SOC_BLE_DEVICE_PRIVACY_SUPPORTED (1)   /*!< Support BLE device privacy mode */
-// #define SOC_BLE_POWER_CONTROL_SUPPORTED (1)    /*!< Support Bluetooth Power Control */
-// #define SOC_BLE_PERIODIC_ADV_ENH_SUPPORTED  (1)    /*!< Support For BLE Periodic Adv Enhancements */
-// #define SOC_BLUFI_SUPPORTED             (1)    /*!< Support BLUFI */
-// #define SOC_BLE_MULTI_CONN_OPTIMIZATION (1)    /*!< Support multiple connections optimization */
+#define SOC_BLE_SUPPORTED                           (1)     /*!< Support Bluetooth Low Energy hardware */
+// #define SOC_BLE_MESH_SUPPORTED                      (1)     /*!< Support BLE MESH */
+#define SOC_ESP_NIMBLE_CONTROLLER                   (1)     /*!< Support BLE EMBEDDED controller V1 */
+#define SOC_BLE_50_SUPPORTED                        (1)     /*!< Support Bluetooth 5.0 */
+#define SOC_BLE_DEVICE_PRIVACY_SUPPORTED            (1)     /*!< Support BLE device privacy mode */
+#define SOC_BLE_POWER_CONTROL_SUPPORTED             (1)     /*!< Support Bluetooth Power Control */
+#define SOC_BLE_MULTI_CONN_OPTIMIZATION             (1)     /*!< Support multiple connections optimization */
+#define SOC_BLE_PERIODIC_ADV_ENH_SUPPORTED          (1)     /*!< Support For BLE Periodic Adv Enhancements */
+#define SOC_BLE_CTE_SUPPORTED                       (1)     /*!< Support Bluetooth LE Constant Tone Extension (CTE) */
+#define SOC_BLE_SUBRATE_SUPPORTED                   (1)     /*!< Support Bluetooth LE Connection Subrating */
+#define SOC_BLE_PERIODIC_ADV_WITH_RESPONSE          (1)     /*!< Support Bluetooth LE Periodic Advertising with Response (PAwR) */
+#define SOC_BLE_ISO_SUPPORTED                       (1)     /*!< Support Bluetooth ISO */
 
 /*-------------------------- USB CAPS ----------------------------------------*/
 #define SOC_USB_OTG_PERIPH_NUM          (1U)
