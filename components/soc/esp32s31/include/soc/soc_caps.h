@@ -41,7 +41,7 @@
 // #define SOC_LCDCAM_RGB_LCD_SUPPORTED    1      // TODO: [ESP32S31] IDF-14722
 #define SOC_MCPWM_SUPPORTED             1
 // #define SOC_TWAI_SUPPORTED              1      // TODO: [ESP32S31] IDF-14719
-// #define SOC_ETM_SUPPORTED               1      // TODO: [ESP32S31] IDF-14724
+#define SOC_ETM_SUPPORTED               1
 // #define SOC_PARLIO_SUPPORTED            1      // TODO: [ESP32S31] IDF-14711
 #define SOC_ASYNC_MEMCPY_SUPPORTED      1
 // #define SOC_USB_OTG_SUPPORTED           1      // TODO: [ESP32S31] IDF-14701
@@ -166,9 +166,7 @@
 #define SOC_GPIO_SUPPORT_PIN_HYS_FILTER    1
 
 // GPIO peripheral has the ETM extension
-// #define SOC_GPIO_SUPPORT_ETM          1 // TODO: [ESP32S31] IDF-14786
-// #define SOC_GPIO_ETM_EVENTS_PER_GROUP 8 // TODO: [ESP32S31] IDF-14786
-// #define SOC_GPIO_ETM_TASKS_PER_GROUP  8 // TODO: [ESP32S31] IDF-14786
+#define SOC_GPIO_SUPPORT_ETM          1
 
 // GPIO0~7 on ESP32S31 can support chip deep sleep wakeup
 // #define SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP  (1) // TODO: [ESP32S31] IDF-14643
@@ -206,6 +204,9 @@
 /*-------------------------- Sigma Delta Modulator CAPS -----------------*/
 #define SOC_SDM_SUPPORT_SLEEP_RETENTION     1
 
+/*-------------------------- ETM CAPS -----------------------------------*/
+#define SOC_ETM_SUPPORT_SLEEP_RETENTION     1
+
 /*-------------------------- LEDC CAPS ---------------------------------------*/
 // TODO: [ESP32S31] IDF-14709
 #define SOC_LEDC_CHANNEL_NUM                (6)
@@ -237,7 +238,7 @@
 #define SOC_MEMSPI_ENCRYPTION_ALIGNMENT           16    /*!< 16-byte alignment restriction to mem addr and size if encryption is enabled */
 
 /*-------------------------- SYSTIMER CAPS ----------------------------------*/
-// TODO: [ESP32S31] IDF-14693
+#define SOC_SYSTIMER_SUPPORT_ETM            1  // Systimer comparator can generate ETM event
 
 /*--------------------------- TIMER GROUP CAPS ---------------------------------------*/
 #define SOC_TIMER_SUPPORT_ETM             (1)
