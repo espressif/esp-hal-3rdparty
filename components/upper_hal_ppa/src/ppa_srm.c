@@ -12,6 +12,7 @@
 #include "esp_cache.h"
 #include "esp_memory_utils.h"
 #include "soc/dma2d_channel.h"
+#include "sdkconfig.h"
 
 static const char *TAG = "ppa_srm";
 
@@ -153,6 +154,7 @@ bool ppa_srm_transaction_on_picked(uint32_t num_chans, const dma2d_trans_channel
     ppa_ll_srm_enable_mirror_x(platform->hal.dev, srm_trans_desc->mirror_x);
     ppa_ll_srm_enable_mirror_y(platform->hal.dev, srm_trans_desc->mirror_y);
 
+#if CONFIG_IDF_TARGET_ESP32P4
     // Hardware bug workaround (DIG-734)
     uint32_t w_out = srm_trans_desc->in.block_w * srm_trans_desc->scale_x_int + srm_trans_desc->in.block_w * srm_trans_desc->scale_x_frag / PPA_LL_SRM_SCALING_FRAG_MAX;
     uint32_t w_divisor = (ppa_out_color_mode == PPA_SRM_COLOR_MODE_ARGB8888 || ppa_out_color_mode == PPA_SRM_COLOR_MODE_RGB888) ? 32 : 64;
@@ -171,6 +173,7 @@ bool ppa_srm_transaction_on_picked(uint32_t num_chans, const dma2d_trans_channel
         bypass_mb_order = true;
     }
     ppa_ll_srm_bypass_mb_order(platform->hal.dev, bypass_mb_order);
+#endif
 
     ppa_ll_srm_start(platform->hal.dev);
 
@@ -256,17 +259,22 @@ esp_err_t ppa_do_scale_rotate_mirror(ppa_client_handle_t ppa_client, const ppa_s
 
     // Write back and invalidate necessary data (note that the window content is not continuous in the buffer)
     // Write back in_buffer extended window (alignment not necessary on C2M direction)
-    uint32_t buf_alignment_size = (uint32_t)ppa_client->engine->platform->buf_alignment_size;
-    uint32_t in_pixel_depth = color_hal_pixel_format_fourcc_get_bit_depth((esp_color_fourcc_t)config->in.srm_cm); // bits
-    uint32_t in_ext_window = (uint32_t)config->in.buffer + config->in.block_offset_y * config->in.pic_w * in_pixel_depth / 8;
-    uint32_t in_ext_window_len = config->in.pic_w * config->in.block_h * in_pixel_depth / 8;
-    esp_cache_msync((void *)in_ext_window, in_ext_window_len, ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_UNALIGNED);
+    size_t in_buf_alignment = esp_ptr_external_ram(config->in.buffer) ? ppa_client->engine->platform->ext_mem_align : ppa_client->engine->platform->int_mem_align;
+    if (in_buf_alignment > 0) {
+        uint32_t in_pixel_depth = color_hal_pixel_format_fourcc_get_bit_depth((esp_color_fourcc_t)config->in.srm_cm); // bits
+        uint32_t in_ext_window = (uint32_t)config->in.buffer + config->in.block_offset_y * config->in.pic_w * in_pixel_depth / 8;
+        uint32_t in_ext_window_len = config->in.pic_w * config->in.block_h * in_pixel_depth / 8;
+        esp_cache_msync((void *)in_ext_window, in_ext_window_len, ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_UNALIGNED);
+    }
     // Invalidate out_buffer extended window (alignment strict on M2C direction)
-    uint32_t out_ext_window = (uint32_t)config->out.buffer + config->out.block_offset_y * config->out.pic_w * out_pixel_depth / 8;
-    uint32_t out_ext_window_aligned = PPA_ALIGN_DOWN(out_ext_window, buf_alignment_size);
-    uint32_t out_ext_window_len = config->out.pic_w * new_block_h * out_pixel_depth / 8; // actual ext_window_len must be less than or equal to this, since actual block_h <= new_block_h (may round down)
-    assert(out_ext_window + out_ext_window_len <= (uint32_t)config->out.buffer + config->out.buffer_size);
-    esp_cache_msync((void *)out_ext_window_aligned, PPA_ALIGN_UP(out_ext_window_len + (out_ext_window - out_ext_window_aligned), buf_alignment_size), ESP_CACHE_MSYNC_FLAG_DIR_M2C);
+    size_t out_buf_alignment = esp_ptr_external_ram(config->out.buffer) ? ppa_client->engine->platform->ext_mem_align : ppa_client->engine->platform->int_mem_align;
+    if (out_buf_alignment > 0) {
+        uint32_t out_ext_window = (uint32_t)config->out.buffer + config->out.block_offset_y * config->out.pic_w * out_pixel_depth / 8;
+        uint32_t out_ext_window_aligned = PPA_ALIGN_DOWN(out_ext_window, out_buf_alignment);
+        uint32_t out_ext_window_len = config->out.pic_w * new_block_h * out_pixel_depth / 8; // actual ext_window_len must be less than or equal to this, since actual block_h <= new_block_h (may round down)
+        assert(out_ext_window + out_ext_window_len <= (uint32_t)config->out.buffer + config->out.buffer_size);
+        esp_cache_msync((void *)out_ext_window_aligned, PPA_ALIGN_UP(out_ext_window_len + (out_ext_window - out_ext_window_aligned), out_buf_alignment), ESP_CACHE_MSYNC_FLAG_DIR_M2C);
+    }
 
     esp_err_t ret = ESP_OK;
     ppa_trans_t *trans_elm = NULL;
