@@ -78,6 +78,7 @@ struct gdma_channel_t {
     portMUX_TYPE spinlock;  // channel level spinlock
     gdma_channel_direction_t direction; // channel direction
     int periph_id; // Peripheral instance ID, indicates which peripheral is connected to this GDMA channel
+    int intr_priority; // interrupt priority, if set to 0, the driver will use the default priority
     size_t int_mem_alignment; // alignment for memory in internal memory
     size_t ext_mem_alignment; // alignment for memory in external memory
     esp_err_t (*del)(gdma_channel_t *channel); // channel deletion function, it's polymorphic, see `gdma_del_tx_channel` or `gdma_del_rx_channel`

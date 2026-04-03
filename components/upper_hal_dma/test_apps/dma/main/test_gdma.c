@@ -849,3 +849,52 @@ TEST_CASE("GDMA memory copy SRAM->PSRAM->SRAM", "[GDMA][M2M]")
 #endif // SOC_HAS(LP_AHB_GDMA)
 }
 #endif // SOC_SPIRAM_SUPPORTED
+
+static bool test_gdma_intr_priority_tx_callback(gdma_channel_handle_t dma_chan, gdma_event_data_t *event_data, void *user_data)
+{
+    return false;
+}
+
+static bool test_gdma_intr_priority_rx_callback(gdma_channel_handle_t dma_chan, gdma_event_data_t *event_data, void *user_data)
+{
+    return false;
+}
+
+TEST_CASE("GDMA interrupt priority configuration", "[GDMA]")
+{
+    // test both TX and RX channel with the same interrupt priority
+    gdma_channel_handle_t tx_chan = NULL;
+    gdma_channel_handle_t rx_chan = NULL;
+    gdma_channel_alloc_config_t chan_alloc_config = {
+        .intr_priority = 2,
+    };
+
+    TEST_ESP_OK(gdma_new_ahb_channel(&chan_alloc_config, &tx_chan, &rx_chan));
+
+    gdma_tx_event_callbacks_t tx_cbs = {
+        .on_trans_eof = test_gdma_intr_priority_tx_callback,
+    };
+    gdma_rx_event_callbacks_t rx_cbs = {
+        .on_recv_eof = test_gdma_intr_priority_rx_callback,
+    };
+    TEST_ESP_OK(gdma_register_tx_event_callbacks(tx_chan, &tx_cbs, NULL));
+    TEST_ESP_OK(gdma_register_rx_event_callbacks(rx_chan, &rx_cbs, NULL));
+    TEST_ESP_OK(gdma_del_channel(tx_chan));
+    TEST_ESP_OK(gdma_del_channel(rx_chan));
+
+    // test TX and RX channel with different interrupt priority
+    TEST_ESP_OK(gdma_new_ahb_channel(&chan_alloc_config, &tx_chan, NULL));
+    TEST_ESP_OK(gdma_register_tx_event_callbacks(tx_chan, &tx_cbs, NULL));
+    chan_alloc_config.intr_priority = 3;
+    TEST_ESP_OK(gdma_new_ahb_channel(&chan_alloc_config, NULL, &rx_chan));
+#if CONFIG_IDF_TARGET_ESP32C2 || CONFIG_IDF_TARGET_ESP32C3
+    // On such targets, the TX and RX DMA interrupts are sharing the same interrupt source,
+    // so it's not allowed to set different interrupt priority for TX and RX channel
+    TEST_ESP_ERR(ESP_ERR_INVALID_ARG, gdma_register_rx_event_callbacks(rx_chan, &rx_cbs, NULL));
+#else
+    // on other targets, the TX and RX DMA interrupts are separate, it's allowed to set different interrupt priority for TX and RX channel
+    TEST_ESP_OK(gdma_register_rx_event_callbacks(rx_chan, &rx_cbs, NULL));
+#endif
+    TEST_ESP_OK(gdma_del_channel(tx_chan));
+    TEST_ESP_OK(gdma_del_channel(rx_chan));
+}
