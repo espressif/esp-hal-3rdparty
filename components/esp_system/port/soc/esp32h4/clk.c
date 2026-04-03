@@ -50,7 +50,6 @@ __attribute__((weak)) void esp_rtc_init(void)
 __attribute__((weak)) void esp_clk_init(void)
 {
 #if !CONFIG_IDF_ENV_FPGA
-    pmu_init();
     assert(rtc_clk_xtal_freq_get() == SOC_XTAL_FREQ_32M);
 
     rtc_clk_8m_enable(true);

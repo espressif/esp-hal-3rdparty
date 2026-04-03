@@ -12,8 +12,8 @@
  *        by setting rtc_dbias_Wak & dig_dbias_wak or by analog self-calibration.
  */
 
-#define I2C_DCDC    0x6D
-#define I2C_DCDC_HOSTID 0
+#define I2C_DCDC                        0x6D
+#define I2C_DCDC_HOSTID                 0
 
 #define I2C_DCDC_XPD_TRX                1
 #define I2C_DCDC_XPD_TRX_MSB            7

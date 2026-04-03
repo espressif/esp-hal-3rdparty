@@ -257,6 +257,11 @@ FORCE_INLINE_ATTR void pmu_ll_hp_set_regulator_dbias_init(pmu_dev_t *hw, pmu_hp_
     hw->hp_sys[mode].regulator0.dig_dbias_init = init;
 }
 
+FORCE_INLINE_ATTR void pmu_ll_hp_set_regulator_sleep_connect_enable(pmu_dev_t *hw, pmu_hp_mode_t mode, bool enable)
+{
+    hw->hp_sys[mode].regulator0.slp_connect_en = enable;
+}
+
 FORCE_INLINE_ATTR void pmu_ll_hp_set_regulator_sleep_logic_xpd(pmu_dev_t *hw, pmu_hp_mode_t mode, bool slp_xpd)
 {
     hw->hp_sys[mode].regulator0.slp_logic_xpd = slp_xpd;

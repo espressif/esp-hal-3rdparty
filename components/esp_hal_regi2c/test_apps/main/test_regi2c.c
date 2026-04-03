@@ -9,9 +9,14 @@
 #include "unity.h"
 #include "test_regi2c.h"
 #include "esp_private/regi2c_ctrl.h"
+#include "sdkconfig.h"
 
 TEST_CASE("regi2c basic read/write test", "[regi2c]")
 {
+#if CONFIG_IDF_ENV_FPGA
+    TEST_PASS_MESSAGE("regi2c is not supported on FPGA, skip this test");
+#endif
+
 #if CONFIG_IDF_TARGET_ESP32
     // For ESP32, we need to enable the APLL clock before accessing the APLL regi2c registers
     periph_rtc_apll_acquire();

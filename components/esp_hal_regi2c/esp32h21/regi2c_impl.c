@@ -12,7 +12,7 @@
 /* SLAVE */
 #define REGI2C_BBPLL       0x66    // regi2c_bbpll.h
 #define REGI2C_BBTOP       0x67
-#define REGI2C_DCDC        0x6D    // regi2c_pmu.h
+#define REGI2C_DCDC        0x6D    // regi2c_dcdc.h
 #define REGI2C_PERIF       0x69    // regi2c_saradc.h
 #define REGI2C_RFPLL       0x62
 #define REGI2C_SDM         0x63

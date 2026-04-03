@@ -1,4 +1,3 @@
-
 /*
  * SPDX-FileCopyrightText: 2026 Espressif Systems (Shanghai) CO LTD
  *
@@ -6,6 +5,7 @@
  */
 
 #pragma once
+
 /**
  * @file regi2c_saradc.h
  * @brief Register definitions for analog to calibrate initial code for getting a more precise voltage of SAR ADC.

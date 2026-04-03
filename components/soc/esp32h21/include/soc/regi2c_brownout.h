@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "regi2c_dcdc.h"
+
 /**
  * @file regi2c_brownout.h
  * @brief Register definitions for brownout detector
@@ -14,8 +16,8 @@
  * bus. These definitions are used via macros defined in regi2c_ctrl.h.
  */
 
-#define I2C_BOD            0x6D
-#define I2C_BOD_HOSTID     0
+#define I2C_BOD            I2C_DCDC
+#define I2C_BOD_HOSTID     I2C_DCDC_HOSTID
 
 #define I2C_BOD_THRESHOLD           0xD
 #define I2C_BOD_THRESHOLD_MSB       6

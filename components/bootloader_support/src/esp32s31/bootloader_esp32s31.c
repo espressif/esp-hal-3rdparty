@@ -36,7 +36,7 @@ static inline void bootloader_hardware_init(void)
 
     modem_lpcon_ll_enable_bus_clock(true);
 
-#if !CONFIG_IDF_ENV_FPGA || SOC_REGI2C_SUPPORTED
+#if !CONFIG_IDF_ENV_FPGA
     /* Enable analog i2c master clock */
     _regi2c_ctrl_ll_master_enable_clock(true); // keep ana i2c mst clock always enabled in bootloader
     regi2c_ctrl_ll_master_force_enable_clock(true); // TODO: IDF-14678 Remove this?

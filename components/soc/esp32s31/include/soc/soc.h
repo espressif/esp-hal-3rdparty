@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2025-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  */
@@ -127,11 +127,8 @@
 //}}
 
 //Periheral Clock {{
-#define  APB_CLK_FREQ_ROM                            ( 10*1000000 )
-#define  CPU_CLK_FREQ_ROM                            ( 40*1000000 )
-#define  APB_CLK_FREQ                                ( 90*1000000 )
+#define  APB_CLK_FREQ                                ( 40*1000000 )
 #define  REF_CLK_FREQ                                ( 1000000 )
-#define  XTAL_CLK_FREQ                               (40*1000000)
 //}}
 
 /* Overall memory map */
