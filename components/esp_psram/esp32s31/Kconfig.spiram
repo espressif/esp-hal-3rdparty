@@ -28,8 +28,8 @@ menu "PSRAM config"
         config SPIRAM_SPEED_200M
             bool "200MHz clock speed"
 
-        config SPIRAM_SPEED_80M
-            bool "80MHz clock speed"
+        config SPIRAM_SPEED_100M
+            bool "100MHz clock speed"
 
         config SPIRAM_SPEED_40M
             bool "40MHz clock speed"
@@ -38,7 +38,6 @@ menu "PSRAM config"
     config SPIRAM_SPEED
         int
         default 40 if SPIRAM_SPEED_40M
-        default 80 if SPIRAM_SPEED_80M
         default 100 if SPIRAM_SPEED_100M
         default 200 if SPIRAM_SPEED_200M
         default 250 if SPIRAM_SPEED_250M
