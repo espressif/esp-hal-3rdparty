@@ -15,6 +15,8 @@ from pytest_embedded_idf.utils import soc_filtered_targets
     ],
     indirect=True,
 )
-@idf_parametrize('target', soc_filtered_targets('SOC_PAU_SUPPORTED == 1'), indirect=['target'])
+@idf_parametrize(
+    'target', soc_filtered_targets('SOC_PAU_SUPPORTED == 1 and SOC_LIGHT_SLEEP_SUPPORTED == 1'), indirect=['target']
+)
 def test_sleep_retention(dut: Dut) -> None:
     dut.run_all_single_board_cases()

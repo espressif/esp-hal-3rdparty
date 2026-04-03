@@ -75,5 +75,6 @@ def test_ledc_psram(dut: IdfDut) -> None:
     indirect=True,
 )
 @idf_parametrize('target', ['supported_targets'], indirect=['target'])
+@pytest.mark.temp_skip_ci(targets=['esp32s31'], reason='s31 bringup on this module is not done')
 def test_ledc_multi_device(case_tester) -> None:  # type: ignore
     case_tester.run_all_multi_dev_cases(reset=True)
