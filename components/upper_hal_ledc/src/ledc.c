@@ -391,7 +391,7 @@ esp_err_t ledc_isr_register(void (*fn)(void *), void *arg, int intr_alloc_flags,
     esp_err_t ret;
     LEDC_ARG_CHECK(fn, "fn");
     portENTER_CRITICAL(&ledc_spinlock);
-    ret = esp_intr_alloc(ETS_LEDC_INTR_SOURCE, intr_alloc_flags, fn, arg, handle);
+    ret = esp_intr_alloc(ledc_periph_signal[0].irq_id, intr_alloc_flags, fn, arg, handle);
     portEXIT_CRITICAL(&ledc_spinlock);
     return ret;
 }

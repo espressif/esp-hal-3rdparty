@@ -58,7 +58,7 @@
 // #define SOC_I2S_SUPPORTED               1      // TODO: [ESP32S31] IDF-14771
 #define SOC_SDM_SUPPORTED               1
 // #define SOC_GPSPI_SUPPORTED             1      // TODO: [ESP32S31] IDF-14734
-// #define SOC_LEDC_SUPPORTED              1      // TODO: [ESP32S31] IDF-14709
+#define SOC_LEDC_SUPPORTED              1
 // #define SOC_ISP_SUPPORTED               1      // TODO: [ESP32S31] IDF-14769
 // #define SOC_I2C_SUPPORTED               1      // TODO: [ESP32S31] IDF-14726
 #define SOC_SYSTIMER_SUPPORTED          1         // TODO: [ESP32S31] IDF-14693
@@ -205,8 +205,17 @@
 #define SOC_ETM_SUPPORT_SLEEP_RETENTION     1
 
 /*-------------------------- LEDC CAPS ---------------------------------------*/
-// TODO: [ESP32S31] IDF-14709
-#define SOC_LEDC_CHANNEL_NUM                (6)
+#define SOC_LEDC_SUPPORT_PLL_DIV_CLOCK      (1)
+#define SOC_LEDC_SUPPORT_XTAL_CLOCK         (1)
+#define SOC_LEDC_TIMER_NUM                  (4)
+#define SOC_LEDC_CHANNEL_NUM                (8)
+#define SOC_LEDC_TIMER_BIT_WIDTH            (20)
+#define SOC_LEDC_SUPPORT_FADE_STOP          (1)
+#define SOC_LEDC_GAMMA_CURVE_FADE_SUPPORTED (1)
+#define SOC_LEDC_GAMMA_CURVE_FADE_RANGE_MAX (16)
+#define SOC_LEDC_FADE_PARAMS_BIT_WIDTH      (10)
+#define SOC_LEDC_SUPPORT_SLEEP_RETENTION    (1)
+#define SOC_LEDC_SUPPORT_ETM                (1)
 
 /*-------------------------- MMU CAPS ----------------------------------------*/
 #define SOC_MMU_PERIPH_NUM                    (2U)

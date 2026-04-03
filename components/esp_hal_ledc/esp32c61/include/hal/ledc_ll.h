@@ -134,6 +134,10 @@
 extern "C" {
 #endif
 
+typedef enum {
+    LEDC_LL_MEM_LP_MODE_SHUT_DOWN,   // power down memory during low power stage
+} ledc_ll_mem_lp_mode_t;
+
 /**
  * @brief Enable peripheral register clock
  *
@@ -159,13 +163,48 @@ static inline void ledc_ll_reset_register(int group_id)
 }
 
 /**
- * @brief Enable the power for LEDC memory block
+ * @brief Force power on the LEDC memory block, regardless of the outside PMU logic
  *
- * Note. This function cannot overwrite the power control of the mem block in sleep mode
+ * @param dev Peripheral instance address
  */
-static inline void ledc_ll_enable_mem_power(bool enable)
+static inline void ledc_ll_mem_force_power_on(ledc_dev_t *dev)
 {
-    PCR.ledc_pd_ctrl.ledc_mem_force_pd = !enable;
+    PCR.ledc_pd_ctrl.ledc_mem_force_pu = 1;
+    PCR.ledc_pd_ctrl.ledc_mem_force_pd = 0;
+}
+
+/**
+ * @brief Force the LEDC memory block into low power mode, regardless of the outside PMU logic
+ *
+ * @param dev Peripheral instance address
+ */
+static inline void ledc_ll_mem_force_low_power(ledc_dev_t *dev)
+{
+    PCR.ledc_pd_ctrl.ledc_mem_force_pd = 1;
+    PCR.ledc_pd_ctrl.ledc_mem_force_pu = 0;
+}
+
+/**
+ * @brief Power control the LEDC memory block by the outside PMU logic
+ *
+ * @param dev Peripheral instance address
+ */
+static inline void ledc_ll_mem_power_by_pmu(ledc_dev_t *dev)
+{
+    PCR.ledc_pd_ctrl.ledc_mem_force_pd = 0;
+    PCR.ledc_pd_ctrl.ledc_mem_force_pu = 0;
+}
+
+/**
+ * @brief Set low power mode for LEDC memory block
+ *
+ * @param dev Peripheral instance address
+ * @param mode LEDC memory low power mode in low power stage
+ */
+static inline void ledc_ll_mem_set_low_power_mode(ledc_dev_t *dev, ledc_ll_mem_lp_mode_t mode)
+{
+    (void)dev;
+    HAL_ASSERT(mode == LEDC_LL_MEM_LP_MODE_SHUT_DOWN);
 }
 
 /**
