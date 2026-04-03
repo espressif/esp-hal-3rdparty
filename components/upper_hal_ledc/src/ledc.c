@@ -1206,7 +1206,7 @@ static void IRAM_ATTR ledc_fade_isr(void *arg)
             continue;
         }
         intr_status = ledc_ll_get_intr_status(p_ledc_obj[speed_mode]->ledc_hal.dev) & LEDC_LL_DUTY_CHANGE_END_INTR_MASK(speed_mode);
-        intr_status >>= __builtin_ctzll(intr_status);
+        intr_status >>= __builtin_ctzll(LEDC_LL_DUTY_CHANGE_END_INTR_MASK(speed_mode));
         while (intr_status) {
             ledc_calc_fade_end_channel(&intr_status, &channel);
 
