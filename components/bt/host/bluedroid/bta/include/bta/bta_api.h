@@ -3074,6 +3074,7 @@ extern void BTA_DmBleGapIsoBigSyncTerminate(tBTA_DM_BLE_BIG_SYNC_TERMINATE_PARAM
 extern void BTA_DmBleGapIsoDataPathSet(tBTA_DM_BLE_ISO_SET_DATA_PATH_PARAMS *p_iso_data_path_param);
 extern void BTA_DmBleGapIsoDataPathRemove(tBTA_DM_BLE_ISO_REMOVE_DATA_PATH_PARAMS *p_iso_data_path_param);
 extern void BTA_DmBleGapIsoReadTxSync(uint16_t iso_handle);
+extern void BTA_DmBleGapIsoReadLinkQuality(uint16_t iso_handle);
 #if (BLE_FEAT_ISO_CIG_CENTRAL_EN == TRUE)
 extern void BTA_DmBleIsoSetCigParams(uint8_t cig_id, uint32_t sdu_int_c_to_p, uint32_t sdu_int_p_to_c, uint8_t worse_case_SCA, uint8_t packing,
                                     uint8_t framing, uint16_t mtl_c_to_p, uint16_t mtl_p_to_c, uint8_t cis_cnt, uint8_t *cis_params);

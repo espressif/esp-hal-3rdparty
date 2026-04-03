@@ -22,6 +22,7 @@
 #include "hci/ble_hci_iso.h"
 #include "common/bt_target.h"
 #include "osi/mutex.h"
+#include "esp_hci_internal.h"
 
 #if (BLE_FEAT_ISO_EN == TRUE)
 
@@ -77,6 +78,15 @@ ble_hci_set_iso_buf_sz(uint16_t pktlen, uint8_t max_pkts)
 #endif
 
     return 0;
+}
+
+void
+ble_hci_get_iso_buf_size(uint16_t *pktlen, uint8_t *max_pkts)
+{
+    assert(pktlen && max_pkts);
+
+    *pktlen = ble_hs_iso_buf_sz;
+    *max_pkts = ble_hs_iso_max_pkts;
 }
 
 #define BLE_ARRAY_SIZE(x)   (sizeof(x)/sizeof((x)[0]))
@@ -169,7 +179,6 @@ ble_hci_tx_iso_data(const uint8_t *data, uint16_t len, void *arg)
     int rc = 1;
 #if CONFIG_BT_LE_ISO_SUPPORT
     // return ble_transport_to_ll_iso(data, len, arg);
-    extern int ble_hci_trans_hs_iso_tx(const uint8_t *data, uint16_t length, void *arg);
     rc = ble_hci_trans_hs_iso_tx(data, len, arg);
 #endif // #if CONFIG_BT_LE_ISO_SUPPORT
     return rc;
@@ -193,8 +202,8 @@ ble_hci_iso_tx_now(struct ble_hci_iso_conn *conn, const uint8_t *sdu,
         return 1;
     }
 #elif (BLE_ISO_NON_STD_FLOW_CTRL == TRUE)
-    extern uint16_t ble_ll_iso_free_buf_num_get(uint16_t conn_handle);
-    if (ble_ll_iso_free_buf_num_get(conn->conn_handle) == 0) {
+    extern uint16_t r_ble_ll_iso_free_buf_num_get(uint16_t conn_handle);
+    if (r_ble_ll_iso_free_buf_num_get(conn->conn_handle) == 0) {
         HCI_TRACE_ERROR("ISO flow control!\n");
         return 1;
     }

@@ -240,23 +240,6 @@ typedef void ble_host_rx_iso_data_fn(uint8_t *data, uint16_t len);
 
 static ble_host_rx_iso_data_fn *ble_host_iso_rx_cb = NULL;
 
-void ble_host_register_rx_iso_data_cb(void *cb)
-{
-    /* If the iso rx cb is already registered, we will give
-     * a warning log here, and the cb will still be updated.
-     */
-    if (ble_host_iso_rx_cb) {
-        HCI_TRACE_WARNING("iso rx cb %p already registered\n", ble_host_iso_rx_cb);
-    }
-
-    ble_host_iso_rx_cb = cb;
-}
-
-void ble_hci_register_rx_iso_data_cb(void *cb)
-{
-    ble_host_register_rx_iso_data_cb(cb);
-}
-
 #endif // #if (BLE_FEAT_ISO_EN == TRUE)
 
 // Internal functions

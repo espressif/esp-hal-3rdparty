@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2015-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -40,18 +40,8 @@ typedef int esp_hci_internal_rx_iso_fn(const uint8_t *data, uint16_t len, void *
 void r_ble_iso_trans_cfg_hs(esp_hci_internal_rx_iso_fn *iso_cb, void *iso_arg);
 
 #define ble_iso_trans_cfg_hs   r_ble_iso_trans_cfg_hs
-/**
- * @brief Transmit ISO (Isochronous) data over BLE HCItransport.
- *
- * @param data     Pointer to the ISO data buffer to be transmitted.
- * @param length   Length of the ISO data in bytes.
- * @param arg      Optional user-defined argument, passed through
- *                 the transport layer and may be used by the underlying driver or callback.
- *
- * @return 0 on success, or a non-zero error code on failure.
- */
-int r_ble_hci_trans_hs_iso_tx(const uint8_t *data, uint16_t length, void *arg);
 
+extern int r_ble_hci_trans_hs_iso_tx(const uint8_t *data, uint16_t length, void *arg);
 #define ble_hci_trans_hs_iso_tx  r_ble_hci_trans_hs_iso_tx
 #endif // CONFIG_BT_LE_ISO_SUPPORT
 /**
@@ -89,11 +79,6 @@ int r_ble_hci_trans_hs_acl_tx(struct ble_mbuf *om);
  *                              A BLE_ERR_[...] error code on failure.
  */
 int r_ble_hci_trans_hs_cmd_tx(uint8_t *cmd);
-
-
-#if CONFIG_BT_LE_ISO_SUPPORT
-int ble_hci_trans_hs_iso_tx(const uint8_t *data, uint16_t length, void *arg);
-#endif /* CONFIG_BT_LE_ISO_SUPPORT */
 
 /**
  * Allocates a flat buffer of the specified type.
