@@ -74,6 +74,19 @@ def test_flash_psram_120sdr_120sdr(dut: IdfDut) -> None:
     dut.run_all_single_board_cases()
 
 
+@pytest.mark.generic
+@pytest.mark.parametrize(
+    'config',
+    [
+        'esp32s31_120sdr_200ddr',
+    ],
+    indirect=True,
+)
+@idf_parametrize('target', ['esp32s31'], indirect=['target'])
+def test_flash_psram_esp32s31(dut: IdfDut) -> None:
+    dut.run_all_single_board_cases()
+
+
 @pytest.mark.parametrize(
     'config',
     [
@@ -86,6 +99,10 @@ def test_flash_psram_120sdr_120sdr(dut: IdfDut) -> None:
     'target,markers',
     [
         # S3 has no flash support auto suspend, this test is not applicable
+        (
+            'esp32s31',
+            (pytest.mark.generic,),
+        ),
         (
             'esp32p4',
             (pytest.mark.generic,),
