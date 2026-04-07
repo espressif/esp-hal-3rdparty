@@ -40,7 +40,7 @@
 #define DR_REG_SOC_ETM_BASE                       0x20393000
 #define DR_REG_TWAIFD0_BASE                       0x20394000
 #define DR_REG_TWAIFD1_BASE                       0x20395000
-#define DR_REG_LCD_CAM_BASE                       0x20396000
+#define DR_REG_LCDCAM_BASE                        0x20396000
 #define DR_REG_UHCI0_BASE                         0x20398000
 #define DR_REG_SYSTIMER_BASE                      0x20399000
 #define DR_REG_ZERO_DET_BASE                      0x2039A000
