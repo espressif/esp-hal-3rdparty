@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2023-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2023-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -151,7 +151,16 @@ static bool TEST_TCH_IRAM_ATTR s_test_touch_on_inactive_callback(touch_sensor_ha
 
 static void s_test_touch_simulate_touch(touch_sensor_handle_t touch, touch_channel_handle_t touch_chan, bool active)
 {
-#if SOC_TOUCH_SENSOR_VERSION <= 2
+#if CONFIG_IDF_TARGET_ESP32S31
+    /* ESP32-S31 has no internal capacitor, emulate touch by changing charging cycles. */
+    for (int i = 0; i < TOUCH_SAMPLE_CFG_NUM; i++) {
+        uint32_t charge_times = s_sample_cfg[i].charge_times;
+        if (active) {
+            charge_times += charge_times >> 1;  // 1.5x
+        }
+        touch_ll_set_charge_times(i, charge_times);
+    }
+#elif SOC_TOUCH_SENSOR_VERSION <= 2
     touch_chan_info_t chan_info = {};
     touch_sensor_get_channel_info(touch_chan, &chan_info);
     touch_ll_set_charge_speed(chan_info.chan_id, active ? TOUCH_CHARGE_SPEED_4 : TOUCH_CHARGE_SPEED_7);
@@ -186,10 +195,10 @@ TEST_CASE("touch_sens_active_inactive_test", "[touch]")
     touch_sensor_filter_config_t filter_cfg = TOUCH_SENSOR_DEFAULT_FILTER_CONFIG();
     TEST_ESP_OK(touch_sensor_config_filter(touch, &filter_cfg));
     TEST_ESP_OK(touch_sensor_new_channel(touch, TOUCH_MIN_CHAN_ID, &s_chan_cfg, &touch_chan));
-#if SOC_TOUCH_SENSOR_VERSION == 3
+#if SOC_TOUCH_SENSOR_VERSION == 3 && !CONFIG_IDF_TARGET_ESP32S31
     /* Connect the touch channels to the internal capacitor */
     touch_ll_enable_internal_capacitor(true);
-#endif  // SOC_TOUCH_SENSOR_VERSION == 3
+#endif
 
     s_test_touch_do_initial_scanning(touch, 3);
 

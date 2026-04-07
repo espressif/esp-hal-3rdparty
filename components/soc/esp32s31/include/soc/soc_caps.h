@@ -90,7 +90,7 @@
 #define SOC_WDT_SUPPORTED               1
 #define SOC_RTC_WDT_SUPPORTED           1
 #define SOC_SPI_FLASH_SUPPORTED         1         // TODO: [ESP32S31] IDF-14777
-// #define SOC_TOUCH_SENSOR_SUPPORTED      1      // TODO: [ESP32S31] IDF-14796
+#define SOC_TOUCH_SENSOR_SUPPORTED      1
 // #define SOC_RNG_SUPPORTED               1      // TODO: [ESP32S31] IDF-14632
 // #define SOC_PPA_SUPPORTED               1      // TODO: [ESP32S31] IDF-14769
 // #define SOC_LIGHT_SLEEP_SUPPORTED       1      // TODO: [ESP32S31] IDF-14645
@@ -373,6 +373,20 @@
 #define SOC_RCC_IS_INDEPENDENT                    1       /*!< Reset and Clock Control has own registers for each module */
 /*-------------------------- Memory CAPS --------------------------*/
 #define SOC_ASYNCHRONOUS_BUS_ERROR_MODE           (1)
+
+/*-------------------------- TOUCH SENSOR CAPS -------------------------------*/
+#define SOC_TOUCH_SENSOR_VERSION                    (3)     /*!< Hardware version of touch sensor */
+#define SOC_TOUCH_MIN_CHAN_ID                       (0U)    /*!< Touch minimum channel number */
+#define SOC_TOUCH_MAX_CHAN_ID                       (13)    /*!< Touch maximum channel number */
+
+/* Touch Sensor Features */
+#define SOC_TOUCH_SUPPORT_SLEEP_WAKEUP              (0)     /*!< Touch sensor supports sleep awake */
+#define SOC_TOUCH_SUPPORT_BENCHMARK                 (1)     /*!< Touch sensor supports benchmark configuration */
+#define SOC_TOUCH_SUPPORT_WATERPROOF                (1)     /*!< Touch sensor supports waterproof */
+#define SOC_TOUCH_SUPPORT_PROX_SENSING              (1)     /*!< Touch sensor supports proximity sensing */
+#define SOC_TOUCH_PROXIMITY_CHANNEL_NUM             (3)     /*!< Support touch proximity channel number. */
+#define SOC_TOUCH_SAMPLE_CFG_NUM                    (3)     /*!< The sample configurations number in total, each sampler can be used to sample on one frequency */
+
 /*-------------------------- Power Management CAPS ----------------------------*/
 #define SOC_PM_SUPPORT_EXT1_WAKEUP      (1)
 #define SOC_PM_SUPPORT_EXT1_WAKEUP_MODE_PER_PIN   (1) /*!<Supports one bit per pin to configure the EXT1 trigger level */
