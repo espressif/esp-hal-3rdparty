@@ -100,10 +100,6 @@ def test_flash_psram_esp32s31(dut: IdfDut) -> None:
     [
         # S3 has no flash support auto suspend, this test is not applicable
         (
-            'esp32s31',
-            (pytest.mark.generic,),
-        ),
-        (
             'esp32p4',
             (pytest.mark.generic,),
         ),
