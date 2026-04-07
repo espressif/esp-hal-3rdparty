@@ -14,6 +14,7 @@ extern "C" {
 
 typedef enum {
     /* HP peripherals */
+    PERIPH_LCD_CAM_MODULE,
     PERIPH_TIMG0_MODULE,
     PERIPH_TIMG1_MODULE,
     PERIPH_UHCI0_MODULE,

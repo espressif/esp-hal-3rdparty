@@ -2,10 +2,13 @@ set(srcs "test_app_main.c"
           "test_dport.c"
           "test_fp.c"
           "test_dport_xt_highint5.S"
-          "test_random.c"
           "test_intr_alloc.c"
           "test_rtc_wdt.c"
            )
+
+if(CONFIG_SOC_RNG_SUPPORTED)
+    list(APPEND srcs "test_random.c")
+endif()
 
 if(CONFIG_SOC_GP_LDO_SUPPORTED)
     list(APPEND srcs "test_ldo.c")

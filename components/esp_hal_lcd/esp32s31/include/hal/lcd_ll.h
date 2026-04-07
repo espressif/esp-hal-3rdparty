@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2022-2026 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -13,8 +13,8 @@
 #include "soc/lcd_cam_struct.h"
 #include "hal/assert.h"
 #include "hal/lcd_types.h"
-#include "hal/config.h"
 #include "soc/hp_sys_clkrst_struct.h"
+#include "soc/hp_system_struct.h"
 
 #define LCD_LL_GET(_attr)       LCD_LL_ ## _attr
 #define LCD_LL_SUPPORT(_feat)   LCD_LL_SUPPORT_ ## _feat
@@ -22,6 +22,8 @@
 #define LCD_LL_RGB_PANEL_NUM    1
 #define LCD_LL_I80_BUS_WIDTH    24
 #define LCD_LL_I80_BUS_NUM      1
+
+#define LCD_LL_SUPPORT_IOMUX    1
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,23 +34,20 @@ extern "C" {
 // Interrupt event, bit mask
 #define LCD_LL_EVENT_VSYNC_END  (1 << 0)
 #define LCD_LL_EVENT_TRANS_DONE (1 << 1)
-
-// Underrun interrupt is only supported on ESP32P4 Rev. 3.0 and later
-#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) >= 300
 #define LCD_LL_EVENT_UNDERRUN   (1 << 4)
-#else
-#define LCD_LL_EVENT_UNDERRUN   0
-#endif
 
-#define LCD_LL_EVENT_I80        LCD_LL_EVENT_TRANS_DONE | LCD_LL_EVENT_UNDERRUN
-#define LCD_LL_EVENT_RGB        LCD_LL_EVENT_VSYNC_END | LCD_LL_EVENT_UNDERRUN
+#define LCD_LL_EVENT_I80        (LCD_LL_EVENT_TRANS_DONE | LCD_LL_EVENT_UNDERRUN)
+#define LCD_LL_EVENT_RGB        (LCD_LL_EVENT_VSYNC_END | LCD_LL_EVENT_UNDERRUN)
 
 #define LCD_LL_CLK_FRAC_DIV_N_MAX  256 // LCD_CLK = LCD_CLK_S / (N + b/a), the N register is 8 bit-width
 #define LCD_LL_CLK_FRAC_DIV_AB_MAX 64  // LCD_CLK = LCD_CLK_S / (N + b/a), the a/b register is 6 bit-width
 #define LCD_LL_PCLK_DIV_MAX        64  // LCD_PCLK = LCD_CLK / MO, the MO register is 6 bit-width
 
 typedef enum {
-    LCD_LL_MEM_LP_MODE_SHUT_DOWN,
+    LCD_LL_MEM_LP_MODE_DEEP_SLEEP,    // memory will enter deep sleep during low power stage, keep memory data
+    LCD_LL_MEM_LP_MODE_LIGHT_SLEEP,   // memory will enter light sleep during low power stage, keep memory data
+    LCD_LL_MEM_LP_MODE_SHUT_DOWN,     // memory will be powered down during low power stage
+    LCD_LL_MEM_LP_MODE_DISABLE,       // disable the low power stage
 } lcd_ll_mem_lp_mode_t;
 
 /**
@@ -72,7 +71,8 @@ typedef enum {
 static inline void lcd_ll_enable_bus_clock(int group_id, bool enable)
 {
     (void)group_id;
-    HP_SYS_CLKRST.soc_clk_ctrl3.reg_lcdcam_apb_clk_en = enable;
+    HP_SYS_CLKRST.lcdcam_ctrl0.reg_lcdcam_apb_clk_en = enable;
+    HP_SYS_CLKRST.lcdcam_ctrl0.reg_lcdcam_sys_clk_en = enable;
 }
 
 /// use a macro to wrap the function, force the caller to use it in a critical section
@@ -90,8 +90,10 @@ static inline void lcd_ll_enable_bus_clock(int group_id, bool enable)
 static inline void _lcd_ll_reset_register(int group_id)
 {
     (void)group_id;
-    HP_SYS_CLKRST.hp_rst_en2.reg_rst_en_lcdcam = 1;
-    HP_SYS_CLKRST.hp_rst_en2.reg_rst_en_lcdcam = 0;
+    HP_SYS_CLKRST.lcdcam_ctrl0.reg_lcdcam_apb_rst_en = 1;
+    HP_SYS_CLKRST.lcdcam_ctrl0.reg_lcdcam_apb_rst_en = 0;
+    HP_SYS_CLKRST.lcdcam_ctrl0.reg_lcdcam_rst_en = 1;
+    HP_SYS_CLKRST.lcdcam_ctrl0.reg_lcdcam_rst_en = 0;
 }
 
 /// use a macro to wrap the function, force the caller to use it in a critical section
@@ -109,15 +111,10 @@ static inline void _lcd_ll_reset_register(int group_id)
  */
 static inline void lcd_ll_enable_clock(lcd_cam_dev_t *dev, bool en)
 {
-    HP_SYS_CLKRST.peri_clk_ctrl19.reg_lcd_clk_en = en;
+    (void)dev;
+    HP_SYS_CLKRST.lcdcam_lcdcam_ctrl0.reg_lcdcam_clk_en = en;
+    HP_SYS_CLKRST.lcdcam_lcd_ctrl0.reg_lcd_clk_en = en;
 }
-
-/// use a macro to wrap the function, force the caller to use it in a critical section
-/// the critical section needs to declare the __DECLARE_RCC_ATOMIC_ENV variable in advance
-#define lcd_ll_enable_clock(...) do { \
-        (void)__DECLARE_RCC_ATOMIC_ENV; \
-        lcd_ll_enable_clock(__VA_ARGS__); \
-    } while(0)
 
 /**
  * @brief Select clock source for LCD peripheral
@@ -127,29 +124,23 @@ static inline void lcd_ll_enable_clock(lcd_cam_dev_t *dev, bool en)
  */
 static inline void lcd_ll_select_clk_src(lcd_cam_dev_t *dev, lcd_clock_source_t src)
 {
+    (void)dev;
     switch (src) {
     case LCD_CLK_SRC_XTAL:
-        HP_SYS_CLKRST.peri_clk_ctrl19.reg_lcd_clk_src_sel = 0;
+        HP_SYS_CLKRST.lcdcam_lcd_ctrl0.reg_lcd_clk_src_sel = 0;
         break;
     case LCD_CLK_SRC_PLL160M:
-        HP_SYS_CLKRST.peri_clk_ctrl19.reg_lcd_clk_src_sel = 1;
+        HP_SYS_CLKRST.lcdcam_lcd_ctrl0.reg_lcd_clk_src_sel = 1;
         break;
     case LCD_CLK_SRC_APLL:
-        HP_SYS_CLKRST.peri_clk_ctrl19.reg_lcd_clk_src_sel = 2;
+        HP_SYS_CLKRST.lcdcam_lcd_ctrl0.reg_lcd_clk_src_sel = 2;
         break;
     default:
         // disable the clock
-        HP_SYS_CLKRST.peri_clk_ctrl19.reg_lcd_clk_src_sel = 3;
+        HP_SYS_CLKRST.lcdcam_lcd_ctrl0.reg_lcd_clk_src_sel = 3;
         break;
     }
 }
-
-/// use a macro to wrap the function, force the caller to use it in a critical section
-/// the critical section needs to declare the __DECLARE_RCC_ATOMIC_ENV variable in advance
-#define lcd_ll_select_clk_src(...) do { \
-        (void)__DECLARE_RCC_ATOMIC_ENV; \
-        lcd_ll_select_clk_src(__VA_ARGS__); \
-    } while(0)
 
 /**
  * @brief Set clock coefficient of LCD peripheral
@@ -162,19 +153,13 @@ static inline void lcd_ll_select_clk_src(lcd_cam_dev_t *dev, lcd_clock_source_t 
 __attribute__((always_inline))
 static inline void lcd_ll_set_group_clock_coeff(lcd_cam_dev_t *dev, int div_num, int div_a, int div_b)
 {
+    (void)dev;
     // lcd_clk = module_clock_src / (div_num + div_b / div_a)
     HAL_ASSERT(div_num > 0 && div_num <= LCD_LL_CLK_FRAC_DIV_N_MAX);
-    HAL_FORCE_MODIFY_U32_REG_FIELD(HP_SYS_CLKRST.peri_clk_ctrl110, reg_lcd_clk_div_num, div_num - 1);
-    HAL_FORCE_MODIFY_U32_REG_FIELD(HP_SYS_CLKRST.peri_clk_ctrl110, reg_lcd_clk_div_denominator, div_a);
-    HAL_FORCE_MODIFY_U32_REG_FIELD(HP_SYS_CLKRST.peri_clk_ctrl110, reg_lcd_clk_div_numerator, div_b);
+    HAL_FORCE_MODIFY_U32_REG_FIELD(HP_SYS_CLKRST.lcdcam_lcd_ctrl0, reg_lcd_clk_div_num, div_num - 1);
+    HAL_FORCE_MODIFY_U32_REG_FIELD(HP_SYS_CLKRST.lcdcam_lcd_ctrl0, reg_lcd_clk_div_denominator, div_a);
+    HAL_FORCE_MODIFY_U32_REG_FIELD(HP_SYS_CLKRST.lcdcam_lcd_ctrl0, reg_lcd_clk_div_numerator, div_b);
 }
-
-/// use a macro to wrap the function, force the caller to use it in a critical section
-/// the critical section needs to declare the __DECLARE_RCC_ATOMIC_ENV variable in advance
-#define lcd_ll_set_group_clock_coeff(...) do { \
-        (void)__DECLARE_RCC_ATOMIC_ENV; \
-        lcd_ll_set_group_clock_coeff(__VA_ARGS__); \
-    } while(0)
 
 /**
  * @brief Force power on the LCD memory block, regardless of the outside PMU logic
@@ -184,7 +169,8 @@ static inline void lcd_ll_set_group_clock_coeff(lcd_cam_dev_t *dev, int div_num,
 static inline void lcd_ll_mem_force_power_on(lcd_cam_dev_t *dev)
 {
     (void)dev;
-    // P4 does not have transfer buffer
+    HP_SYSTEM.sys_lcdcam_mem_lp_ctrl.sys_lcdcam_mem_lp_force_ctrl = 1;
+    HP_SYSTEM.sys_lcdcam_mem_lp_ctrl.sys_lcdcam_mem_lp_en = 0;
 }
 
 /**
@@ -195,7 +181,8 @@ static inline void lcd_ll_mem_force_power_on(lcd_cam_dev_t *dev)
 static inline void lcd_ll_mem_force_low_power(lcd_cam_dev_t *dev)
 {
     (void)dev;
-    // P4 does not have transfer buffer
+    HP_SYSTEM.sys_lcdcam_mem_lp_ctrl.sys_lcdcam_mem_lp_force_ctrl = 1;
+    HP_SYSTEM.sys_lcdcam_mem_lp_ctrl.sys_lcdcam_mem_lp_en = 1;
 }
 
 /**
@@ -207,7 +194,8 @@ static inline void lcd_ll_mem_force_low_power(lcd_cam_dev_t *dev)
 static inline void lcd_ll_mem_power_by_pmu(lcd_cam_dev_t *dev)
 {
     (void)dev;
-    // P4 does not have transfer buffer
+    HP_SYSTEM.sys_lcdcam_mem_lp_ctrl.sys_lcdcam_mem_lp_force_ctrl = 0;
+    HP_SYSTEM.sys_lcdcam_mem_lp_ctrl.sys_lcdcam_mem_lp_en = 0;
 }
 
 /**
@@ -219,20 +207,19 @@ static inline void lcd_ll_mem_power_by_pmu(lcd_cam_dev_t *dev)
 static inline void lcd_ll_mem_set_low_power_mode(lcd_cam_dev_t *dev, lcd_ll_mem_lp_mode_t mode)
 {
     (void)dev;
-    HAL_ASSERT(mode == LCD_LL_MEM_LP_MODE_SHUT_DOWN);
+    HP_SYSTEM.sys_lcdcam_mem_lp_ctrl.sys_lcdcam_mem_lp_mode = mode;
 }
 
 /**
  * @brief Enable the transfer buffer(memory block) for LCD module
  *
+ * @note Only for RGB mode
  * @param dev Peripheral instance address
  * @param en True to enable, False to disable
  */
 static inline void lcd_ll_enable_trans_buffer(lcd_cam_dev_t *dev, bool en)
 {
-    (void)dev;
-    (void)en;
-    // P4 does not have transfer buffer
+    dev->lcd_trans_buff_cfg.lcd_trans_buffer_ena = en;
 }
 
 /**
@@ -358,6 +345,7 @@ static inline void lcd_ll_set_yuv_convert_std(lcd_cam_dev_t *dev, lcd_yuv_conv_s
  */
 static inline void lcd_ll_set_rgb2yuv_convert_mode(lcd_cam_dev_t *dev, lcd_color_format_t in_color_format, lcd_color_format_t out_color_format)
 {
+    (void)in_color_format;
     dev->lcd_rgb_yuv.lcd_conv_trans_mode = 1;
     dev->lcd_rgb_yuv.lcd_conv_yuv2yuv_mode = 3;
     switch (out_color_format) {
@@ -381,6 +369,7 @@ static inline void lcd_ll_set_rgb2yuv_convert_mode(lcd_cam_dev_t *dev, lcd_color
  */
 static inline void lcd_ll_set_yuv2rgb_convert_mode(lcd_cam_dev_t *dev, lcd_color_format_t in_color_format, lcd_color_format_t out_color_format)
 {
+    (void)out_color_format;
     dev->lcd_rgb_yuv.lcd_conv_trans_mode = 0;
     dev->lcd_rgb_yuv.lcd_conv_yuv2yuv_mode = 3;
     switch (in_color_format) {
@@ -702,7 +691,7 @@ static inline void lcd_ll_set_command(lcd_cam_dev_t *dev, uint32_t data_width, u
  */
 static inline void lcd_ll_enable_rgb_mode(lcd_cam_dev_t *dev, bool en)
 {
-    dev->lcd_ctrl.lcd_rgb_mode_en = en;
+    dev->lcd_misc.lcd_rgb_mode_en = en;
 }
 
 /**
@@ -725,7 +714,7 @@ static inline void lcd_ll_enable_auto_next_frame(lcd_cam_dev_t *dev, bool en)
  */
 static inline void lcd_ll_enable_output_hsync_in_porch_region(lcd_cam_dev_t *dev, bool en)
 {
-    dev->lcd_ctrl2.lcd_hs_blank_en = en;
+    dev->lcd_rgb_ctrl.lcd_hs_blank_en = en;
 }
 
 /**
@@ -736,7 +725,7 @@ static inline void lcd_ll_enable_output_hsync_in_porch_region(lcd_cam_dev_t *dev
  */
 static inline void lcd_ll_set_hsync_position(lcd_cam_dev_t *dev, uint32_t offset_in_line)
 {
-    HAL_FORCE_MODIFY_U32_REG_FIELD(dev->lcd_ctrl2, lcd_hsync_position, offset_in_line);
+    HAL_FORCE_MODIFY_U32_REG_FIELD(dev->lcd_rgb_ctrl, lcd_hsync_position, offset_in_line);
 }
 
 /**
@@ -750,10 +739,10 @@ static inline void lcd_ll_set_hsync_position(lcd_cam_dev_t *dev, uint32_t offset
  */
 static inline void lcd_ll_set_horizontal_timing(lcd_cam_dev_t *dev, uint32_t hsw, uint32_t hbp, uint32_t active_width, uint32_t hfp)
 {
-    dev->lcd_ctrl2.lcd_hsync_width = hsw - 1;
-    dev->lcd_ctrl.lcd_hb_front = hbp + hsw - 1;
-    dev->lcd_ctrl1.lcd_ha_width = active_width - 1;
-    dev->lcd_ctrl1.lcd_ht_width = hsw + hbp + active_width + hfp - 1;
+    dev->lcd_rgb_ctrl.lcd_hsync_width = hsw - 1;
+    HAL_FORCE_MODIFY_U32_REG_FIELD(dev->lcd_rgb_blank, lcd_hb_front, hbp + hsw - 1);
+    HAL_FORCE_MODIFY_U32_REG_FIELD(dev->lcd_rgb_horizontal, lcd_ha_width, active_width - 1);
+    HAL_FORCE_MODIFY_U32_REG_FIELD(dev->lcd_rgb_horizontal, lcd_ht_width, hsw + hbp + active_width + hfp - 1);
 }
 
 /**
@@ -767,10 +756,10 @@ static inline void lcd_ll_set_horizontal_timing(lcd_cam_dev_t *dev, uint32_t hsw
  */
 static inline void lcd_ll_set_vertical_timing(lcd_cam_dev_t *dev, uint32_t vsw, uint32_t vbp, uint32_t active_height, uint32_t vfp)
 {
-    dev->lcd_ctrl2.lcd_vsync_width = vsw - 1;
-    HAL_FORCE_MODIFY_U32_REG_FIELD(dev->lcd_ctrl1, lcd_vb_front, vbp + vsw - 1);
-    dev->lcd_ctrl.lcd_va_height = active_height - 1;
-    dev->lcd_ctrl.lcd_vt_height = vsw + vbp + active_height + vfp - 1;
+    dev->lcd_rgb_ctrl.lcd_vsync_width = vsw - 1;
+    HAL_FORCE_MODIFY_U32_REG_FIELD(dev->lcd_rgb_blank, lcd_vb_front, vbp + vsw - 1);
+    HAL_FORCE_MODIFY_U32_REG_FIELD(dev->lcd_rgb_vertical, lcd_va_height, active_height - 1);
+    HAL_FORCE_MODIFY_U32_REG_FIELD(dev->lcd_rgb_vertical, lcd_vt_height, vsw + vbp + active_height + vfp - 1);
 }
 
 /**
@@ -783,9 +772,9 @@ static inline void lcd_ll_set_vertical_timing(lcd_cam_dev_t *dev, uint32_t vsw, 
  */
 static inline void lcd_ll_set_idle_level(lcd_cam_dev_t *dev, bool hsync_idle_level, bool vsync_idle_level, bool de_idle_level)
 {
-    dev->lcd_ctrl2.lcd_hsync_idle_pol = hsync_idle_level;
-    dev->lcd_ctrl2.lcd_vsync_idle_pol = vsync_idle_level;
-    dev->lcd_ctrl2.lcd_de_idle_pol = de_idle_level;
+    dev->lcd_rgb_ctrl.lcd_hsync_idle_pol = hsync_idle_level;
+    dev->lcd_rgb_ctrl.lcd_vsync_idle_pol = vsync_idle_level;
+    dev->lcd_rgb_ctrl.lcd_de_idle_pol = de_idle_level;
 }
 
 /**
