@@ -70,6 +70,7 @@ static bool claim_channel(bitscrambler_direction_t dir)
             bitscrambler_ll_reset_sys();
             // also power on the memory
             bitscrambler_ll_mem_power_by_pmu();
+            bitscrambler_ll_mem_set_low_power_mode(BITSCRAMBLER_LL_MEM_LP_MODE_SHUT_DOWN);
         }
     }
     if (dir == BITSCRAMBLER_DIR_TX) {

@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2023-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2025-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -11,10 +11,9 @@
 #include <stdbool.h>
 #include "soc/bitscrambler_struct.h"
 #include "hal/bitscrambler_types.h"
-#include "soc/hp_sys_clkrst_struct.h"
 #include "soc/hp_system_struct.h"
+#include "soc/hp_sys_clkrst_struct.h"
 #include "hal/misc.h"
-#include "hal/assert.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -25,7 +24,10 @@ extern "C" {
 #define BITSCRAMBLER_LL_INST_LEN_WORDS   9 //length of one instruction in 32-bit words as defined by HW
 
 typedef enum {
-    BITSCRAMBLER_LL_MEM_LP_MODE_SHUT_DOWN,  // memory will be powered down during low power stage
+    BITSCRAMBLER_LL_MEM_LP_MODE_DEEP_SLEEP,    // memory will enter deep sleep during low power stage, keep memory data
+    BITSCRAMBLER_LL_MEM_LP_MODE_LIGHT_SLEEP,   // memory will enter light sleep during low power stage, keep memory data
+    BITSCRAMBLER_LL_MEM_LP_MODE_SHUT_DOWN,     // memory will be powered down during low power stage
+    BITSCRAMBLER_LL_MEM_LP_MODE_DISABLE,       // disable the low power stage
 } bitscrambler_ll_mem_lp_mode_t;
 
 /**
@@ -301,54 +303,34 @@ static inline bool bitscrambler_ll_is_fifo_ready(bitscrambler_dev_t *hw, bitscra
 /**
  * @brief Enable the bus clock for BitScrambler module
  */
-static inline void _bitscrambler_ll_set_bus_clock_sys_enable(bool enable)
+static inline void bitscrambler_ll_set_bus_clock_sys_enable(bool enable)
 {
-    HP_SYS_CLKRST.soc_clk_ctrl1.reg_bitscrambler_sys_clk_en = enable;
+    HP_SYS_CLKRST.bitscrambler_ctrl0.reg_bitscrambler_sys_clk_en = enable;
 }
-
-/// use a macro to wrap the function, force the caller to use it in a critical section
-/// the critical section needs to declare the __DECLARE_RCC_ATOMIC_ENV variable in advance
-#define bitscrambler_ll_set_bus_clock_sys_enable(...) do {  \
-    (void)__DECLARE_RCC_ATOMIC_ENV;                         \
-    _bitscrambler_ll_set_bus_clock_sys_enable(__VA_ARGS__); \
-} while (0)
 
 /**
  * @brief Enable the bus clock for RX BitScrambler module
  */
-static inline void _bitscrambler_ll_set_bus_clock_rx_enable(bool enable)
+static inline void bitscrambler_ll_set_bus_clock_rx_enable(bool enable)
 {
-    HP_SYS_CLKRST.soc_clk_ctrl1.reg_bitscrambler_rx_sys_clk_en = enable;
+    HP_SYS_CLKRST.bitscrambler_ctrl0.reg_bitscrambler_rx_sys_clk_en = enable;
 }
-
-/// use a macro to wrap the function, force the caller to use it in a critical section
-/// the critical section needs to declare the __DECLARE_RCC_ATOMIC_ENV variable in advance
-#define bitscrambler_ll_set_bus_clock_rx_enable(...) do {  \
-    (void)__DECLARE_RCC_ATOMIC_ENV;                        \
-    _bitscrambler_ll_set_bus_clock_rx_enable(__VA_ARGS__); \
-} while (0)
 
 /**
  * @brief Enable the bus clock for TX BitScrambler module
  */
-static inline void _bitscrambler_ll_set_bus_clock_tx_enable(bool enable)
+static inline void bitscrambler_ll_set_bus_clock_tx_enable(bool enable)
 {
-    HP_SYS_CLKRST.soc_clk_ctrl1.reg_bitscrambler_tx_sys_clk_en = enable;
+    HP_SYS_CLKRST.bitscrambler_ctrl0.reg_bitscrambler_tx_sys_clk_en = enable;
 }
-
-/// use a macro to wrap the function, force the caller to use it in a critical section
-/// the critical section needs to declare the __DECLARE_RCC_ATOMIC_ENV variable in advance
-#define bitscrambler_ll_set_bus_clock_tx_enable(...) do {  \
-    (void)__DECLARE_RCC_ATOMIC_ENV;                        \
-    _bitscrambler_ll_set_bus_clock_tx_enable(__VA_ARGS__); \
-} while (0)
 
 /**
  * @brief Force power on the bitscrambler memory block, regardless of the outside PMU logic
  */
 static inline void bitscrambler_ll_mem_force_power_on(void)
 {
-    // empty
+    HP_SYSTEM.sys_bitscram_mem_lp_ctrl.sys_bitscram_mem_lp_force_ctrl = 1;
+    HP_SYSTEM.sys_bitscram_mem_lp_ctrl.sys_bitscram_mem_lp_en = 0;
 }
 
 /**
@@ -356,7 +338,8 @@ static inline void bitscrambler_ll_mem_force_power_on(void)
  */
 static inline void bitscrambler_ll_mem_force_power_off(void)
 {
-    // empty
+    HP_SYSTEM.sys_bitscram_mem_lp_ctrl.sys_bitscram_mem_lp_force_ctrl = 1;
+    HP_SYSTEM.sys_bitscram_mem_lp_ctrl.sys_bitscram_mem_lp_en = 1;
 }
 
 /**
@@ -364,7 +347,8 @@ static inline void bitscrambler_ll_mem_force_power_off(void)
  */
 static inline void bitscrambler_ll_mem_power_by_pmu(void)
 {
-    // empty
+    HP_SYSTEM.sys_bitscram_mem_lp_ctrl.sys_bitscram_mem_lp_force_ctrl = 0;
+    HP_SYSTEM.sys_bitscram_mem_lp_ctrl.sys_bitscram_mem_lp_en = 0;
 }
 
 /**
@@ -374,56 +358,35 @@ static inline void bitscrambler_ll_mem_power_by_pmu(void)
  */
 static inline void bitscrambler_ll_mem_set_low_power_mode(bitscrambler_ll_mem_lp_mode_t mode)
 {
-    HAL_ASSERT(mode == BITSCRAMBLER_LL_MEM_LP_MODE_SHUT_DOWN);
+    HP_SYSTEM.sys_bitscram_mem_lp_ctrl.sys_bitscram_mem_lp_mode = mode;
 }
 
 /**
  * @brief Reset the BitScrambler module
  */
-static inline void _bitscrambler_ll_reset_sys(void)
+static inline void bitscrambler_ll_reset_sys(void)
 {
-    HP_SYS_CLKRST.hp_rst_en2.reg_rst_en_bitscrambler = 1;
-    HP_SYS_CLKRST.hp_rst_en2.reg_rst_en_bitscrambler = 0;
+    HP_SYS_CLKRST.bitscrambler_ctrl0.reg_bitscrambler_rst_en = 1;
+    HP_SYS_CLKRST.bitscrambler_ctrl0.reg_bitscrambler_rst_en = 0;
 }
-
-/// use a macro to wrap the function, force the caller to use it in a critical section
-/// the critical section needs to declare the __DECLARE_RCC_ATOMIC_ENV variable in advance
-#define bitscrambler_ll_reset_sys(...) do {  \
-    (void)__DECLARE_RCC_ATOMIC_ENV;          \
-    _bitscrambler_ll_reset_sys(__VA_ARGS__); \
-} while (0)
 
 /**
  * @brief Reset the BitScrambler RX module
  */
-static inline void _bitscrambler_ll_reset_rx(void)
+static inline void bitscrambler_ll_reset_rx(void)
 {
-    HP_SYS_CLKRST.hp_rst_en2.reg_rst_en_bitscrambler_rx = 1;
-    HP_SYS_CLKRST.hp_rst_en2.reg_rst_en_bitscrambler_rx = 0;
+    HP_SYS_CLKRST.bitscrambler_ctrl0.reg_bitscrambler_rx_rst_en = 1;
+    HP_SYS_CLKRST.bitscrambler_ctrl0.reg_bitscrambler_rx_rst_en = 0;
 }
-
-/// use a macro to wrap the function, force the caller to use it in a critical section
-/// the critical section needs to declare the __DECLARE_RCC_ATOMIC_ENV variable in advance
-#define bitscrambler_ll_reset_rx(...) do {  \
-    (void)__DECLARE_RCC_ATOMIC_ENV;         \
-    _bitscrambler_ll_reset_rx(__VA_ARGS__); \
-} while (0)
 
 /**
  * @brief Reset the BitScrambler TX module
  */
-static inline void _bitscrambler_ll_reset_tx(void)
+static inline void bitscrambler_ll_reset_tx(void)
 {
-    HP_SYS_CLKRST.hp_rst_en2.reg_rst_en_bitscrambler_tx = 1;
-    HP_SYS_CLKRST.hp_rst_en2.reg_rst_en_bitscrambler_tx = 0;
+    HP_SYS_CLKRST.bitscrambler_ctrl0.reg_bitscrambler_tx_rst_en = 1;
+    HP_SYS_CLKRST.bitscrambler_ctrl0.reg_bitscrambler_tx_rst_en = 0;
 }
-
-/// use a macro to wrap the function, force the caller to use it in a critical section
-/// the critical section needs to declare the __DECLARE_RCC_ATOMIC_ENV variable in advance
-#define bitscrambler_ll_reset_tx(...) do {  \
-    (void)__DECLARE_RCC_ATOMIC_ENV;         \
-    _bitscrambler_ll_reset_tx(__VA_ARGS__); \
-} while (0)
 
 #ifdef __cplusplus
 }
