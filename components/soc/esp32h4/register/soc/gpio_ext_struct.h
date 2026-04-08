@@ -270,7 +270,6 @@ typedef struct {
     volatile gpio_ext_version_reg_t ext_version;
 } gpio_ext_dev_t;
 
-extern gpio_sd_dev_t SDM;
 extern gpio_ext_dev_t GPIO_EXT;
 
 #ifndef __cplusplus

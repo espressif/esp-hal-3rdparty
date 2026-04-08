@@ -45,7 +45,6 @@ PROVIDE ( TIMERG1             = 0x60091000 );
 PROVIDE ( IO_MUX              = 0x60092000 );
 PROVIDE ( GPIO                = 0x60093000 );
 PROVIDE ( GPIO_EXT            = 0x60093E00 );
-PROVIDE ( SDM                 = 0x60093E00 );
 PROVIDE ( PCR                 = 0x60094000 );
 PROVIDE ( SPIMEM0             = 0x60098000 );
 PROVIDE ( SPIMEM1             = 0x60099000 );
