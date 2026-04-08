@@ -111,11 +111,8 @@
 #define SOC_ADC_PERIPH_NUM                      (2)
 
 /*-------------------------- CACHE CAPS --------------------------------------*/
-// TODO: [ESP32S31] IDF-14651
-#define SOC_SHARED_IDCACHE_SUPPORTED            1   //Shared Cache for both instructions and data
 #define SOC_CACHE_WRITEBACK_SUPPORTED           1
 #define SOC_CACHE_FREEZE_SUPPORTED              1
-#define SOC_CACHE_INTERNAL_MEM_VIA_L1CACHE      0
 
 /*-------------------------- CPU CAPS ----------------------------------------*/
 #define SOC_CPU_CORES_NUM               (2U)
