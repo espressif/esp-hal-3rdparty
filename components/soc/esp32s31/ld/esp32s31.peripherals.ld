@@ -15,6 +15,7 @@ PROVIDE ( AXI_DMA             = 0x20348000 );
 PROVIDE ( GMAC                = 0x20350000 );
 PROVIDE ( PVT                 = 0x20354000 );
 PROVIDE ( RMT                 = 0x20355000 );
+PROVIDE ( RMTMEM              = 0x20355800 );
 PROVIDE ( BITSCRAMBLER        = 0x20356000 );
 PROVIDE ( ASRC                = 0x20357000 );
 PROVIDE ( CNNT_SYS_REG        = 0x20359000 );
