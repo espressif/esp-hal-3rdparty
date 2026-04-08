@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2023-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -27,29 +27,24 @@
 // Support to get and clear the status of the ETM event and task
 #define ETM_LL_SUPPORT_STATUS_REG  1
 
+// Support to set the clock source for ETM
+#define ETM_LL_SUPPORT_CLOCK_SRC   1
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * @brief Enable the bus clock for ETM module
+ * @brief Enable the clock for ETM register
  *
  * @param group_id Group ID
  * @param enable true to enable, false to disable
  */
-static inline void _etm_ll_enable_bus_clock(int group_id, bool enable)
+static inline void etm_ll_enable_bus_clock(int group_id, bool enable)
 {
     (void)group_id;
-    HP_SYS_CLKRST.soc_clk_ctrl3.reg_etm_apb_clk_en = enable;
-    HP_SYS_CLKRST.soc_clk_ctrl1.reg_etm_sys_clk_en = enable;
+    HP_SYS_CLKRST.etm_ctrl0.reg_etm_apb_clk_en = enable;
 }
-
-/// use a macro to wrap the function, force the caller to use it in a critical section
-/// the critical section needs to declare the __DECLARE_RCC_ATOMIC_ENV variable in advance
-#define etm_ll_enable_bus_clock(...) do { \
-        (void)__DECLARE_RCC_ATOMIC_ENV; \
-        _etm_ll_enable_bus_clock(__VA_ARGS__); \
-    } while(0)
 
 /**
  * @brief Enable the clock for ETM function
@@ -60,7 +55,7 @@ static inline void _etm_ll_enable_bus_clock(int group_id, bool enable)
 static inline void etm_ll_enable_function_clock(int group_id, bool enable)
 {
     (void)group_id;
-    (void)enable;
+    HP_SYS_CLKRST.etm_ctrl0.reg_soc_etm_clk_en = enable;
 }
 
 /**
@@ -72,27 +67,32 @@ static inline void etm_ll_enable_function_clock(int group_id, bool enable)
 static inline void etm_ll_set_clock_source(int group_id, etm_clock_source_t clk_src)
 {
     (void)group_id;
-    (void)clk_src;
+    switch (clk_src) {
+    case ETM_CLK_SRC_XTAL:
+        HP_SYS_CLKRST.etm_ctrl0.reg_soc_etm_clk_sel = 0;
+        break;
+    case ETM_CLK_SRC_RC_FAST:
+        HP_SYS_CLKRST.etm_ctrl0.reg_soc_etm_clk_sel = 1;
+        break;
+    case ETM_CLK_SRC_PLL_F80M:
+        HP_SYS_CLKRST.etm_ctrl0.reg_soc_etm_clk_sel = 2;
+        break;
+    default:
+        HAL_ASSERT(false);
+    }
 }
 
 /**
- * @brief Reset the ETM module
+ * @brief Reset the ETM register
  *
  * @param group_id Group ID
  */
 static inline void etm_ll_reset_register(int group_id)
 {
     (void)group_id;
-    HP_SYS_CLKRST.hp_rst_en1.reg_rst_en_etm = 1;
-    HP_SYS_CLKRST.hp_rst_en1.reg_rst_en_etm = 0;
+    HP_SYS_CLKRST.etm_ctrl0.reg_etm_rst_en = 1;
+    HP_SYS_CLKRST.etm_ctrl0.reg_etm_rst_en = 0;
 }
-
-/// use a macro to wrap the function, force the caller to use it in a critical section
-/// the critical section needs to declare the __DECLARE_RCC_ATOMIC_ENV variable in advance
-#define etm_ll_reset_register(...) do { \
-        (void)__DECLARE_RCC_ATOMIC_ENV; \
-        etm_ll_reset_register(__VA_ARGS__); \
-    } while(0)
 
 /**
  * @brief Enable ETM channel
@@ -149,7 +149,7 @@ static inline bool etm_ll_is_channel_enabled(soc_etm_dev_t *hw, uint32_t chan)
  */
 static inline void etm_ll_channel_set_event(soc_etm_dev_t *hw, uint32_t chan, uint32_t event)
 {
-    HAL_FORCE_MODIFY_U32_REG_FIELD(hw->channel[chan].eid, evt_id, event);
+    hw->channel[chan].eid.chn_evt_id = event;
 }
 
 /**
@@ -161,7 +161,7 @@ static inline void etm_ll_channel_set_event(soc_etm_dev_t *hw, uint32_t chan, ui
  */
 static inline void etm_ll_channel_set_task(soc_etm_dev_t *hw, uint32_t chan, uint32_t task)
 {
-    HAL_FORCE_MODIFY_U32_REG_FIELD(hw->channel[chan].tid, task_id, task);
+    hw->channel[chan].tid.chn_task_id = task;
 }
 
 #ifdef __cplusplus

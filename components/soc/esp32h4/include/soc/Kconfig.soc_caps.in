@@ -363,14 +363,6 @@ config SOC_GDMA_SUPPORT_SLEEP_RETENTION
     bool
     default y
 
-config SOC_ETM_GROUPS
-    int
-    default 1
-
-config SOC_ETM_CHANNELS_PER_GROUP
-    int
-    default 50
-
 config SOC_MODEM_SUPPORT_ETM
     bool
     default y
@@ -402,14 +394,6 @@ config SOC_GPIO_FLEX_GLITCH_FILTER_NUM
 config SOC_GPIO_SUPPORT_ETM
     bool
     default y
-
-config SOC_GPIO_ETM_EVENTS_PER_GROUP
-    int
-    default 8
-
-config SOC_GPIO_ETM_TASKS_PER_GROUP
-    int
-    default 8
 
 config SOC_LP_IO_CLOCK_IS_INDEPENDENT
     bool
