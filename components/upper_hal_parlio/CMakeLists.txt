@@ -6,11 +6,12 @@ if(CONFIG_SOC_PARLIO_SUPPORTED)
     list(APPEND srcs "src/parlio_common.c"
                      "src/parlio_tx.c"
                      "src/parlio_rx.c")
+
+    if(CONFIG_SOC_BITSCRAMBLER_SUPPORTED)
+        list(APPEND srcs "src/parlio_bitscrambler.c")
+    endif()
 endif()
 
-if(CONFIG_SOC_BITSCRAMBLER_SUPPORTED)
-    list(APPEND srcs "src/parlio_bitscrambler.c")
-endif()
 
 if(${target} STREQUAL "linux")
     set(priv_requires "")

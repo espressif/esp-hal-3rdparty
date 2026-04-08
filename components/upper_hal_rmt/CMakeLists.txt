@@ -10,11 +10,11 @@ if(CONFIG_SOC_RMT_SUPPORTED)
                      "src/rmt_encoder_simple.c"
                      "src/rmt_rx.c"
                      "src/rmt_tx.c")
+    if(CONFIG_SOC_BITSCRAMBLER_SUPPORTED AND CONFIG_SOC_RMT_SUPPORT_DMA)
+        list(APPEND srcs "src/rmt_encoder_bs.c")
+    endif()
 endif()
 
-if(CONFIG_SOC_BITSCRAMBLER_SUPPORTED AND CONFIG_SOC_RMT_SUPPORT_DMA)
-    list(APPEND srcs "src/rmt_encoder_bs.c")
-endif()
 
 if(${target} STREQUAL "linux")
     set(requires "")
