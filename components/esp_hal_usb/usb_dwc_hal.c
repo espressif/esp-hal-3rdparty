@@ -109,9 +109,9 @@ static void set_defaults(usb_dwc_hal_context_t *hal)
         hbstlen = 1;    //Set AHB burst to INCR to workaround hardware errata
     }
 #endif // SOC_IS(ESP32S2)
-#if SOC_IS(ESP32P4)
+#if SOC_IS(ESP32P4) || SOC_IS(ESP32S31)
     /*
-     * ESP32P4-specific initialization: Clear USB PHY suspend state set during system boot.
+     * ESP32P4/ESP32S31-specific initialization: Clear USB PHY suspend state set during system boot.
      *
      * During system initialization (see clk_gate_ll.h:periph_ll_clk_gate_set_default), the USB PHY
      * is forced into suspend mode before disabling clocks to prevent USB leakage current and ensure
@@ -123,7 +123,7 @@ static void set_defaults(usb_dwc_hal_context_t *hal)
      */
     usb_dwc_ll_enable_bvalid_override(hal->dev, false);
     usb_dwc_ll_set_stoppclk(hal->dev, false);
-#endif // SOC_IS(ESP32P4)
+#endif // SOC_IS(ESP32P4) || SOC_IS(ESP32S31)
     usb_dwc_ll_gahbcfg_set_hbstlen(hal->dev, hbstlen);  //Set AHB burst mode
     //GUSBCFG register
     usb_dwc_ll_gusbcfg_dis_hnp_cap(hal->dev);       //Disable HNP

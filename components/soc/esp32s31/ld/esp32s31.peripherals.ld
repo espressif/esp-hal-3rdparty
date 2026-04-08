@@ -19,6 +19,7 @@ PROVIDE ( RMTMEM              = 0x20355800 );
 PROVIDE ( BITSCRAMBLER        = 0x20356000 );
 PROVIDE ( ASRC                = 0x20357000 );
 PROVIDE ( CNNT_SYS_REG        = 0x20359000 );
+PROVIDE ( USB_UTMI            = 0x20380000 );
 PROVIDE ( MCPWM0              = 0x20381000 );
 PROVIDE ( MCPWM1              = 0x20382000 );
 PROVIDE ( MCPWM2              = 0x20383000 );
