@@ -242,7 +242,6 @@ typedef struct {
 } gpio_ext_dev_t;
 
 extern gpio_sd_dev_t SDM;
-extern gpio_etm_dev_t GPIO_ETM;
 extern gpio_ext_dev_t GPIO_EXT;
 
 #ifndef __cplusplus

@@ -48,7 +48,6 @@ PROVIDE ( IO_MUX         = 0x60090000 );
 PROVIDE ( GPIO           = 0x60091000 );
 PROVIDE ( GPIO_EXT       = 0x60091f00 );
 PROVIDE ( SDM            = 0x60091f00 );
-PROVIDE ( GPIO_ETM       = 0x60091f60 );
 
 PROVIDE ( MEM_MONITOR       = 0x60092000 );
 PROVIDE ( PAU               = 0x60093000 );
