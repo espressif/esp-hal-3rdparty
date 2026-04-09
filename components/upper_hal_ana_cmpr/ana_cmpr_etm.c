@@ -29,7 +29,7 @@ esp_err_t ana_cmpr_new_etm_event(ana_cmpr_handle_t cmpr, const ana_cmpr_etm_even
     ana_cmpr_etm_event_t *event = heap_caps_calloc(1, sizeof(ana_cmpr_etm_event_t), ETM_MEM_ALLOC_CAPS);
     ESP_RETURN_ON_FALSE(event, ESP_ERR_NO_MEM, TAG, "no mem for analog comparator event");
 
-    uint32_t event_id = ANALOG_CMPR_LL_ETM_SOURCE(unit, config->event_type);
+    uint32_t event_id = ANALOG_CMPR_LL_ETM_SOURCE(unit, 0, config->event_type);
     event->base.del = ana_cmpr_del_etm_event;
     event->base.event_id = event_id;
     event->base.trig_periph = ETM_TRIG_PERIPH_ANA_CMPR;
