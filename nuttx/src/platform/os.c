@@ -802,7 +802,7 @@ bool IRAM_ATTR esp_os_scheduler_started(void)
 
 void esp_os_application_sleep(void)
 {
-#ifdef CONFIG_PM
+#ifdef CONFIG_ESPRESSIF_AUTO_SLEEP
   uint32_t idle_us;
   TickType_t idle_ticks;
   struct timespec ts;
