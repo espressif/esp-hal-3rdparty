@@ -76,6 +76,9 @@ esp_err_t esp_clk_tree_src_get_freq_hz(soc_module_clk_t clk_src, esp_clk_tree_sr
     case SOC_MOD_CLK_XTAL_D2:
         clk_src_freq = (clk_hal_xtal_get_freq_mhz() * MHZ) >> 1;
         break;
+    case SOC_MOD_CLK_APB:
+        clk_src_freq = clk_hal_apb_get_freq_hz();
+        break;
     default:
         break;
     }
