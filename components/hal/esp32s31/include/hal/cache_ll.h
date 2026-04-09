@@ -935,11 +935,7 @@ static inline void cache_ll_l1_enable_bus(uint32_t bus_id, cache_bus_mask_t mask
     REG_CLR_BIT(CACHE_L1_ICACHE_CTRL_REG, ibus_mask);
 
     uint32_t dbus_mask = 0;
-    if (bus_id == 1) {
-        dbus_mask = dbus_mask | ((mask & CACHE_BUS_DBUS0) ? CACHE_L1_DCACHE_SHUT_DBUS0 : 0);
-    } else {
-        dbus_mask = dbus_mask | ((mask & CACHE_BUS_DBUS0) ? CACHE_L1_DCACHE_SHUT_DBUS1 : 0);
-    }
+    dbus_mask = dbus_mask | ((mask & CACHE_BUS_DBUS0) ? CACHE_L1_DCACHE_SHUT_DBUS0 : 0);
     REG_CLR_BIT(CACHE_L1_DCACHE_CTRL_REG, dbus_mask);
 }
 
@@ -963,11 +959,7 @@ static inline cache_bus_mask_t cache_ll_l1_get_enabled_bus(uint32_t cache_id)
     }
 
     uint32_t dbus_mask = REG_READ(CACHE_L1_DCACHE_CTRL_REG);
-    if (cache_id == 0) {
-        mask = (cache_bus_mask_t)(mask | ((!(dbus_mask & CACHE_L1_DCACHE_SHUT_DBUS0)) ? CACHE_BUS_DBUS0 : 0));
-    } else if (cache_id == 1) {
-        mask = (cache_bus_mask_t)(mask | ((!(dbus_mask & CACHE_L1_DCACHE_SHUT_DBUS1)) ? CACHE_BUS_DBUS0 : 0));
-    }
+    mask = (cache_bus_mask_t)(mask | ((!(dbus_mask & CACHE_L1_DCACHE_SHUT_DBUS0)) ? CACHE_BUS_DBUS0 : 0));
 
     return mask;
 }
@@ -981,8 +973,7 @@ static inline cache_bus_mask_t cache_ll_l1_get_enabled_bus(uint32_t cache_id)
 __attribute__((always_inline))
 static inline void cache_ll_l1_disable_bus(uint32_t bus_id, cache_bus_mask_t mask)
 {
-    //On esp32h4, only `CACHE_BUS_IBUS0` and `CACHE_BUS_DBUS0` are supported. Use `cache_ll_l1_get_bus()` to get your bus first
-    HAL_ASSERT((mask & (CACHE_BUS_IBUS1 | CACHE_BUS_IBUS2| CACHE_BUS_DBUS1 | CACHE_BUS_DBUS2)) == 0);
+    HAL_ASSERT((mask & (CACHE_BUS_IBUS2| CACHE_BUS_DBUS1 | CACHE_BUS_DBUS2)) == 0);
 
     uint32_t ibus_mask = 0;
     if (bus_id == 0) {
@@ -993,11 +984,7 @@ static inline void cache_ll_l1_disable_bus(uint32_t bus_id, cache_bus_mask_t mas
     REG_SET_BIT(CACHE_L1_ICACHE_CTRL_REG, ibus_mask);
 
     uint32_t dbus_mask = 0;
-    if (bus_id == 1) {
-        dbus_mask = dbus_mask | ((mask & CACHE_BUS_DBUS0) ? CACHE_L1_DCACHE_SHUT_DBUS0 : 0);
-    } else {
-        dbus_mask = dbus_mask | ((mask & CACHE_BUS_DBUS0) ? CACHE_L1_DCACHE_SHUT_DBUS1 : 0);
-    }
+    dbus_mask = dbus_mask | ((mask & CACHE_BUS_DBUS0) ? CACHE_L1_DCACHE_SHUT_DBUS0 : 0);
     REG_SET_BIT(CACHE_L1_DCACHE_CTRL_REG, dbus_mask);
 }
 
