@@ -85,7 +85,7 @@ const sys_startup_fn_t g_startup_fn[1] = { start_cpu0 };
 
 ESP_LOG_ATTR_TAG(TAG, "cpu_start");
 
-#ifdef CONFIG_COMPILER_CXX_EXCEPTIONS
+#if CONFIG_COMPILER_CXX_EXCEPTIONS && !CONFIG_IDF_TARGET_LINUX
 /**
  * @brief A helper function for __do_global_ctors, which is in crtend.o.
  * It has been adapted from GCC source code. In GCC, it resides under
@@ -104,7 +104,7 @@ static void __do_global_ctors_1(void)
     static struct object ob;
     __register_frame_info(__eh_frame, &ob);
 }
-#endif // CONFIG_COMPILER_CXX_EXCEPTIONS
+#endif // CONFIG_COMPILER_CXX_EXCEPTIONS && !CONFIG_IDF_TARGET_LINUX
 
 /* declare the start and stop symbols surrounding the array of init functions
  * registered by calling the system init function macros */
@@ -203,11 +203,11 @@ static void start_cpu0_default(void)
     // Operations that needs the cache to be disabled have to be done here.
     do_core_init();
 
+#if !CONFIG_IDF_TARGET_LINUX
     // Execute constructors.
-#ifdef CONFIG_COMPILER_CXX_EXCEPTIONS
+#if CONFIG_COMPILER_CXX_EXCEPTIONS
     __do_global_ctors_1();
 #endif
-#if !CONFIG_IDF_TARGET_LINUX
     extern void __libc_init_array(void);
     __libc_init_array();
 #endif // !CONFIG_IDF_TARGET_LINUX
