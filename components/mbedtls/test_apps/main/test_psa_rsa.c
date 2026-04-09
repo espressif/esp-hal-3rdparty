@@ -293,7 +293,7 @@ TEST_CASE("test performance RSA key operations", "[bignum]")
         if (keysize == PSA_RSA_KEY_SIZE_2048) {
             TEST_PERFORMANCE_CCOMP_LESS_THAN(RSA_2048KEY_PUBLIC_OP, "%d us", public_perf);
             TEST_PERFORMANCE_CCOMP_LESS_THAN(RSA_2048KEY_PRIVATE_OP, "%d us", private_perf);
-        } else if (keysize == 4096) {
+        } else if (keysize == PSA_RSA_KEY_SIZE_4096) {
             TEST_PERFORMANCE_CCOMP_LESS_THAN(RSA_4096KEY_PUBLIC_OP, "%d us", public_perf);
             TEST_PERFORMANCE_CCOMP_LESS_THAN(RSA_4096KEY_PRIVATE_OP, "%d us", private_perf);
         }
