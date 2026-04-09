@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2015-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -33,8 +33,130 @@
 #include "esp_err.h"
 #include "esp_blufi.h"
 #include <esp_gap_ble_api.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/queue.h"
+#include "soc/soc_caps.h"
 
 #if (BLUFI_INCLUDED == TRUE)
+
+#if !SOC_MPI_SUPPORTED
+#define BLUFI_RX_QUEUE_LEN       8
+#define BLUFI_RX_TASK_STACK_SIZE 4096
+#define BLUFI_RX_TASK_PRIO       (tskIDLE_PRIORITY + 1)
+
+typedef struct {
+    uint8_t *data;
+    uint16_t len;
+} blufi_rx_item_t;
+
+static QueueHandle_t s_blufi_rx_queue;
+static TaskHandle_t s_blufi_rx_task_hdl;
+
+static void blufi_rx_task(void *arg)
+{
+    blufi_rx_item_t item;
+
+    while (xQueueReceive(s_blufi_rx_queue, &item, portMAX_DELAY) == pdTRUE) {
+        if (item.data == NULL) {
+            break;
+        }
+
+        btc_blufi_recv_handler(item.data, item.len);
+        free(item.data);
+    }
+
+    s_blufi_rx_task_hdl = NULL;
+    vTaskDelete(NULL);
+}
+
+static int blufi_rx_worker_start(void)
+{
+    if (s_blufi_rx_queue != NULL && s_blufi_rx_task_hdl != NULL) {
+        return 0;
+    }
+
+    if (s_blufi_rx_queue != NULL && s_blufi_rx_task_hdl == NULL) {
+        blufi_rx_item_t item;
+        while (xQueueReceive(s_blufi_rx_queue, &item, 0) == pdTRUE) {
+            free(item.data);
+        }
+        vQueueDelete(s_blufi_rx_queue);
+        s_blufi_rx_queue = NULL;
+    }
+
+    s_blufi_rx_queue = xQueueCreate(BLUFI_RX_QUEUE_LEN, sizeof(blufi_rx_item_t));
+    if (s_blufi_rx_queue == NULL) {
+        BTC_TRACE_ERROR("failed to create BLUFI RX queue");
+        return -1;
+    }
+
+    BaseType_t ret = xTaskCreate(blufi_rx_task, "blufi_rx", BLUFI_RX_TASK_STACK_SIZE,
+                                 NULL, BLUFI_RX_TASK_PRIO, &s_blufi_rx_task_hdl);
+    if (ret != pdPASS) {
+        BTC_TRACE_ERROR("failed to create BLUFI RX task");
+        vQueueDelete(s_blufi_rx_queue);
+        s_blufi_rx_queue = NULL;
+        return -1;
+    }
+
+    return 0;
+}
+
+static void blufi_rx_worker_stop(void)
+{
+    if (s_blufi_rx_queue == NULL) {
+        return;
+    }
+
+    blufi_rx_item_t stop = { .data = NULL, .len = 0 };
+    if (xQueueSend(s_blufi_rx_queue, &stop, 0) != pdTRUE) {
+        blufi_rx_item_t item;
+        while (xQueueReceive(s_blufi_rx_queue, &item, 0) == pdTRUE) {
+            free(item.data);
+        }
+        (void)xQueueSend(s_blufi_rx_queue, &stop, 0);
+    }
+
+    while (s_blufi_rx_task_hdl != NULL) {
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+
+    blufi_rx_item_t item;
+    while (xQueueReceive(s_blufi_rx_queue, &item, 0) == pdTRUE) {
+        free(item.data);
+    }
+
+    vQueueDelete(s_blufi_rx_queue);
+    s_blufi_rx_queue = NULL;
+}
+
+static bool blufi_rx_enqueue(const uint8_t *data, uint16_t len)
+{
+    if (len == 0) {
+        return false;
+    }
+
+    if (s_blufi_rx_queue == NULL) {
+        if (blufi_rx_worker_start() != 0) {
+            return false;
+        }
+    }
+
+    uint8_t *copy = malloc(len);
+    if (copy == NULL) {
+        return false;
+    }
+    memcpy(copy, data, len);
+
+    blufi_rx_item_t item = { .data = copy, .len = len };
+    if (xQueueSend(s_blufi_rx_queue, &item, 0) != pdTRUE) {
+        free(copy);
+        return false;
+    }
+    return true;
+}
+#endif /* !SOC_MPI_SUPPORTED */
 
 static uint8_t server_if;
 static uint16_t conn_id;
@@ -241,7 +363,6 @@ void blufi_create_service(void)
 
 uint8_t esp_blufi_init(void)
 {
-
     /* register the BLUFI profile to the BTA_GATTS module*/
     BTA_GATTS_AppRegister(&blufi_app_uuid, blufi_profile_cb);
     return GATT_SUCCESS;
@@ -363,8 +484,15 @@ static void blufi_profile_cb(tBTA_GATTS_EVT event, tBTA_GATTS *p_data)
         }
 
         if (p_data->req_data.p_data->write_req.handle == blufi_env.handle_char_p2e) {
+#if !SOC_MPI_SUPPORTED
+            if (!blufi_rx_enqueue(&p_data->req_data.p_data->write_req.value[0],
+                                  p_data->req_data.p_data->write_req.len)) {
+                BLUFI_TRACE_ERROR("failed to enqueue BLUFI RX data");
+            }
+#else
             btc_blufi_recv_handler(&p_data->req_data.p_data->write_req.value[0],
                                    p_data->req_data.p_data->write_req.len);
+#endif
         }
         break;
     }
@@ -375,7 +503,13 @@ static void blufi_profile_cb(tBTA_GATTS_EVT event, tBTA_GATTS *p_data)
                           GATT_SUCCESS, NULL);
 
         if (blufi_env.prepare_buf && p_data->req_data.p_data->exec_write == GATT_PREP_WRITE_EXEC) {
+#if !SOC_MPI_SUPPORTED
+            if (!blufi_rx_enqueue(blufi_env.prepare_buf, blufi_env.prepare_len)) {
+                BLUFI_TRACE_ERROR("failed to enqueue BLUFI RX exec data");
+            }
+#else
             btc_blufi_recv_handler(blufi_env.prepare_buf, blufi_env.prepare_len);
+#endif
         }
 
         if (blufi_env.prepare_buf) {
@@ -523,6 +657,9 @@ void esp_blufi_send_notify(void *arg)
 
 void esp_blufi_deinit(void)
 {
+#if !SOC_MPI_SUPPORTED
+    blufi_rx_worker_stop();
+#endif
     BTA_GATTS_StopService(blufi_env.handle_srvc);
     BTA_GATTS_DeleteService(blufi_env.handle_srvc);
     /* register the BLUFI profile to the BTA_GATTS module*/
