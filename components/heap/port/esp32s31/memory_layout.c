@@ -97,6 +97,12 @@ SOC_RESERVE_MEMORY_REGION((intptr_t)&_data_start, (intptr_t)&_heap_start, dram_d
 // Target has a shared D/IRAM virtual address, no need to calculate I_D_OFFSET like previous chips
 SOC_RESERVE_MEMORY_REGION((intptr_t)&_iram_start, (intptr_t)&_iram_end, iram_code);
 
+#if CONFIG_ULP_COPROC_RUN_FROM_HP_MEM
+extern uint32_t _ulp_hp_mem_resv_start;
+extern uint32_t _ulp_hp_mem_resv_end;
+SOC_RESERVE_MEMORY_REGION((intptr_t)&_ulp_hp_mem_resv_start, (intptr_t)&_ulp_hp_mem_resv_end, ulp_hp_mem);
+#endif
+
 #ifdef CONFIG_SPIRAM
 SOC_RESERVE_MEMORY_REGION( SOC_EXTRAM_LOW, SOC_EXTRAM_HIGH, extram_region);
 #endif

@@ -1,11 +1,14 @@
 /*
- * SPDX-FileCopyrightText: 2023-2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2023-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
 #include "sdkconfig.h"
 #include "soc/soc.h"
 #include "ld.common"
+#if CONFIG_ULP_COPROC_RUN_FROM_HP_MEM
+#include "ld.hp_mem_defs"
+#endif
 
 #if CONFIG_ESP_ROM_HAS_LP_ROM
 /* With LP-ROM memory layout is different due to LP ROM stack/data */
@@ -28,9 +31,18 @@ MEMORY
 {
     /*first 128byte for exception/interrupt vectors*/
     vector_table(RX) :   ORIGIN = ULP_MEM_START_ADDRESS , LENGTH = 0x80
-    ram(RWX) :           ORIGIN = ULP_MEM_START_ADDRESS + 0x80, LENGTH = ALIGNED_COPROC_MEM - 0x80 - CONFIG_ULP_SHARED_MEM
+    lp_ram(RWX) :        ORIGIN = ULP_MEM_START_ADDRESS + 0x80, LENGTH = ALIGNED_COPROC_MEM - 0x80 - CONFIG_ULP_SHARED_MEM
     shared_mem_ram(RW) : ORIGIN = ULP_MEM_START_ADDRESS + ALIGNED_COPROC_MEM - CONFIG_ULP_SHARED_MEM, LENGTH = CONFIG_ULP_SHARED_MEM
+#if CONFIG_ULP_COPROC_RUN_FROM_HP_MEM
+    hp_ram(RWX) :        ORIGIN = ULP_HP_MEM_START, LENGTH = ULP_HP_MEM_SIZE
+#endif
 }
+
+#if CONFIG_ULP_COPROC_RUN_FROM_HP_MEM
+REGION_ALIAS("default_app_seg", hp_ram);
+#else
+REGION_ALIAS("default_app_seg", lp_ram);
+#endif
 
 SECTIONS
 {
@@ -41,39 +53,55 @@ SECTIONS
         KEEP (*(.init.vector .init.vector.*))
     } > vector_table
 
-    . = ORIGIN(ram);
+    . = ORIGIN(lp_ram);
+
+    /* Interrupt/exception handlers and reset vector must remain in LP RAM so they
+     * are accessible immediately on wakeup, before HP RAM is powered on. */
+    .rtc_text ALIGN(4):
+    {
+        *(.text.vectors) /* Default reset vector must link to offset 0x80 */
+        *(.text.handlers)
+        *(.text.handlers.*)
+    } > lp_ram
+
+#if CONFIG_ULP_COPROC_RUN_FROM_HP_MEM
+    . = ORIGIN(default_app_seg);
+#endif
 
     .text ALIGN(4):
     {
-        *(.text.vectors) /* Default reset vector must link to offset 0x80 */
         *(.text)
         *(.text*)
-    } >ram
+    } > default_app_seg
 
     .rodata ALIGN(4):
     {
         *(.rodata)
         *(.rodata*)
-    } > ram
+    } > default_app_seg
 
     .data ALIGN(4):
     {
+        _data_start = .;
         *(.data)
         *(.data*)
         *(.sdata)
         *(.sdata*)
-    } > ram
+        _data_end = .;
+    } > default_app_seg
 
     .bss ALIGN(4) :
     {
+        _bss_start = .;
         *(.bss)
         *(.bss*)
         *(.sbss)
         *(.sbss*)
         PROVIDE(end = .);
-    } >ram
+        _bss_end = .;
+    } > default_app_seg
 
-    __stack_top = ORIGIN(ram) + LENGTH(ram);
+    __stack_top = ORIGIN(lp_ram) + LENGTH(lp_ram);
 
     . = ORIGIN(shared_mem_ram);
     .shared_mem (ALIGN(4)) :

@@ -30,6 +30,15 @@
 extern uint8_t _rtc_ulp_memory_start[];
 #endif //ESP_ROM_HAS_LP_ROM
 
+#if CONFIG_ULP_COPROC_RUN_FROM_HP_MEM
+#include "esp_image_format.h"
+#if SOC_CACHE_INTERNAL_MEM_VIA_L1CACHE
+#include "esp_cache.h"
+#endif
+extern uint32_t _ulp_hp_mem_resv_start;
+extern uint32_t _ulp_hp_mem_resv_end;
+#endif //CONFIG_ULP_COPROC_RUN_FROM_HP_MEM
+
 #if SOC_LP_CORE_HW_AUTO_CLRWAKEUPCAUSE
 #include "hal/lp_aon_hal.h"
 #include "rom/rtc.h"
@@ -52,6 +61,33 @@ static uint32_t wakeup_src_sw_to_hw_flag_lookup[WAKEUP_SOURCE_MAX_NUMBER] = {
     LP_CORE_LL_WAKEUP_SOURCE_LP_VAD,
 #endif
 };
+
+#if CONFIG_ULP_COPROC_RUN_FROM_HP_MEM
+static uintptr_t ulp_lp_core_lp_mem_start(void)
+{
+#if ESP_ROM_HAS_LP_ROM
+    return (uintptr_t)&_rtc_ulp_memory_start;
+#else
+    return (uintptr_t)RTC_SLOW_MEM;
+#endif
+}
+
+static uintptr_t ulp_lp_core_lp_mem_end(void)
+{
+    return ulp_lp_core_lp_mem_start() + CONFIG_ULP_COPROC_RESERVE_MEM;
+}
+
+static bool ulp_lp_core_addr_range_in_region(uintptr_t start, size_t len, uintptr_t region_start, uintptr_t region_end)
+{
+    uintptr_t end;
+
+    if (__builtin_add_overflow(start, (uintptr_t)len, &end)) {
+        return false;
+    }
+
+    return start >= region_start && end <= region_end;
+}
+#endif //CONFIG_ULP_COPROC_RUN_FROM_HP_MEM
 
 /* Convert the wake-up sources defined in ulp_lp_core.h to the actual HW wake-up source values */
 static uint32_t lp_core_get_wakeup_source_hw_flags(uint32_t flags)
@@ -159,28 +195,117 @@ esp_err_t ulp_lp_core_run(ulp_lp_core_cfg_t* cfg)
     return ESP_OK;
 }
 
+#if CONFIG_ULP_COPROC_RUN_FROM_HP_MEM
+static esp_err_t ulp_lp_core_load_segments(const uint8_t *program_binary, size_t program_size_bytes)
+{
+    if (program_size_bytes < sizeof(esp_image_header_t)) {
+        ESP_LOGE(TAG, "Binary too small for image header");
+        return ESP_ERR_INVALID_SIZE;
+    }
+
+    const esp_image_header_t *image_header = (const esp_image_header_t *)program_binary;
+    const uintptr_t lp_mem_start = ulp_lp_core_lp_mem_start();
+    const uintptr_t lp_mem_end = ulp_lp_core_lp_mem_end();
+    const uintptr_t hp_mem_start = (uintptr_t)&_ulp_hp_mem_resv_start;
+    const uintptr_t hp_mem_end = (uintptr_t)&_ulp_hp_mem_resv_end;
+
+    if (image_header->magic != ESP_IMAGE_HEADER_MAGIC) {
+        ESP_LOGE(TAG, "Invalid image magic 0x%02x, expected 0x%02x", image_header->magic, ESP_IMAGE_HEADER_MAGIC);
+        return ESP_ERR_IMAGE_INVALID;
+    }
+
+    if (image_header->segment_count > ESP_IMAGE_MAX_SEGMENTS) {
+        ESP_LOGE(TAG, "Segment count %d exceeds max %d", image_header->segment_count, ESP_IMAGE_MAX_SEGMENTS);
+        return ESP_ERR_IMAGE_INVALID;
+    }
+
+    const uint8_t *seg_ptr = program_binary + sizeof(esp_image_header_t);
+    for (int i = 0; i < image_header->segment_count; i++) {
+        size_t seg_offset = (size_t)(seg_ptr - program_binary);
+        if (__builtin_add_overflow(seg_offset, sizeof(esp_image_segment_header_t), &seg_offset)
+                || seg_offset > program_size_bytes) {
+            ESP_LOGE(TAG, "Segment %d header extends beyond binary size", i);
+            return ESP_ERR_INVALID_SIZE;
+        }
+
+        const esp_image_segment_header_t *seg_hdr = (const esp_image_segment_header_t *)seg_ptr;
+        seg_ptr += sizeof(esp_image_segment_header_t);
+
+        size_t data_offset = (size_t)(seg_ptr - program_binary);
+        size_t data_end_offset;
+        if (__builtin_add_overflow(data_offset, (size_t)seg_hdr->data_len, &data_end_offset)
+                || data_end_offset > program_size_bytes) {
+            ESP_LOGE(TAG, "Segment %d extends beyond binary size", i);
+            return ESP_ERR_INVALID_SIZE;
+        }
+
+        uintptr_t load_addr = (uintptr_t)seg_hdr->load_addr;
+        uintptr_t load_end;
+        if (__builtin_add_overflow(load_addr, (uintptr_t)seg_hdr->data_len, &load_end)) {
+            ESP_LOGE(TAG, "Segment %d load range overflows", i);
+            return ESP_ERR_INVALID_SIZE;
+        }
+
+        bool load_in_lp_mem = ulp_lp_core_addr_range_in_region(load_addr, seg_hdr->data_len, lp_mem_start, lp_mem_end);
+        bool load_in_hp_mem = ulp_lp_core_addr_range_in_region(load_addr, seg_hdr->data_len, hp_mem_start, hp_mem_end);
+
+        if (!load_in_lp_mem && !load_in_hp_mem) {
+            ESP_LOGE(TAG, "Segment %d load range [0x%08x, 0x%08x) is outside LP/HP ULP memory", i,
+                     (unsigned)load_addr, (unsigned)load_end);
+            return ESP_ERR_INVALID_ARG;
+        }
+
+        ESP_LOGD(TAG, "Loading segment %d: load_addr=0x%08x size=0x%x",
+                 i, (unsigned)seg_hdr->load_addr, (unsigned)seg_hdr->data_len);
+        hal_memcpy((void *)(uintptr_t)seg_hdr->load_addr, seg_ptr, seg_hdr->data_len);
+        seg_ptr += seg_hdr->data_len;
+    }
+
+#if SOC_CACHE_INTERNAL_MEM_VIA_L1CACHE
+    /* Flush HP CPU write-back cache so the LP CPU sees the data written above.
+     * Both _ulp_hp_mem_resv_start and _ulp_hp_mem_resv_end are aligned to the
+     * L1 cache line size in the linker script, so the size is always a multiple
+     * of the cache line size as required by esp_cache_msync. */
+    size_t hp_mem_size = (uintptr_t)&_ulp_hp_mem_resv_end - (uintptr_t)&_ulp_hp_mem_resv_start;
+    esp_cache_msync(&_ulp_hp_mem_resv_start, hp_mem_size,
+                    ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_INVALIDATE);
+#endif
+
+    return ESP_OK;
+}
+#endif /* CONFIG_ULP_COPROC_RUN_FROM_HP_MEM */
+
 esp_err_t ulp_lp_core_load_binary(const uint8_t* program_binary, size_t program_size_bytes)
 {
     if (program_binary == NULL) {
         return ESP_ERR_INVALID_ARG;
     }
-    if (program_size_bytes > CONFIG_ULP_COPROC_RESERVE_MEM) {
-        return ESP_ERR_INVALID_SIZE;
-    }
 
     /* Turn off LP CPU before loading binary */
     ulp_lp_core_stop();
+
 #if ESP_ROM_HAS_LP_ROM
     uint32_t* base = (uint32_t*)_rtc_ulp_memory_start;
 #else
     uint32_t* base = RTC_SLOW_MEM;
 #endif
 
-    //Start by clearing memory reserved with zeros, this will also will initialize the bss:
+    /* Clear LP RAM — also initializes LP-side bss */
     hal_memset(base, 0, CONFIG_ULP_COPROC_RESERVE_MEM);
+
+#if CONFIG_ULP_COPROC_RUN_FROM_HP_MEM
+    ESP_LOGW(TAG, "Running ULP app from HP memory. ULP will not be able to run if system enters deep sleep and power down HP memory.");
+    /* Clear HP RAM — initializes HP-side bss before the LP core runs */
+    hal_memset(&_ulp_hp_mem_resv_start, 0, CONFIG_ULP_COPROC_RESERVE_HP_MEM_BYTES);
+    return ulp_lp_core_load_segments(program_binary, program_size_bytes);
+#else
+    if (program_size_bytes > CONFIG_ULP_COPROC_RESERVE_MEM) {
+        return ESP_ERR_INVALID_SIZE;
+    }
     hal_memcpy(base, program_binary, program_size_bytes);
 
     return ESP_OK;
+#endif
 }
 
 void ulp_lp_core_sleep_start(void)
