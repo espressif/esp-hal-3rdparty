@@ -28,5 +28,6 @@ def test_dma2d(dut: Dut) -> None:
     indirect=True,
 )
 @idf_parametrize('target', soc_filtered_targets('SOC_DMA2D_SUPPORTED == 1'), indirect=['target'])
+@pytest.mark.temp_skip_ci(targets=['esp32s31'], reason='TODO: IDFCI-10377 no runner yet')
 def test_dma2d_flash_encryption(dut: Dut) -> None:
     dut.run_all_single_board_cases()

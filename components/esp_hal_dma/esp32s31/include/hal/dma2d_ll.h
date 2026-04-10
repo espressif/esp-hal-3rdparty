@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2023-2026 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -17,6 +17,7 @@
 #include "hal/config.h"
 #include "soc/soc.h"
 #include "soc/hp_sys_clkrst_struct.h"
+#include "soc/hp_system_struct.h"
 
 // Number of 2D-DMA instances
 #define DMA2D_LL_INST_NUM       1
@@ -24,17 +25,10 @@
 
 #define DMA2D_LL_GET(_attr)     DMA2D_LL_ ## _attr
 
-#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) >= 300
 // Number of 2D-DMA TX (OUT) channels in each instance
 #define DMA2D_LL_TX_CHANS_PER_INST      4
 // Number of 2D-DMA RX (IN) channels in each instance
 #define DMA2D_LL_RX_CHANS_PER_INST      3
-#else
-// Number of 2D-DMA TX (OUT) channels in each instance
-#define DMA2D_LL_TX_CHANS_PER_INST      3
-// Number of 2D-DMA RX (IN) channels in each instance
-#define DMA2D_LL_RX_CHANS_PER_INST      2
-#endif
 
 // 2D-DMA interrupts
 #define DMA2D_LL_RX_EVENT_MASK               (0x3FFF)
@@ -71,11 +65,7 @@
 
 // Bit masks that are used to indicate availability of some sub-features in the channels
 #define DMA2D_LL_TX_CHANNEL_SUPPORT_RO_MASK        (0U | BIT0) // TX channels that support reorder feature
-#if HAL_CONFIG(CHIP_SUPPORT_MIN_REV) >= 300
 #define DMA2D_LL_TX_CHANNEL_SUPPORT_CSC_MASK       (0U | BIT0 | BIT1 | BIT2 | BIT3) // TX channels that support color space conversion feature
-#else
-#define DMA2D_LL_TX_CHANNEL_SUPPORT_CSC_MASK       (0U | BIT0 | BIT1 | BIT2) // TX channels that support color space conversion feature
-#endif
 #define DMA2D_LL_RX_CHANNEL_SUPPORT_RO_MASK        (0U | BIT0) // RX channels that support reorder feature
 #define DMA2D_LL_RX_CHANNEL_SUPPORT_CSC_MASK       (0U | BIT0) // RX channels that support color space conversion feature
 
@@ -94,14 +84,17 @@ extern "C" {
 #endif
 
 typedef enum {
-    DMA2D_LL_MEM_LP_MODE_SHUT_DOWN,     // power down memory during low power stage
+    DMA2D_LL_MEM_LP_MODE_DEEP_SLEEP,    // memory will enter deep sleep during low power stage, keep memory data
+    DMA2D_LL_MEM_LP_MODE_LIGHT_SLEEP,   // memory will enter light sleep during low power stage, keep memory data
+    DMA2D_LL_MEM_LP_MODE_SHUT_DOWN,     // memory will be powered down during low power stage
+    DMA2D_LL_MEM_LP_MODE_DISABLE,       // disable the low power stage
 } dma2d_ll_mem_lp_mode_t;
 
 // COLOR SPACE CONVERSION TABLES
-extern const int dma2d_csc_param_yuv2rgb_bt601_table[3][4];
-extern const int dma2d_csc_param_yuv2rgb_bt709_table[3][4];
 extern const int dma2d_csc_param_rgb2yuv_bt601_table[3][4];
 extern const int dma2d_csc_param_rgb2yuv_bt709_table[3][4];
+extern const int dma2d_csc_param_yuv2rgb_bt601_table[3][4];
+extern const int dma2d_csc_param_yuv2rgb_bt709_table[3][4];
 
 ///////////////////////////////////// Common /////////////////////////////////////////
 /**
@@ -113,15 +106,8 @@ extern const int dma2d_csc_param_rgb2yuv_bt709_table[3][4];
 static inline void dma2d_ll_enable_bus_clock(int group_id, bool enable)
 {
     (void)group_id;
-    HP_SYS_CLKRST.soc_clk_ctrl1.reg_dma2d_sys_clk_en = enable;
+    HP_SYS_CLKRST.dma2d_ctrl0.reg_dma2d_sys_clk_en = enable;
 }
-
-/// use a macro to wrap the function, force the caller to use it in a critical section
-/// the critical section needs to declare the __DECLARE_RCC_ATOMIC_ENV variable in advance
-#define dma2d_ll_enable_bus_clock(...) do { \
-        (void)__DECLARE_RCC_ATOMIC_ENV; \
-        dma2d_ll_enable_bus_clock(__VA_ARGS__); \
-    } while(0)
 
 /**
  * @brief Reset the 2D-DMA module
@@ -131,16 +117,9 @@ static inline void dma2d_ll_enable_bus_clock(int group_id, bool enable)
 static inline void dma2d_ll_reset_register(int group_id)
 {
     (void)group_id;
-    HP_SYS_CLKRST.hp_rst_en0.reg_rst_en_dma2d = 1;
-    HP_SYS_CLKRST.hp_rst_en0.reg_rst_en_dma2d = 0;
+    HP_SYS_CLKRST.dma2d_ctrl0.reg_dma2d_rst_en = 1;
+    HP_SYS_CLKRST.dma2d_ctrl0.reg_dma2d_rst_en = 0;
 }
-
-/// use a macro to wrap the function, force the caller to use it in a critical section
-/// the critical section needs to declare the __DECLARE_RCC_ATOMIC_ENV variable in advance
-#define dma2d_ll_reset_register(...) do { \
-        (void)__DECLARE_RCC_ATOMIC_ENV; \
-        dma2d_ll_reset_register(__VA_ARGS__); \
-    } while(0)
 
 /**
  * @brief Check if the bus clock is enabled for the DMA module
@@ -149,7 +128,7 @@ __attribute__((always_inline))
 static inline bool dma2d_ll_is_bus_clock_enabled(int group_id)
 {
     (void) group_id;
-    return HP_SYS_CLKRST.soc_clk_ctrl1.reg_dma2d_sys_clk_en;
+    return HP_SYS_CLKRST.dma2d_ctrl0.reg_dma2d_sys_clk_en;
 }
 
 /**
@@ -159,7 +138,8 @@ static inline bool dma2d_ll_is_bus_clock_enabled(int group_id)
  */
 static inline void dma2d_ll_mem_force_power_on(dma2d_dev_t *dev)
 {
-    (void)dev;
+    HP_SYSTEM.sys_dma2d_mem_lp_ctrl.sys_2ddma_mem_force_ctrl = 1;
+    HP_SYSTEM.sys_dma2d_mem_lp_ctrl.sys_2ddma_mem_lp_en = 0;
 }
 
 /**
@@ -169,7 +149,8 @@ static inline void dma2d_ll_mem_force_power_on(dma2d_dev_t *dev)
  */
 static inline void dma2d_ll_mem_force_low_power(dma2d_dev_t *dev)
 {
-    (void)dev;
+    HP_SYSTEM.sys_dma2d_mem_lp_ctrl.sys_2ddma_mem_force_ctrl = 1;
+    HP_SYSTEM.sys_dma2d_mem_lp_ctrl.sys_2ddma_mem_lp_en = 1;
 }
 
 /**
@@ -179,7 +160,8 @@ static inline void dma2d_ll_mem_force_low_power(dma2d_dev_t *dev)
  */
 static inline void dma2d_ll_mem_power_by_pmu(dma2d_dev_t *dev)
 {
-    (void)dev;
+    HP_SYSTEM.sys_dma2d_mem_lp_ctrl.sys_2ddma_mem_force_ctrl = 0;
+    HP_SYSTEM.sys_dma2d_mem_lp_ctrl.sys_2ddma_mem_lp_en = 0;
 }
 
 /**
@@ -190,8 +172,7 @@ static inline void dma2d_ll_mem_power_by_pmu(dma2d_dev_t *dev)
  */
 static inline void dma2d_ll_mem_set_low_power_mode(dma2d_dev_t *dev, dma2d_ll_mem_lp_mode_t mode)
 {
-    (void)dev;
-    HAL_ASSERT(mode == DMA2D_LL_MEM_LP_MODE_SHUT_DOWN);
+    HP_SYSTEM.sys_dma2d_mem_lp_ctrl.sys_2ddma_mem_lp_mode = mode;
 }
 
 /**
@@ -726,10 +707,6 @@ static inline void dma2d_ll_rx_set_priority(dma2d_dev_t *dev, uint32_t channel, 
 {
     dev->in_channel[channel].in_arb.in_arb_priority_chn = priority;
 }
-
-// ETM
-
-// note that in_ch1 in_etm_conf register addr is different before and after rev3 chip!
 
 /////////////////////////////////////// TX ///////////////////////////////////////////
 /**
