@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2023-2026 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -10,20 +10,22 @@
 #pragma once
 
 #include <stddef.h>
+#include <stdint.h>
 #include "hal/assert.h"
 #include "hal/ledc_types.h"
 #include "soc/ledc_struct.h"
 #include "soc/ledc_reg.h"
 #include "soc/clk_tree_defs.h"
 #include "soc/hp_sys_clkrst_struct.h"
+#include "soc/hp_system_struct.h"
 #include "soc/soc_caps.h"
 #include "soc/soc_etm_source.h"
 
 #define LEDC_LL_GET(attr)                  (LEDC_LL_ ## attr)
 
-#define LEDC_LL_GET_HW(group_id)           ((group_id == 0) ? &LEDC : NULL)
+#define LEDC_LL_GET_HW(group_id)           ((group_id == 0) ? &LEDC0 : (group_id == 1) ? &LEDC1 : NULL)
 
-#define LEDC_LL_GROUP_NUM                  (1)
+#define LEDC_LL_GROUP_NUM                  (2)
 #define LEDC_LL_CHANNEL_SUPPORT_OVF_CNT     1
 
 #define LEDC_LL_DUTY_NUM_MAX       (LEDC_CH0_GAMMA_RANGE0_DUTY_NUM_V)
@@ -42,26 +44,31 @@
 #define LEDC_LL_EVENT_CHANNEL_OVF_CNT(speed_mode, channel)          BIT(LEDC_OVF_CNT_CH0_INT_ENA_S + (channel))
 #define LEDC_LL_EVENT_CHANNEL_MASK(speed_mode, channel)             (LEDC_LL_EVENT_CHANNEL_DUTY_CHANGE_END(speed_mode, channel) | LEDC_LL_EVENT_CHANNEL_OVF_CNT(speed_mode, channel))
 
+// ETM: LEDC1 vs LEDC0 uses a fixed task/event index step and identical MMIO layout at +reg stride.
+#define LEDC_LL_ETM_TASK_ID_GROUP_OFS   (LEDC1_TASK_DUTY_SCALE_UPDATE_CH0 - LEDC0_TASK_DUTY_SCALE_UPDATE_CH0)
+#define LEDC_LL_ETM_EVENT_ID_GROUP_OFS  (LEDC1_EVT_DUTY_CHNG_END_CH0 - LEDC0_EVT_DUTY_CHNG_END_CH0)
+#define LEDC_LL_ETM_REG_GROUP_OFS       (DR_REG_LEDC1_BASE - DR_REG_LEDC0_BASE)
+
 // Channel tasks: ID, enable register and bit
 #define LEDC_LL_ETM_CHANNEL_TASK_ID(group, channel, task) \
     ((uint32_t [1][LEDC_CHANNEL_ETM_TASK_MAX]){{ \
-        [LEDC_CHANNEL_ETM_TASK_FADE_SCALE_UPDATE] = LEDC_TASK_DUTY_SCALE_UPDATE_CH0, \
-        [LEDC_CHANNEL_ETM_TASK_SIG_OUT_DIS]      = LEDC_TASK_SIG_OUT_DIS_CH0, \
-        [LEDC_CHANNEL_ETM_TASK_OVF_CNT_RST]      = LEDC_TASK_OVF_CNT_RST_CH0, \
-        [LEDC_CHANNEL_ETM_TASK_FADE_RESTART]     = LEDC_TASK_GAMMA_RESTART_CH0, \
-        [LEDC_CHANNEL_ETM_TASK_FADE_PAUSE]       = LEDC_TASK_GAMMA_PAUSE_CH0, \
-        [LEDC_CHANNEL_ETM_TASK_FADE_RESUME]      = LEDC_TASK_GAMMA_RESUME_CH0, \
-    }}[(group)][(task)] + (channel))
+        [LEDC_CHANNEL_ETM_TASK_FADE_SCALE_UPDATE] = LEDC0_TASK_DUTY_SCALE_UPDATE_CH0, \
+        [LEDC_CHANNEL_ETM_TASK_SIG_OUT_DIS]      = LEDC0_TASK_SIG_OUT_DIS_CH0, \
+        [LEDC_CHANNEL_ETM_TASK_OVF_CNT_RST]      = LEDC0_TASK_OVF_CNT_RST_CH0, \
+        [LEDC_CHANNEL_ETM_TASK_FADE_RESTART]     = LEDC0_TASK_GAMMA_RESTART_CH0, \
+        [LEDC_CHANNEL_ETM_TASK_FADE_PAUSE]       = LEDC0_TASK_GAMMA_PAUSE_CH0, \
+        [LEDC_CHANNEL_ETM_TASK_FADE_RESUME]      = LEDC0_TASK_GAMMA_RESUME_CH0, \
+    }}[0][(task)] + (channel) + (uint32_t)(group) * LEDC_LL_ETM_TASK_ID_GROUP_OFS)
 
 #define LEDC_LL_ETM_CHANNEL_TASK_EN_REG(group, task) \
-    ((volatile uint32_t *[1][LEDC_CHANNEL_ETM_TASK_MAX]){{ \
-        [LEDC_CHANNEL_ETM_TASK_FADE_SCALE_UPDATE] = (volatile uint32_t *)LEDC_EVT_TASK_EN0_REG, \
-        [LEDC_CHANNEL_ETM_TASK_SIG_OUT_DIS]      = (volatile uint32_t *)LEDC_EVT_TASK_EN1_REG, \
-        [LEDC_CHANNEL_ETM_TASK_OVF_CNT_RST]      = (volatile uint32_t *)LEDC_EVT_TASK_EN1_REG, \
-        [LEDC_CHANNEL_ETM_TASK_FADE_RESTART]     = (volatile uint32_t *)LEDC_EVT_TASK_EN2_REG, \
-        [LEDC_CHANNEL_ETM_TASK_FADE_PAUSE]       = (volatile uint32_t *)LEDC_EVT_TASK_EN2_REG, \
-        [LEDC_CHANNEL_ETM_TASK_FADE_RESUME]      = (volatile uint32_t *)LEDC_EVT_TASK_EN2_REG, \
-    }}[(group)][(task)])
+    ((volatile uint32_t *)((uintptr_t)((volatile uint32_t *[1][LEDC_CHANNEL_ETM_TASK_MAX]){{ \
+        [LEDC_CHANNEL_ETM_TASK_FADE_SCALE_UPDATE] = (volatile uint32_t *)LEDC_EVT_TASK_EN0_REG(0), \
+        [LEDC_CHANNEL_ETM_TASK_SIG_OUT_DIS]      = (volatile uint32_t *)LEDC_EVT_TASK_EN1_REG(0), \
+        [LEDC_CHANNEL_ETM_TASK_OVF_CNT_RST]      = (volatile uint32_t *)LEDC_EVT_TASK_EN1_REG(0), \
+        [LEDC_CHANNEL_ETM_TASK_FADE_RESTART]     = (volatile uint32_t *)LEDC_EVT_TASK_EN2_REG(0), \
+        [LEDC_CHANNEL_ETM_TASK_FADE_PAUSE]       = (volatile uint32_t *)LEDC_EVT_TASK_EN2_REG(0), \
+        [LEDC_CHANNEL_ETM_TASK_FADE_RESUME]      = (volatile uint32_t *)LEDC_EVT_TASK_EN2_REG(0), \
+    }}[0][(task)]) + (uintptr_t)(group) * LEDC_LL_ETM_REG_GROUP_OFS))
 
 #define LEDC_LL_ETM_CHANNEL_TASK_EN_BIT(group, channel, task) \
     ((uint32_t [1][LEDC_CHANNEL_ETM_TASK_MAX]){{ \
@@ -71,71 +78,74 @@
         [LEDC_CHANNEL_ETM_TASK_FADE_RESTART]     = BIT(LEDC_TASK_GAMMA_RESTART_CH0_EN_S), \
         [LEDC_CHANNEL_ETM_TASK_FADE_PAUSE]       = BIT(LEDC_TASK_GAMMA_PAUSE_CH0_EN_S), \
         [LEDC_CHANNEL_ETM_TASK_FADE_RESUME]      = BIT(LEDC_TASK_GAMMA_RESUME_CH0_EN_S), \
-    }}[(group)][(task)] << (channel))
+    }}[0][(task)] << (channel))
 
 // Channel events: ID, enable register and bit
 #define LEDC_LL_ETM_CHANNEL_EVENT_ID(group, channel, event) \
     ((uint32_t [1][LEDC_CHANNEL_ETM_EVENT_MAX]){{ \
-        [LEDC_CHANNEL_ETM_EVENT_FADE_END]          = LEDC_EVT_DUTY_CHNG_END_CH0, \
-        [LEDC_CHANNEL_ETM_EVENT_REACH_MAX_OVF_CNT] = LEDC_EVT_OVF_CNT_PLS_CH0, \
-    }}[(group)][(event)] + (channel))
+        [LEDC_CHANNEL_ETM_EVENT_FADE_END]          = LEDC0_EVT_DUTY_CHNG_END_CH0, \
+        [LEDC_CHANNEL_ETM_EVENT_REACH_MAX_OVF_CNT] = LEDC0_EVT_OVF_CNT_PLS_CH0, \
+    }}[0][(event)] + (channel) + (uint32_t)(group) * LEDC_LL_ETM_EVENT_ID_GROUP_OFS)
 
 #define LEDC_LL_ETM_CHANNEL_EVENT_EN_REG(group, event) \
-    ((volatile uint32_t *[1][LEDC_CHANNEL_ETM_EVENT_MAX]){{ \
-        [LEDC_CHANNEL_ETM_EVENT_FADE_END]          = (volatile uint32_t *)LEDC_EVT_TASK_EN0_REG, \
-        [LEDC_CHANNEL_ETM_EVENT_REACH_MAX_OVF_CNT] = (volatile uint32_t *)LEDC_EVT_TASK_EN0_REG, \
-    }}[(group)][(event)])
+    ((volatile uint32_t *)((uintptr_t)((volatile uint32_t *[1][LEDC_CHANNEL_ETM_EVENT_MAX]){{ \
+        [LEDC_CHANNEL_ETM_EVENT_FADE_END]          = (volatile uint32_t *)LEDC_EVT_TASK_EN0_REG(0), \
+        [LEDC_CHANNEL_ETM_EVENT_REACH_MAX_OVF_CNT] = (volatile uint32_t *)LEDC_EVT_TASK_EN0_REG(0), \
+    }}[0][(event)]) + (uintptr_t)(group) * LEDC_LL_ETM_REG_GROUP_OFS))
 
 #define LEDC_LL_ETM_CHANNEL_EVENT_EN_BIT(group, channel, event) \
     ((uint32_t [1][LEDC_CHANNEL_ETM_EVENT_MAX]){{ \
         [LEDC_CHANNEL_ETM_EVENT_FADE_END]          = BIT(LEDC_EVT_DUTY_CHNG_END_CH0_EN_S), \
         [LEDC_CHANNEL_ETM_EVENT_REACH_MAX_OVF_CNT] = BIT(LEDC_EVT_OVF_CNT_PLS_CH0_EN_S), \
-    }}[(group)][(event)] << (channel))
+    }}[0][(event)] << (channel))
 
 // Timer tasks: ID, enable register and bit
 #define LEDC_LL_ETM_TIMER_TASK_ID(group, timer, task) \
     ((uint32_t [1][LEDC_TIMER_ETM_TASK_MAX]){{ \
-        [LEDC_TIMER_ETM_TASK_RST]    = LEDC_TASK_TIMER0_RST, \
-        [LEDC_TIMER_ETM_TASK_RESUME] = LEDC_TASK_TIMER0_RESUME, \
-        [LEDC_TIMER_ETM_TASK_PAUSE]  = LEDC_TASK_TIMER0_PAUSE, \
-    }}[(group)][(task)] + (timer))
+        [LEDC_TIMER_ETM_TASK_RST]    = LEDC0_TASK_TIMER0_RST, \
+        [LEDC_TIMER_ETM_TASK_RESUME] = LEDC0_TASK_TIMER0_RESUME, \
+        [LEDC_TIMER_ETM_TASK_PAUSE]  = LEDC0_TASK_TIMER0_PAUSE, \
+    }}[0][(task)] + (timer) + (uint32_t)(group) * LEDC_LL_ETM_TASK_ID_GROUP_OFS)
 
 #define LEDC_LL_ETM_TIMER_TASK_EN_REG(group, task) \
-    ((volatile uint32_t *[1][LEDC_TIMER_ETM_TASK_MAX]){{ \
-        [LEDC_TIMER_ETM_TASK_RST]    = (volatile uint32_t *)LEDC_EVT_TASK_EN1_REG, \
-        [LEDC_TIMER_ETM_TASK_RESUME] = (volatile uint32_t *)LEDC_EVT_TASK_EN1_REG, \
-        [LEDC_TIMER_ETM_TASK_PAUSE]  = (volatile uint32_t *)LEDC_EVT_TASK_EN1_REG, \
-    }}[(group)][(task)])
+    ((volatile uint32_t *)((uintptr_t)((volatile uint32_t *[1][LEDC_TIMER_ETM_TASK_MAX]){{ \
+        [LEDC_TIMER_ETM_TASK_RST]    = (volatile uint32_t *)LEDC_EVT_TASK_EN1_REG(0), \
+        [LEDC_TIMER_ETM_TASK_RESUME] = (volatile uint32_t *)LEDC_EVT_TASK_EN1_REG(0), \
+        [LEDC_TIMER_ETM_TASK_PAUSE]  = (volatile uint32_t *)LEDC_EVT_TASK_EN1_REG(0), \
+    }}[0][(task)]) + (uintptr_t)(group) * LEDC_LL_ETM_REG_GROUP_OFS))
 
 #define LEDC_LL_ETM_TIMER_TASK_EN_BIT(group, timer, task) \
     ((uint32_t [1][LEDC_TIMER_ETM_TASK_MAX]){{ \
         [LEDC_TIMER_ETM_TASK_RST]    = BIT(LEDC_TASK_TIMER0_RST_EN_S), \
         [LEDC_TIMER_ETM_TASK_RESUME] = BIT(LEDC_TASK_TIMER0_PAUSE_RESUME_EN_S), \
         [LEDC_TIMER_ETM_TASK_PAUSE]  = BIT(LEDC_TASK_TIMER0_PAUSE_RESUME_EN_S), \
-    }}[(group)][(task)] << (timer))
+    }}[0][(task)] << (timer))
 
 // Timer events: ID, enable register and bit
 #define LEDC_LL_ETM_TIMER_EVENT_ID(group, timer, event) \
     ((uint32_t [1][LEDC_TIMER_ETM_EVENT_MAX]){{ \
-        [LEDC_TIMER_ETM_EVENT_OVF] = LEDC_EVT_TIME_OVF_TIMER0, \
-    }}[(group)][(event)] + (timer))
+        [LEDC_TIMER_ETM_EVENT_OVF] = LEDC0_EVT_TIME_OVF_TIMER0, \
+    }}[0][(event)] + (timer) + (uint32_t)(group) * LEDC_LL_ETM_EVENT_ID_GROUP_OFS)
 
 #define LEDC_LL_ETM_TIMER_EVENT_EN_REG(group, event) \
-    ((volatile uint32_t *[1][LEDC_TIMER_ETM_EVENT_MAX]){{ \
-        [LEDC_TIMER_ETM_EVENT_OVF] = (volatile uint32_t *)LEDC_EVT_TASK_EN0_REG, \
-    }}[(group)][(event)])
+    ((volatile uint32_t *)((uintptr_t)((volatile uint32_t *[1][LEDC_TIMER_ETM_EVENT_MAX]){{ \
+        [LEDC_TIMER_ETM_EVENT_OVF] = (volatile uint32_t *)LEDC_EVT_TASK_EN0_REG(0), \
+    }}[0][(event)]) + (uintptr_t)(group) * LEDC_LL_ETM_REG_GROUP_OFS))
 
 #define LEDC_LL_ETM_TIMER_EVENT_EN_BIT(group, timer, event) \
     ((uint32_t [1][LEDC_TIMER_ETM_EVENT_MAX]){{ \
         [LEDC_TIMER_ETM_EVENT_OVF] = BIT(LEDC_EVT_TIME_OVF_TIMER0_EN_S), \
-    }}[(group)][(event)] << (timer))
+    }}[0][(event)] << (timer))
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 typedef enum {
-    LEDC_LL_MEM_LP_MODE_SHUT_DOWN,   // power down memory during low power stage
+    LEDC_LL_MEM_LP_MODE_DEEP_SLEEP,    // memory will enter deep sleep during low power stage, keep memory data
+    LEDC_LL_MEM_LP_MODE_LIGHT_SLEEP,   // memory will enter light sleep during low power stage, keep memory data
+    LEDC_LL_MEM_LP_MODE_SHUT_DOWN,     // memory will be powered down during low power stage
+    LEDC_LL_MEM_LP_MODE_DISABLE,       // disable the low power stage
 } ledc_ll_mem_lp_mode_t;
 
 /**
@@ -146,16 +156,25 @@ typedef enum {
  */
 static inline void ledc_ll_enable_bus_clock(int group_id, bool enable)
 {
-    (void)group_id;
-    HP_SYS_CLKRST.soc_clk_ctrl3.reg_ledc_apb_clk_en = enable;
+    switch (group_id) {
+    case 0:
+        HP_SYS_CLKRST.ledc_ctrl0.reg_ledc0_apb_clk_en = enable;
+        break;
+    case 1:
+        HP_SYS_CLKRST.ledc_ctrl0.reg_ledc1_apb_clk_en = enable;
+        break;
+    default:
+        abort();
+        break;
+    }
 }
 
 /// use a macro to wrap the function, force the caller to use it in a critical section
 /// the critical section needs to declare the __DECLARE_RCC_ATOMIC_ENV variable in advance
 #define ledc_ll_enable_bus_clock(...) do { \
-        (void)__DECLARE_RCC_ATOMIC_ENV; \
-        ledc_ll_enable_bus_clock(__VA_ARGS__); \
-    } while(0)
+    (void)__DECLARE_RCC_ATOMIC_ENV; \
+    ledc_ll_enable_bus_clock(__VA_ARGS__); \
+} while(0)
 
 /**
  * @brief Reset whole peripheral register to init value defined by HW design
@@ -164,17 +183,27 @@ static inline void ledc_ll_enable_bus_clock(int group_id, bool enable)
  */
 static inline void ledc_ll_reset_register(int group_id)
 {
-    (void)group_id;
-    HP_SYS_CLKRST.hp_rst_en1.reg_rst_en_ledc = 1;
-    HP_SYS_CLKRST.hp_rst_en1.reg_rst_en_ledc = 0;
+    switch (group_id) {
+    case 0:
+        HP_SYS_CLKRST.ledc_ctrl0.reg_ledc0_rst_en = 1;
+        HP_SYS_CLKRST.ledc_ctrl0.reg_ledc0_rst_en = 0;
+        break;
+    case 1:
+        HP_SYS_CLKRST.ledc_ctrl0.reg_ledc1_rst_en = 1;
+        HP_SYS_CLKRST.ledc_ctrl0.reg_ledc1_rst_en = 0;
+        break;
+    default:
+        abort();
+        break;
+    }
 }
 
 /// use a macro to wrap the function, force the caller to use it in a critical section
 /// the critical section needs to declare the __DECLARE_RCC_ATOMIC_ENV variable in advance
 #define ledc_ll_reset_register(...) do { \
-        (void)__DECLARE_RCC_ATOMIC_ENV; \
-        ledc_ll_reset_register(__VA_ARGS__); \
-    } while(0)
+    (void)__DECLARE_RCC_ATOMIC_ENV; \
+    ledc_ll_reset_register(__VA_ARGS__); \
+} while(0)
 
 /**
  * @brief Force power on the LEDC memory block, regardless of the outside PMU logic
@@ -183,7 +212,15 @@ static inline void ledc_ll_reset_register(int group_id)
  */
 static inline void ledc_ll_mem_force_power_on(ledc_dev_t *dev)
 {
-    // No register to control the power for LEDC memory block on P4
+    if (dev == &LEDC0) {
+        HP_SYSTEM.sys_ledc0_mem_lp_ctrl.sys_ledc0_mem_force_ctrl = 1;
+        HP_SYSTEM.sys_ledc0_mem_lp_ctrl.sys_ledc0_mem_lp_en = 0;
+    } else if (dev == &LEDC1) {
+        HP_SYSTEM.sys_ledc1_mem_lp_ctrl.sys_ledc1_mem_force_ctrl = 1;
+        HP_SYSTEM.sys_ledc1_mem_lp_ctrl.sys_ledc1_mem_lp_en = 0;
+    } else {
+        abort();
+    }
 }
 
 /**
@@ -193,7 +230,15 @@ static inline void ledc_ll_mem_force_power_on(ledc_dev_t *dev)
  */
 static inline void ledc_ll_mem_force_low_power(ledc_dev_t *dev)
 {
-    // No register to control the power for LEDC memory block on P4
+    if (dev == &LEDC0) {
+        HP_SYSTEM.sys_ledc0_mem_lp_ctrl.sys_ledc0_mem_force_ctrl = 1;
+        HP_SYSTEM.sys_ledc0_mem_lp_ctrl.sys_ledc0_mem_lp_en = 1;
+    } else if (dev == &LEDC1) {
+        HP_SYSTEM.sys_ledc1_mem_lp_ctrl.sys_ledc1_mem_force_ctrl = 1;
+        HP_SYSTEM.sys_ledc1_mem_lp_ctrl.sys_ledc1_mem_lp_en = 1;
+    } else {
+        abort();
+    }
 }
 
 /**
@@ -203,7 +248,15 @@ static inline void ledc_ll_mem_force_low_power(ledc_dev_t *dev)
  */
 static inline void ledc_ll_mem_power_by_pmu(ledc_dev_t *dev)
 {
-    // No register to control the power for LEDC memory block on P4
+    if (dev == &LEDC0) {
+        HP_SYSTEM.sys_ledc0_mem_lp_ctrl.sys_ledc0_mem_force_ctrl = 0;
+        HP_SYSTEM.sys_ledc0_mem_lp_ctrl.sys_ledc0_mem_lp_en = 0;
+    } else if (dev == &LEDC1) {
+        HP_SYSTEM.sys_ledc1_mem_lp_ctrl.sys_ledc1_mem_force_ctrl = 0;
+        HP_SYSTEM.sys_ledc1_mem_lp_ctrl.sys_ledc1_mem_lp_en = 0;
+    } else {
+        abort();
+    }
 }
 
 /**
@@ -214,8 +267,13 @@ static inline void ledc_ll_mem_power_by_pmu(ledc_dev_t *dev)
  */
 static inline void ledc_ll_mem_set_low_power_mode(ledc_dev_t *dev, ledc_ll_mem_lp_mode_t mode)
 {
-    (void)dev;
-    HAL_ASSERT(mode == LEDC_LL_MEM_LP_MODE_SHUT_DOWN);
+    if (dev == &LEDC0) {
+        HP_SYSTEM.sys_ledc0_mem_lp_ctrl.sys_ledc0_mem_lp_mode = mode;
+    } else if (dev == &LEDC1) {
+        HP_SYSTEM.sys_ledc1_mem_lp_ctrl.sys_ledc1_mem_lp_mode = mode;
+    } else {
+        abort();
+    }
 }
 
 /**
@@ -228,28 +286,41 @@ static inline void ledc_ll_mem_set_low_power_mode(ledc_dev_t *dev, ledc_ll_mem_l
  */
 static inline void ledc_ll_enable_clock(int group_id, bool en)
 {
-    (void)group_id;
-    HP_SYS_CLKRST.peri_clk_ctrl22.reg_ledc_clk_en = en;
+    switch (group_id) {
+    case 0:
+        HP_SYS_CLKRST.ledc_ctrl0.reg_ledc0_clk_en = en;
+        break;
+    case 1:
+        HP_SYS_CLKRST.ledc_ctrl0.reg_ledc1_clk_en = en;
+        break;
+    default:
+        abort();
+        break;
+    }
 }
 
 /// use a macro to wrap the function, force the caller to use it in a critical section
 /// the critical section needs to declare the __DECLARE_RCC_ATOMIC_ENV variable in advance
 #define ledc_ll_enable_clock(...) do { \
-        (void)__DECLARE_RCC_ATOMIC_ENV; \
-        ledc_ll_enable_clock(__VA_ARGS__); \
-    } while(0)
+    (void)__DECLARE_RCC_ATOMIC_ENV; \
+    ledc_ll_enable_clock(__VA_ARGS__); \
+} while(0)
 
 /**
  * @brief Enable the power for LEDC channel
  *
  * @param hw Beginning address of the peripheral registers
  * @param speed_mode LEDC speed_mode, low-speed mode only
- * @param channel_num LEDC channel index (0-5), select from ledc_channel_t
+ * @param channel_num LEDC channel index (0-7), select from ledc_channel_t
  * @param en True to enable, false to disable
  */
 static inline void ledc_ll_enable_channel_power(ledc_dev_t *hw, ledc_mode_t speed_mode, ledc_channel_t channel_num, bool en)
 {
-    // No per channel power control on P4
+    if (en) {
+        hw->ch_power_up_conf.val |= BIT(speed_mode * SOC_LEDC_CHANNEL_NUM + channel_num);
+    } else {
+        hw->ch_power_up_conf.val &= ~BIT(speed_mode * SOC_LEDC_CHANNEL_NUM + channel_num);
+    }
 }
 
 /**
@@ -262,7 +333,11 @@ static inline void ledc_ll_enable_channel_power(ledc_dev_t *hw, ledc_mode_t spee
  */
 static inline void ledc_ll_enable_timer_power(ledc_dev_t *hw, ledc_mode_t speed_mode, ledc_timer_t timer_sel, bool en)
 {
-    // No per timer power control on P4
+    if (en) {
+        hw->timer_power_up_conf.val |= BIT(speed_mode * SOC_LEDC_TIMER_NUM + timer_sel);
+    } else {
+        hw->timer_power_up_conf.val &= ~BIT(speed_mode * SOC_LEDC_TIMER_NUM + timer_sel);
+    }
 }
 
 /**
@@ -275,7 +350,6 @@ static inline void ledc_ll_enable_timer_power(ledc_dev_t *hw, ledc_mode_t speed_
  */
 static inline void ledc_ll_set_slow_clk_sel(ledc_dev_t *hw, ledc_slow_clk_sel_t slow_clk_sel)
 {
-    (void) hw;
     uint32_t clk_sel_val = 3;
     switch (slow_clk_sel) {
     case LEDC_SLOW_CLK_XTAL:
@@ -289,17 +363,24 @@ static inline void ledc_ll_set_slow_clk_sel(ledc_dev_t *hw, ledc_slow_clk_sel_t 
         break;
     default:
         abort();
+        break;
     }
 
-    HP_SYS_CLKRST.peri_clk_ctrl22.reg_ledc_clk_src_sel = clk_sel_val;
+    if (hw == &LEDC0) {
+        HP_SYS_CLKRST.ledc_ctrl0.reg_ledc0_clk_src_sel = clk_sel_val;
+    } else if (hw == &LEDC1) {
+        HP_SYS_CLKRST.ledc_ctrl0.reg_ledc1_clk_src_sel = clk_sel_val;
+    } else {
+        abort();
+    }
 }
 
 /// use a macro to wrap the function, force the caller to use it in a critical section
 /// the critical section needs to declare the __DECLARE_RCC_ATOMIC_ENV variable in advance
 #define ledc_ll_set_slow_clk_sel(...) do { \
-        (void)__DECLARE_RCC_ATOMIC_ENV; \
-        ledc_ll_set_slow_clk_sel(__VA_ARGS__); \
-    } while(0)
+    (void)__DECLARE_RCC_ATOMIC_ENV; \
+    ledc_ll_set_slow_clk_sel(__VA_ARGS__); \
+} while(0)
 
 /**
  * @brief Get LEDC low speed timer clock
@@ -311,8 +392,16 @@ static inline void ledc_ll_set_slow_clk_sel(ledc_dev_t *hw, ledc_slow_clk_sel_t 
  */
 static inline void ledc_ll_get_slow_clk_sel(ledc_dev_t *hw, ledc_slow_clk_sel_t *slow_clk_sel)
 {
-    (void) hw;
-    switch (HP_SYS_CLKRST.peri_clk_ctrl22.reg_ledc_clk_src_sel) {
+    uint32_t clk_sel_val = 3;
+    if (hw == &LEDC0) {
+        clk_sel_val = HP_SYS_CLKRST.ledc_ctrl0.reg_ledc0_clk_src_sel;
+    } else if (hw == &LEDC1) {
+        clk_sel_val = HP_SYS_CLKRST.ledc_ctrl0.reg_ledc1_clk_src_sel;
+    } else {
+        abort();
+    }
+
+    switch (clk_sel_val) {
     case 0:
         *slow_clk_sel = LEDC_SLOW_CLK_XTAL;
         break;
@@ -324,6 +413,7 @@ static inline void ledc_ll_get_slow_clk_sel(ledc_dev_t *hw, ledc_slow_clk_sel_t 
         break;
     default:
         abort();
+        break;
     }
 }
 
@@ -572,7 +662,13 @@ static inline void ledc_ll_set_fade_param_range(ledc_dev_t *hw, ledc_mode_t spee
     range_param.duty_cycle = cycle;
     range_param.scale = scale;
     range_param.duty_num = step;
-    LEDC_GAMMA_RAM.channel[channel_num].entry[range].val = range_param.val;
+    if (hw == &LEDC0) {
+        LEDC0_GAMMA_RAM.channel[channel_num].entry[range].val = range_param.val;
+    } else if (hw == &LEDC1) {
+        LEDC1_GAMMA_RAM.channel[channel_num].entry[range].val = range_param.val;
+    } else {
+        abort();
+    }
 }
 
 /**
@@ -587,7 +683,7 @@ static inline void ledc_ll_set_fade_param_range(ledc_dev_t *hw, ledc_mode_t spee
  */
 static inline void ledc_ll_set_range_number(ledc_dev_t *hw, ledc_mode_t speed_mode, ledc_channel_t channel_num, uint32_t range_num)
 {
-    hw->chn_gamma_conf[channel_num].gamma_entry_num = range_num;
+    hw->channel_gamma_conf_group[speed_mode].gamma_conf[channel_num].gamma_entry_num = range_num;
 }
 
 /**
@@ -602,7 +698,7 @@ static inline void ledc_ll_set_range_number(ledc_dev_t *hw, ledc_mode_t speed_mo
  */
 static inline void ledc_ll_get_range_number(ledc_dev_t *hw, ledc_mode_t speed_mode, ledc_channel_t channel_num, uint32_t *range_num)
 {
-    *range_num = hw->chn_gamma_conf[channel_num].gamma_entry_num;
+    *range_num = hw->channel_gamma_conf_group[speed_mode].gamma_conf[channel_num].gamma_entry_num;
 }
 
 /**
@@ -622,7 +718,8 @@ static inline void ledc_ll_get_range_number(ledc_dev_t *hw, ledc_mode_t speed_mo
 static inline void ledc_ll_get_fade_param_range(ledc_dev_t *hw, ledc_mode_t speed_mode, ledc_channel_t channel_num, uint8_t range, uint32_t *dir, uint32_t *cycle, uint32_t *scale, uint32_t *step)
 {
     ledc_channel_gamma_fade_param_t range_param = {
-        .val = LEDC_GAMMA_RAM.channel[channel_num].entry[range].val,
+        .val = (hw == &LEDC0) ? LEDC0_GAMMA_RAM.channel[channel_num].entry[range].val :
+        (hw == &LEDC1) ? LEDC1_GAMMA_RAM.channel[channel_num].entry[range].val : 0,
     };
 
     *dir = range_param.duty_inc;
@@ -770,6 +867,8 @@ static inline void ledc_ll_get_channel_timer(ledc_dev_t *hw, ledc_mode_t speed_m
  * @param reg_addr Register address to control the ETM event/task
  * @param bit Bit position in the register
  * @param enable Enable or disable the ETM event/task
+ *
+ * @return None
  */
 static inline void ledc_ll_etm_enable_evt_task(ledc_dev_t *hw, ledc_mode_t speed_mode, volatile uint32_t *reg_addr, uint32_t bit, bool enable)
 {

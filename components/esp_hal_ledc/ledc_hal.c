@@ -13,7 +13,8 @@ void ledc_hal_init(ledc_hal_context_t *hal, int group_id)
 {
     //Get hardware instance.
     hal->dev = LEDC_LL_GET_HW(group_id);
-    ledc_ll_enable_mem_power(true);
+    ledc_ll_mem_power_by_pmu(hal->dev);
+    ledc_ll_mem_set_low_power_mode(hal->dev, LEDC_LL_MEM_LP_MODE_SHUT_DOWN);
 }
 
 void ledc_hal_get_clk_cfg(ledc_hal_context_t *hal, ledc_mode_t speed_mode, ledc_timer_t timer_sel, ledc_clk_cfg_t *clk_cfg)

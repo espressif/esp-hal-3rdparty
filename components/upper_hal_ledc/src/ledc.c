@@ -391,7 +391,7 @@ esp_err_t ledc_isr_register(void (*fn)(void *), void *arg, int intr_alloc_flags,
     esp_err_t ret;
     LEDC_ARG_CHECK(fn, "fn");
     portENTER_CRITICAL(&ledc_spinlock);
-    ret = esp_intr_alloc(ETS_LEDC_INTR_SOURCE, intr_alloc_flags, fn, arg, handle);
+    ret = esp_intr_alloc(ledc_periph_signal[0].irq_id, intr_alloc_flags, fn, arg, handle);
     portEXIT_CRITICAL(&ledc_spinlock);
     return ret;
 }
@@ -399,44 +399,55 @@ esp_err_t ledc_isr_register(void (*fn)(void *), void *arg, int intr_alloc_flags,
 static bool ledc_speed_mode_ctx_create(ledc_mode_t speed_mode)
 {
     bool new_ctx = false;
+    bool group_acquired = false;
 
     // Prevent p_ledc_obj malloc concurrently
     _lock_acquire(&s_ledc_mutex[speed_mode]);
     if (!p_ledc_obj[speed_mode]) {
+        for (int i = 0; i < LEDC_SPEED_MODE_MAX; i++) {
+            if (p_ledc_obj[i]) {
+                group_acquired = true;
+                break;
+            }
+        }
         ledc_obj_t *ledc_new_mode_obj = (ledc_obj_t *) heap_caps_calloc(1, sizeof(ledc_obj_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
         if (ledc_new_mode_obj) {
             new_ctx = true;
-            PERIPH_RCC_ATOMIC() {
-                ledc_ll_enable_bus_clock(0, true);
-                ledc_ll_reset_register(0);
-            }
-            // Enable core clock gating at early stage, some LEDC registers and gamma RAM rely on the LEDC core clock existence
-            PERIPH_RCC_ATOMIC() {
-                ledc_ll_enable_clock(0, true);
-            }
-            ledc_hal_init(&(ledc_new_mode_obj->ledc_hal), 0);
+            // initialize some fields
             ledc_new_mode_obj->glb_clk = LEDC_SLOW_CLK_UNINIT;
 #if SOC_LEDC_HAS_TIMER_SPECIFIC_MUX
             memset(ledc_new_mode_obj->timer_specific_clk, LEDC_TIMER_SPECIFIC_CLK_UNINIT, sizeof(ledc_clk_src_t) * LEDC_TIMER_MAX);
 #endif
-
             ledc_new_mode_obj->sleep_mode = LEDC_SLEEP_MODE_INVALID;
+
+            // if the entire LEDC group is not acquired, do module based initialization
+            if (!group_acquired) {
+                PERIPH_RCC_ATOMIC() {
+                    ledc_ll_enable_bus_clock(0, true);
+                    ledc_ll_reset_register(0);
+                }
+                // Enable core clock gating at early stage, some LEDC registers and gamma RAM rely on the LEDC core clock existence
+                PERIPH_RCC_ATOMIC() {
+                    ledc_ll_enable_clock(0, true);
+                }
 #if CONFIG_PM_POWER_DOWN_PERIPHERAL_IN_LIGHT_SLEEP // for targets that is !SOC_LEDC_SUPPORT_SLEEP_RETENTION, retention module should still be inited to avoid TOP PD
-            // Initialize sleep retention module for LEDC
-            sleep_retention_module_t module = ledc_reg_retention_info[0].module_id;
-            sleep_retention_module_init_param_t init_param = {
-                .cbs = {
-                    .create = {
-                        .handle = ledc_create_sleep_retention_link_cb,
-                        .arg = NULL,
+                // Initialize sleep retention module for LEDC
+                sleep_retention_module_t module = ledc_reg_retention_info[0].module_id;
+                sleep_retention_module_init_param_t init_param = {
+                    .cbs = {
+                        .create = {
+                            .handle = ledc_create_sleep_retention_link_cb,
+                            .arg = NULL,
+                        },
                     },
-                },
-                .depends = RETENTION_MODULE_BITMAP_INIT(CLOCK_SYSTEM)
-            };
-            if (sleep_retention_module_init(module, &init_param) != ESP_OK) {
-                ESP_LOGW(LEDC_TAG, "init sleep retention failed for ledc, power domain may be turned off during sleep");
-            }
+                    .depends = RETENTION_MODULE_BITMAP_INIT(CLOCK_SYSTEM)
+                };
+                if (sleep_retention_module_init(module, &init_param) != ESP_OK) {
+                    ESP_LOGW(LEDC_TAG, "init sleep retention failed for ledc, power domain may be turned off during sleep");
+                }
 #endif
+            }
+            ledc_hal_init(&(ledc_new_mode_obj->ledc_hal), 0);
             p_ledc_obj[speed_mode] = ledc_new_mode_obj;
         }
     }
@@ -808,7 +819,7 @@ static esp_err_t _ledc_set_pin(int gpio_num, bool out_inv, ledc_mode_t speed_mod
     if (old_gpio_rsv_mask & BIT64(gpio_num)) {
         ESP_LOGW(LEDC_TAG, "GPIO %d is not usable, maybe conflict with others", gpio_num);
     }
-    gpio_matrix_output(gpio_num, ledc_periph_signal[0].speed_mode[speed_mode].sig_out0_idx + channel, out_inv, false);
+    gpio_matrix_output(gpio_num, ledc_periph_signal[0].speed_mode[speed_mode].sig_out_idx[channel], out_inv, false);
     portENTER_CRITICAL(&ledc_spinlock);
     p_ledc_obj[speed_mode]->occupied_pin_mask[channel] |= BIT64(gpio_num);
     portEXIT_CRITICAL(&ledc_spinlock);
@@ -1206,7 +1217,7 @@ static void IRAM_ATTR ledc_fade_isr(void *arg)
             continue;
         }
         intr_status = ledc_ll_get_intr_status(p_ledc_obj[speed_mode]->ledc_hal.dev) & LEDC_LL_DUTY_CHANGE_END_INTR_MASK(speed_mode);
-        intr_status >>= __builtin_ctzll(intr_status);
+        intr_status >>= __builtin_ctzll(LEDC_LL_DUTY_CHANGE_END_INTR_MASK(speed_mode));
         while (intr_status) {
             ledc_calc_fade_end_channel(&intr_status, &channel);
 

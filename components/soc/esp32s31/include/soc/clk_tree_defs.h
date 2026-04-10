@@ -241,6 +241,24 @@ typedef enum {
     UART_SCLK_DEFAULT = SOC_MOD_CLK_XTAL,           /*!< UART source clock default choice is XTAL in fpga env */
 } soc_periph_uart_clk_src_legacy_t;
 
+//////////////////////////////////////////////////LEDC/////////////////////////////////////////////////////////////////
+
+/**
+ * @brief Array initializer for all supported clock sources of LEDC
+ */
+#define SOC_LEDC_CLKS {SOC_MOD_CLK_XTAL, SOC_MOD_CLK_PLL_F80M, SOC_MOD_CLK_RC_FAST}
+#define SOC_LEDC_CLK_STRS {"LEDC_USE_XTAL_CLK", "LEDC_USE_PLL_DIV_CLK", "LEDC_USE_RC_FAST_CLK"}
+
+/**
+ * @brief Type of LEDC clock source, reserved for the legacy LEDC driver
+ */
+typedef enum {
+    LEDC_AUTO_CLK = 0,                              /*!< LEDC source clock will be automatically selected based on the giving resolution and duty parameter when init the timer*/
+    LEDC_USE_PLL_DIV_CLK = SOC_MOD_CLK_PLL_F80M,    /*!< Select PLL_F80M clock as the source clock */
+    LEDC_USE_RC_FAST_CLK = SOC_MOD_CLK_RC_FAST,     /*!< Select RC_FAST as the source clock */
+    LEDC_USE_XTAL_CLK = SOC_MOD_CLK_XTAL,           /*!< Select XTAL as the source clock */
+} soc_periph_ledc_clk_src_legacy_t;
+
 /////////////////////////////////////////////////SPI////////////////////////////////////////////////////////////////////
 
 /**
