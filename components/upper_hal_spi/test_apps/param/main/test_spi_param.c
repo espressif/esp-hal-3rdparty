@@ -106,8 +106,8 @@ static void local_test_start(spi_device_handle_t *spi, int freq, const spitest_p
         devcfg.spics_io_num = MASTER_IOMUX_PIN_CS;
         slvcfg.spics_io_num = MASTER_IOMUX_PIN_CS;
     }
-    //this does nothing, but avoid the driver from using iomux pins if required
-    buscfg.quadhd_io_num = (!pset->master_iomux && !pset->slave_iomux ? UNCONNECTED_PIN : -1);
+    bool use_iomux = pset->master_iomux || pset->slave_iomux;
+    buscfg.flags |= (use_iomux ? 0 : SPICOMMON_BUSFLAG_GPIO_PINS);
     devcfg.mode = pset->mode;
     const int cs_pretrans_max = 15;
     if (pset->dup == HALF_DUPLEX_MISO) {
@@ -721,10 +721,8 @@ static void test_master_start(spi_device_handle_t *spi, int freq, const spitest_
 {
     //master config
     spi_bus_config_t buspset = SPI_BUS_TEST_DEFAULT_CONFIG();
-    //this does nothing, but avoid the driver from using native pins
-    if (!pset->master_iomux) {
-        buspset.quadhd_io_num = UNCONNECTED_PIN;
-    }
+    buspset.flags |= (pset->master_iomux ? 0 : SPICOMMON_BUSFLAG_GPIO_PINS);
+
     spi_device_interface_config_t devpset = SPI_DEVICE_TEST_DEFAULT_CONFIG();
     devpset.spics_io_num = PIN_NUM_CS;
     devpset.mode = pset->mode;
@@ -865,10 +863,8 @@ static void timing_slave_start(int speed, const spitest_param_set_t *pset, spite
 {
     //slave config
     spi_bus_config_t slv_buscfg = SPI_BUS_TEST_DEFAULT_CONFIG();
-    //this does nothing, but avoid the driver from using native pins
-    if (!pset->slave_iomux) {
-        slv_buscfg.quadhd_io_num = UNCONNECTED_PIN;
-    }
+    slv_buscfg.flags |= (pset->slave_iomux ? 0 : SPICOMMON_BUSFLAG_GPIO_PINS);
+
     spi_slave_interface_config_t slvcfg = SPI_SLAVE_TEST_DEFAULT_CONFIG();
     slvcfg.spics_io_num = PIN_NUM_CS;
     slvcfg.mode = pset->mode;

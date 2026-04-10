@@ -267,14 +267,11 @@
 
 /*-------------------------- SPI CAPS ----------------------------------------*/
 #define SOC_SPI_PERIPH_NUM                  3
-#define SOC_SPI_PERIPH_CS_NUM(i)            (((i)==0)? 2: (((i)==1)? 6: 3))
 #define SOC_SPI_MAXIMUM_BUFFER_SIZE         72
 /// The SPI Slave half duplex mode has been updated greatly in ESP32-S2
 #define SOC_SPI_SUPPORT_SLAVE_HD_VER2       1
 #define SOC_SPI_HD_BOTH_INOUT_SUPPORTED     1   //Support enabling MOSI and MISO phases together under Halfduplex mode
 #define SOC_SPI_SUPPORT_OCT                 1
-#define SOC_SPI_MAX_BITWIDTH(host_id)       ((host_id == 2) ? 1 : 8) // Supported line mode: SPI3: 1, SPI1/2: 1, 2, 4, 8
-#define SOC_SPI_SCT_SUPPORTED(host_id)      ((host_id) == 1)
 
 // Peripheral supports output given level during its "dummy phase"
 // Only SPI1 supports this feature

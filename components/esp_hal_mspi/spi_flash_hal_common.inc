@@ -15,6 +15,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "hal/spi_flash_hal.h"
+#include "hal/spi_ll.h"
 #include "hal/assert.h"
 #include "soc/soc_caps.h"
 #include "soc/chip_revision.h"
@@ -96,7 +97,7 @@ esp_err_t spi_flash_hal_configure_host_io_mode(
      */
     bool conf_required = ((extra_bits & SPI_FLASH_CONFIG_CONF_BITS) != 0);
 
-    if ((SOC_SPI_MAX_BITWIDTH(spi_flash_ll_hw_get_id(dev)) < 2) && io_mode > SPI_FLASH_FASTRD) {
+    if ((SPI_LL_PERIPH_BITWIDTH(spi_flash_ll_hw_get_id(dev)) < 2) && io_mode > SPI_FLASH_FASTRD) {
         return ESP_ERR_NOT_SUPPORTED;
     }
 
