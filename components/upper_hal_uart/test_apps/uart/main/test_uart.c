@@ -727,7 +727,7 @@ IRAM_ATTR static void uart_signal_inject_glitch_task(void *param)
 #if SOC_UART_LP_NUM > 0 && SOC_LP_GPIO_MATRIX_SUPPORTED
         } else {
             rtcio_ll_matrix_out(rtc_gpio_num, LP_SIG_GPIO_OUT_IDX, false, false);
-            LP_GPIO.func_out_sel_cfg[rtc_gpio_num].oe_sel = 1;
+            rtcio_ll_set_output_enable_ctrl(rtc_gpio_num, false, false);
             rtcio_ll_matrix_out(rtc_gpio_num, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_TX), false, false);
 #endif
         }
