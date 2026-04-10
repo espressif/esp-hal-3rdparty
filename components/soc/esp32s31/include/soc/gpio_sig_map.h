@@ -24,6 +24,8 @@
 #define SD_CARD_CDATA7_2_PAD_OUT_IDX            7
 #define PAD_MODEM_ANT_SEL0_IDX                  8
 #define PAD_MODEM_ANT_SEL1_IDX                  9
+#define ANT_SEL0_IDX                            PAD_MODEM_ANT_SEL0_IDX
+#define ANT_SEL1_IDX                            PAD_MODEM_ANT_SEL1_IDX
 #define UART0_RXD_PAD_IN_IDX                    10
 #define UART0_TXD_PAD_OUT_IDX                   10
 #define UART0_CTS_PAD_IN_IDX                    11
@@ -80,8 +82,10 @@
 #define I2S1_I_WS_PAD_OUT_IDX                   36
 #define PCNT1_RST_IN0_IDX                       37
 #define PAD_MODEM_ANT_SEL2_IDX                  37
+#define ANT_SEL2_IDX                            PAD_MODEM_ANT_SEL2_IDX
 #define PCNT1_RST_IN1_IDX                       38
 #define PAD_MODEM_ANT_SEL3_IDX                  38
+#define ANT_SEL3_IDX                            PAD_MODEM_ANT_SEL3_IDX
 #define PCNT1_RST_IN2_IDX                       39
 #define PAD_MODEM_ANT_SEL4_IDX                  39
 #define PCNT1_RST_IN3_IDX                       40
