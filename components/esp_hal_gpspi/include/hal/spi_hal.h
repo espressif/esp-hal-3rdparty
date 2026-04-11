@@ -27,6 +27,7 @@
 #pragma once
 #include "esp_err.h"
 #include "soc/soc_caps.h"
+#include "soc/spi_periph.h"
 #include "hal/spi_types.h"
 #if SOC_GPSPI_SUPPORTED
 #include "hal/spi_ll.h"
