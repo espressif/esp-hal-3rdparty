@@ -15,6 +15,10 @@ idf_component_register(SRCS
 
 idf_component_get_property(esp_supplicant_dir wpa_supplicant COMPONENT_DIR)
 
+if(CONFIG_ESP_WIFI_TESTING_OPTIONS)
+    target_compile_definitions(${COMPONENT_LIB} PRIVATE CONFIG_TESTING_OPTIONS)
+endif()
+
 # Calculate MD5 value of header file esp_wifi_driver.h
 file(MD5 ${esp_supplicant_dir}/esp_supplicant/src/esp_wifi_driver.h WIFI_SUPPLICANT_MD5)
 string(SUBSTRING "${WIFI_SUPPLICANT_MD5}" 0 7 WIFI_SUPPLICANT_MD5)

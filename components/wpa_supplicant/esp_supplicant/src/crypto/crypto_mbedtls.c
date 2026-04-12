@@ -6,9 +6,7 @@
 
 #define MBEDTLS_ALLOW_PRIVATE_ACCESS
 
-#ifdef ESP_PLATFORM
 #include "esp_system.h"
-#endif
 #include "sdkconfig.h"
 #include <errno.h>
 #include "utils/includes.h"

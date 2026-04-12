@@ -4,12 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 #define MBEDTLS_ALLOW_PRIVATE_ACCESS
-#ifdef ESP_PLATFORM
 #include "esp_system.h"
 #include "mbedtls/bignum.h"
 #include "mbedtls/esp_mbedtls_random.h"
 #include "soc/soc_caps.h"
-#endif
 
 #include "utils/includes.h"
 #include "utils/common.h"
@@ -33,39 +31,6 @@ static int mpi_is_secp256r1_prime(const mbedtls_mpi *p)
     }
 
     return os_memcmp(p_be, p256_p_be, sizeof(p_be)) == 0;
-}
-
-static int p256_words_is_one(const u32 *a)
-{
-    size_t i;
-
-    if (a[0] != 1) {
-        return 0;
-    }
-
-    for (i = 1; i < P256_WORDS; i++) {
-        if (a[i] != 0) {
-            return 0;
-        }
-    }
-
-    return 1;
-}
-
-static int p256_words_cmp(const u32 *a, const u32 *b)
-{
-    int i;
-
-    for (i = P256_WORDS - 1; i >= 0; i--) {
-        if (a[i] < b[i]) {
-            return -1;
-        }
-        if (a[i] > b[i]) {
-            return 1;
-        }
-    }
-
-    return 0;
 }
 
 static size_t p256_words_ctz(const u32 *a)
