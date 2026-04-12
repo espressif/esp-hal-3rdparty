@@ -27,11 +27,6 @@ config BT_CTRL_TASK_STACK_SIZE
     help
         This configures stack size of NimBLE controller task
 
-config BT_CTRL_MULTI_LINK_ENABLED
-    depends on SOC_BT_MULTI_LINK_SUPPORTED
-    bool "Enable multi-link mode"
-    default y
-
 config BT_CTRL_SLEEP_ENABLE
     bool "Enable Bluetooth Controller sleep"
     default n

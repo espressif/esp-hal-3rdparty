@@ -115,7 +115,7 @@ hci_driver_vhci_controller_tx(hci_driver_data_type_t data_type, uint8_t *data, u
     } else if (data_type == HCI_DRIVER_TYPE_EVT) {
         /* TODO: If there is no memory, should handle it in the controller. */
         if (dir == HCI_DRIVER_DIR_LEC2H) {
-#if UC_BTDM_CTRL_BLE_IS_ENABLE
+#if UC_BT_CTRL_BLE_IS_ENABLE
             buf = malloc(buf_len);
             assert(buf != NULL);
             buf[0] = HCI_DRIVER_TYPE_EVT;

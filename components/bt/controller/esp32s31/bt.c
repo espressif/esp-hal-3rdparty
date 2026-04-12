@@ -36,6 +36,8 @@
 #if UC_BT_CTRL_UART_HCI_DMA_MODE
 #define BT_HCI_TRANSPORT_MODE HCI_TRANSPORT_UART_UHCI
 #endif // UC_BT_CTRL_UART_HCI_DMA_MODE
+#else
+#error "Unknown HCI transport mode!!"
 #endif // UC_BT_CTRL_HCI_INTERFACE_USE_RAM
 
 /*

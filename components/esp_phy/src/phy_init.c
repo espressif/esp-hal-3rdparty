@@ -370,7 +370,6 @@ void esp_phy_enable(esp_phy_modem_t modem)
             phy_ant_update();
             phy_ant_clr_update_flag();
         }
-        phy_module_disable();
     }
     phy_set_modem_flag(modem);
 #if !CONFIG_IDF_TARGET_ESP32 && !CONFIG_ESP_PHY_DISABLE_PLL_TRACK

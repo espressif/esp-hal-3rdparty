@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2015-2023 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -37,6 +37,9 @@ static esp_err_t btbb_sleep_retention_init(void *arg)
 #if BB_PART_CNT > 2
         [2] = { .config = REGDMA_LINK_CONTINUOUS_INIT(REGDMA_MODEM_BT_BB_LINK(0x02), BB_PART_2_ADDR, BB_PART_2_ADDR, BB_PART_2_SIZE, 0, 0), .owner = BTBB_LINK_OWNER },
 #endif // BB_PART_CNT > 2
+#if BB_PART_CNT > 3
+        [3] = { .config = REGDMA_LINK_CONTINUOUS_INIT(REGDMA_MODEM_BT_BB_LINK(0x03), BB_PART_3_ADDR, BB_PART_3_ADDR, BB_PART_3_SIZE, 0, 0), .owner = BTBB_LINK_OWNER },
+#endif // BB_PART_CNT > 3
     };
     esp_err_t err = sleep_retention_entries_create(btbb_regs_retention, ARRAY_SIZE(btbb_regs_retention), REGDMA_LINK_PRI_BT_MAC_BB, SLEEP_RETENTION_MODULE_BT_BB);
     ESP_RETURN_ON_ERROR(err, TAG, "failed to allocate memory for btbb retention");
@@ -56,7 +59,6 @@ static void btbb_sleep_retention_deinit(void)
     }
 }
 #endif // SOC_PM_MODEM_RETENTION_BY_REGDMA && CONFIG_FREERTOS_USE_TICKLESS_IDLE
-
 
 void esp_btbb_enable(void)
 {
