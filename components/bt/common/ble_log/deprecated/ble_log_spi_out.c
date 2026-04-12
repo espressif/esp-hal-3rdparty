@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2025-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -98,7 +98,13 @@ static_assert(false, "BLE Log SPI Out: Unsupported target architecture");
                                                  SPI_OUT_MESH_QUEUE_SIZE)
 
 #if SPI_OUT_LL_ENABLED && CONFIG_SOC_ESP_NIMBLE_CONTROLLER
+#if CONFIG_BT_DUAL_MODE_ARCH
+#include "ble_mbuf.h"
+#define BLE_MBUF_COPY ble_mbuf_copydata
+#else
 #include "os/os_mbuf.h"
+#define BLE_MBUF_COPY os_mbuf_copydata
+#endif // CONFIG_BT_DUAL_MODE_ARCH
 #endif /* SPI_OUT_LL_ENABLED && CONFIG_SOC_ESP_NIMBLE_CONTROLLER */
 
 // Private typedefs
@@ -613,8 +619,8 @@ IRAM_ATTR static bool spi_out_log_cb_write(spi_out_log_cb_t *log_cb, const uint8
     if (len_append && addr_append) {
 #if SPI_OUT_LL_ENABLED && CONFIG_SOC_ESP_NIMBLE_CONTROLLER
         if (omdata) {
-            os_mbuf_copydata((struct os_mbuf *)addr_append, 0,
-                             len_append, buf + SPI_OUT_FRAME_HEAD_LEN + len);
+            BLE_MBUF_COPY((struct ble_mbuf *)addr_append, 0,
+                              len_append, buf + SPI_OUT_FRAME_HEAD_LEN + len);
         }
         else
 #endif /* SPI_OUT_LL_ENABLED && CONFIG_SOC_ESP_NIMBLE_CONTROLLER */

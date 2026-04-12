@@ -24,6 +24,7 @@
 #include "esp_private/sleep_modem.h"
 #include "esp_private/sleep_retention.h"
 #endif
+#include "soc/rtc.h"
 
 #if CONFIG_IDF_TARGET_ESP32S31
 // TODO: remove this include after use of HP_SYS_CLKRST_MODEM_CONF_REG is removed
@@ -55,7 +56,7 @@ extern esp_err_t sleep_modem_bredr_mac_modem_state_init(void);
 extern esp_err_t sleep_modem_ble_mac_modem_state_init(void);
 #endif // UC_BT_CTRL_BLE_IS_ENABLEs
 #endif /* CONFIG_FREERTOS_USE_TICKLESS_IDLE */
-
+extern int r_btdm_hal_rtc_freq_set(uint64_t rtc_freq);
 extern void r_btdm_sleep_set_sleep_cb(void *s_cb, void *w_cb, void *s_arg, void *w_arg,
                                       uint32_t us_to_enabled);
 
@@ -70,8 +71,8 @@ static DRAM_ATTR modem_clock_lpclk_src_t s_bt_lpclk_src = MODEM_CLOCK_LPCLK_SRC_
 #ifdef CONFIG_PM_ENABLE
 static DRAM_ATTR esp_pm_lock_handle_t s_pm_lock = NULL;
 #endif // CONFIG_PM_ENABLE
-// static modem_clock_lpclk_src_t s_bt_lpclk_src = MODEM_CLOCK_LPCLK_SRC_INVALID;
-static uint32_t s_bt_lpclk_freq = 100000;
+static uint32_t s_bt_xtal_lpclk_freq = 100000;
+static uint32_t s_bt_lpclk_freq = 0;
 
 /*
  ***************************************************************************************************
@@ -85,7 +86,7 @@ btdm_lp_rtc_slow_clk_select(uint8_t slow_clk_src)
     switch (slow_clk_src) {
         case MODEM_CLOCK_LPCLK_SRC_MAIN_XTAL:
             ESP_LOGI(BTDM_LOG_TAG, "Using main XTAL as clock source");
-            modem_clock_select_lp_clock_source(PERIPH_BT_MODULE, slow_clk_src, (CONFIG_XTAL_FREQ * 1000000 / s_bt_lpclk_freq - 1));
+            modem_clock_select_lp_clock_source(PERIPH_BT_MODULE, slow_clk_src, (CONFIG_XTAL_FREQ * 1000000 / s_bt_xtal_lpclk_freq - 1));
             break;
         case MODEM_CLOCK_LPCLK_SRC_RC_SLOW:
             ESP_LOGW(BTDM_LOG_TAG, "Using 136 kHz RC as clock source, use with caution as it may not maintain ACL or Sync process due to low clock accuracy!");
@@ -113,9 +114,11 @@ btdm_lp_timer_clk_init(esp_btdm_controller_config_t *cfg)
     if (s_bt_lpclk_src == MODEM_CLOCK_LPCLK_SRC_INVALID) {
 #if CONFIG_BT_LE_LP_CLK_SRC_MAIN_XTAL
         s_bt_lpclk_src = MODEM_CLOCK_LPCLK_SRC_MAIN_XTAL;
+        s_bt_lpclk_freq = s_bt_xtal_lpclk_freq;
 #else
 #if CONFIG_RTC_CLK_SRC_INT_RC
         s_bt_lpclk_src = MODEM_CLOCK_LPCLK_SRC_RC_SLOW;
+        s_bt_lpclk_freq = esp_clk_tree_lp_slow_get_freq_hz(ESP_CLK_TREE_SRC_FREQ_PRECISION_CACHED) / 5;
 #elif CONFIG_RTC_CLK_SRC_EXT_CRYS
         uint32_t clk_freq = 0;
         if ((rtc_clk_slow_src_get() == SOC_RTC_SLOW_CLK_SRC_XTAL32K) &&
@@ -124,13 +127,16 @@ btdm_lp_timer_clk_init(esp_btdm_controller_config_t *cfg)
             s_bt_lpclk_src = MODEM_CLOCK_LPCLK_SRC_XTAL32K;
             s_bt_lpclk_freq = 32768;
         } else {
-            ESP_LOGW(BTDM_LOG_TAG, "32.768kHz XTAL not detected, fall back to main XTAL as Bluetooth sleep clock");
+            ESP_LOGW(BTDM_LOG_TAG, "32.768kHz XTAL detection error, switch to main XTAL as Bluetooth sleep clock");
             s_bt_lpclk_src = MODEM_CLOCK_LPCLK_SRC_MAIN_XTAL;
+            s_bt_lpclk_freq = s_bt_xtal_lpclk_freq;
         }
 #elif CONFIG_RTC_CLK_SRC_INT_RC32K
         s_bt_lpclk_src = MODEM_CLOCK_LPCLK_SRC_RC32K;
+        s_bt_lpclk_freq = 32000;
 #elif CONFIG_RTC_CLK_SRC_EXT_OSC
         s_bt_lpclk_src = MODEM_CLOCK_LPCLK_SRC_EXT32K;
+        s_bt_lpclk_freq = 32000;
 #else
         ESP_LOGE(BTDM_LOG_TAG, "Unsupported clock source");
         assert(0);
@@ -138,19 +144,6 @@ btdm_lp_timer_clk_init(esp_btdm_controller_config_t *cfg)
 #endif /* CONFIG_BT_LE_LP_CLK_SRC_MAIN_XTAL */
     }
 
-    // if (s_bt_lpclk_src == MODEM_CLOCK_LPCLK_SRC_MAIN_XTAL) {
-    //     cfg->rtc_freq = s_bt_lpclk_freq;
-    // } else if (s_bt_lpclk_src == MODEM_CLOCK_LPCLK_SRC_XTAL32K) {
-    //     cfg->rtc_freq = 32768;
-    // } else if (s_bt_lpclk_src == MODEM_CLOCK_LPCLK_SRC_RC_SLOW) {
-    //     cfg->rtc_freq = esp_clk_tree_lp_slow_get_freq_hz(ESP_CLK_TREE_SRC_FREQ_PRECISION_CACHED) / 5;
-    //     //TODO
-    //     // cfg->ble_ll_sca = 3000;
-    // } else if (s_bt_lpclk_src == MODEM_CLOCK_LPCLK_SRC_RC32K) {
-    //     cfg->rtc_freq = 32000;
-    // } else if (s_bt_lpclk_src == MODEM_CLOCK_LPCLK_SRC_EXT32K) {
-    //     cfg->rtc_freq = 32000;
-    // }
     btdm_lp_rtc_slow_clk_select(s_bt_lpclk_src);
 }
 
@@ -198,7 +191,6 @@ void btdm_lp_set_lpclk_freq(uint32_t clk_freq)
     s_bt_xtal_lpclk_freq = clk_freq;
 }
 
->>>>>>> d8bcda6a345 (change(bt): Fix build issues and do code clean up)
 static void
 btdm_lp_timer_clk_deinit(void)
 {
@@ -292,13 +284,9 @@ btdm_lp_enable_clock(esp_btdm_controller_config_t *cfg)
     modem_clock_module_enable(PERIPH_BT_MODULE);
     modem_clock_module_mac_reset(PERIPH_BT_MODULE);
 #if CONFIG_IDF_TARGET_ESP32S31
-    // TODO: Remote this setting after WIFI is supported
-    REG_WRITE(MODEM_SYSCON_CLK_CONF1_REG, 0xffffffff);
-    // TODO: remove this include after low pwer clock init is performed in clk.c
+    // TODO: PM-704
     REG_WRITE(HP_SYS_CLKRST_MODEM_CONF_REG, 0x3d);
 #endif
-    // TODO: set the clock ion modem_clock_module_enable
-    REG_WRITE(MODEM_SYSCON_CLK_CONF_POWER_ST_REG, 0XFFFFFFFF);
     btdm_lp_timer_clk_init(cfg);
 }
 
@@ -347,6 +335,7 @@ btdm_lp_init(void)
     }
 #endif /* UC_BT_CTRL_SLEEP_ENABLE && CONFIG_FREERTOS_USE_TICKLESS_IDLE */
 #endif /* CONFIG_PM_ENABLE */
+    r_btdm_hal_rtc_freq_set(s_bt_lpclk_freq);
 
     return 0;
 }

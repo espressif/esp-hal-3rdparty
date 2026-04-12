@@ -1502,21 +1502,11 @@ int ble_stack_init(esp_bt_controller_config_t *cfg)
     }
 #endif // CONFIG_BT_LE_ISO_SUPPORT
 
-#if CONFIG_SW_COEXIST_ENABLE
-    // Should be invoked in ble ?
-    extern int r_bt_rf_coex_env_init(void);
-    r_bt_rf_coex_env_init();
-#endif /* CONFIG_SW_COEXIST_ENABLE */
     return 0;
 }
 
 void ble_stack_deinit(void)
 {
-#if CONFIG_SW_COEXIST_ENABLE
-    extern void r_bt_rf_coex_env_deinit(void);
-    r_bt_rf_coex_env_deinit();
-#endif /* CONFIG_SW_COEXIST_ENABLE */
-
 #if CONFIG_BT_LE_ISO_SUPPORT
     iso_stack_deinitEnv();
 #endif // CONFIG_BT_LE_ISO_SUPPORT
@@ -1578,10 +1568,6 @@ int ble_stack_enable(void)
 
 #endif // BT_LE_ISO_SUPPORT
 
-#if CONFIG_SW_COEXIST_ENABLE
-    extern int r_bt_rf_coex_env_enable(void);
-    r_bt_rf_coex_env_enable();
-#endif /* CONFIG_SW_COEXIST_ENABLE */
     return 0;
 }
 
