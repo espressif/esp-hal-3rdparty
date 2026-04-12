@@ -6,14 +6,12 @@
 
 #define MBEDTLS_ALLOW_PRIVATE_ACCESS
 
-#ifdef ESP_PLATFORM
 #include "esp_system.h"
 #include "esp_random.h"
 #include "mbedtls/bignum.h"
 #include "mbedtls/esp_mbedtls_random.h"
 #if CONFIG_MBEDTLS_HARDWARE_ECC
 #include "ecc_impl.h"
-#endif
 #endif
 
 #include "utils/includes.h"
@@ -118,11 +116,256 @@ typedef struct {
     mbedtls_ecp_group_id curve_id;
     mbedtls_ecp_group group;
     mbedtls_ecp_point *cached_public_key;
+#if CONFIG_MBEDTLS_HARDWARE_MPI && !CONFIG_MBEDTLS_HARDWARE_ECC
+    u8 *cached_public_key_buf;
+    size_t cached_public_key_len;
+#endif
     mbedtls_mpi *cached_private_key;
 } crypto_ec_key_wrapper_t;
 
 // Helper macro to get key_id from wrapper
 #define GET_KEY_ID(key) (((crypto_ec_key_wrapper_t *)(key))->key_id)
+
+#if CONFIG_MBEDTLS_HARDWARE_MPI && !CONFIG_MBEDTLS_HARDWARE_ECC
+static int crypto_ec_point_mul_p256_jacobian_fast_internal(const mbedtls_ecp_group *grp,
+                                                           const mbedtls_ecp_point *p,
+                                                           const mbedtls_mpi *k,
+                                                           mbedtls_ecp_point *res,
+                                                           bool validate_inputs);
+static int crypto_ec_point_mul_p256_generator_comb_fast(const mbedtls_ecp_group *grp,
+                                                        const mbedtls_mpi *k,
+                                                        mbedtls_ecp_point *res,
+                                                        bool validate_inputs);
+static int crypto_ec_key_cache_public_key_buf(crypto_ec_key_wrapper_t *wrapper,
+                                              const u8 *buf, size_t len)
+{
+    if (!wrapper || !buf || !len) {
+        return -1;
+    }
+
+    if (wrapper->cached_public_key_buf) {
+        if (wrapper->cached_public_key_len == len &&
+                os_memcmp(wrapper->cached_public_key_buf, buf, len) == 0) {
+            return 0;
+        }
+        os_free(wrapper->cached_public_key_buf);
+        wrapper->cached_public_key_buf = NULL;
+        wrapper->cached_public_key_len = 0;
+    }
+
+    wrapper->cached_public_key_buf = os_malloc(len);
+    if (!wrapper->cached_public_key_buf) {
+        return -1;
+    }
+
+    os_memcpy(wrapper->cached_public_key_buf, buf, len);
+    wrapper->cached_public_key_len = len;
+    return 0;
+}
+
+static int crypto_ec_key_cache_public_key_from_pk(crypto_ec_key_wrapper_t *wrapper,
+                                                  mbedtls_pk_context *pkey)
+{
+    unsigned char buf[PSA_EXPORT_PUBLIC_KEY_MAX_SIZE];
+    size_t pub_len = 0;
+    mbedtls_ecp_keypair *ec;
+    int ret;
+
+    if (!wrapper || !pkey) {
+        return -1;
+    }
+
+    ec = (mbedtls_ecp_keypair *)(pkey->MBEDTLS_PRIVATE(pk_ctx));
+    if (!ec) {
+        return -1;
+    }
+
+    ret = mbedtls_ecp_point_write_binary(&ec->MBEDTLS_PRIVATE(grp),
+                                         &ec->MBEDTLS_PRIVATE(Q),
+                                         MBEDTLS_ECP_PF_UNCOMPRESSED,
+                                         &pub_len, buf, sizeof(buf));
+    if (ret != 0) {
+        return -1;
+    }
+
+    return crypto_ec_key_cache_public_key_buf(wrapper, buf, pub_len);
+}
+
+static int crypto_ec_key_cache_private_key_from_pk(crypto_ec_key_wrapper_t *wrapper,
+                                                   mbedtls_pk_context *pkey)
+{
+    mbedtls_ecp_keypair *ec;
+    mbedtls_mpi *d;
+    int ret;
+
+    if (!wrapper || !pkey) {
+        return -1;
+    }
+
+    ec = (mbedtls_ecp_keypair *)(pkey->MBEDTLS_PRIVATE(pk_ctx));
+    if (!ec) {
+        return -1;
+    }
+
+    if (wrapper->cached_private_key) {
+        return 0;
+    }
+
+    d = os_calloc(1, sizeof(*d));
+    if (!d) {
+        return -1;
+    }
+
+    mbedtls_mpi_init(d);
+    ret = mbedtls_mpi_copy(d, &ec->MBEDTLS_PRIVATE(d));
+    if (ret != 0) {
+        mbedtls_mpi_free(d);
+        os_free(d);
+        return -1;
+    }
+
+    wrapper->cached_private_key = d;
+    return 0;
+}
+
+static int crypto_ec_key_cache_private_key_from_psa(crypto_ec_key_wrapper_t *wrapper)
+{
+    psa_key_attributes_t key_attributes = PSA_KEY_ATTRIBUTES_INIT;
+    psa_status_t status;
+    size_t raw_len = 0;
+    size_t raw_size;
+    u8 *raw_key = NULL;
+    mbedtls_mpi *d = NULL;
+
+    if (!wrapper) {
+        return -1;
+    }
+
+    if (wrapper->cached_private_key) {
+        return 0;
+    }
+
+    status = psa_get_key_attributes(wrapper->key_id, &key_attributes);
+    if (status != PSA_SUCCESS) {
+        psa_reset_key_attributes(&key_attributes);
+        return -1;
+    }
+
+    raw_size = PSA_EXPORT_KEY_OUTPUT_SIZE(psa_get_key_type(&key_attributes),
+                                          psa_get_key_bits(&key_attributes));
+    psa_reset_key_attributes(&key_attributes);
+
+    raw_key = os_malloc(raw_size);
+    d = os_calloc(1, sizeof(*d));
+    if (!raw_key || !d) {
+        os_free(raw_key);
+        os_free(d);
+        return -1;
+    }
+
+    status = psa_export_key(wrapper->key_id, raw_key, raw_size, &raw_len);
+    if (status != PSA_SUCCESS) {
+        forced_memzero(raw_key, raw_size);
+        os_free(raw_key);
+        os_free(d);
+        return -1;
+    }
+
+    mbedtls_mpi_init(d);
+    if (mbedtls_mpi_read_binary(d, raw_key, raw_len) != 0) {
+        mbedtls_mpi_free(d);
+        os_free(d);
+        forced_memzero(raw_key, raw_size);
+        os_free(raw_key);
+        return -1;
+    }
+
+    forced_memzero(raw_key, raw_size);
+    os_free(raw_key);
+    wrapper->cached_private_key = d;
+    return 0;
+}
+
+static int crypto_ec_key_cache_public_key_from_private_scalar_internal(crypto_ec_key_wrapper_t *wrapper)
+{
+    struct crypto_ec_group *group;
+    mbedtls_ecp_group *grp;
+    mbedtls_ecp_point q;
+    unsigned char buf[PSA_EXPORT_PUBLIC_KEY_MAX_SIZE];
+    size_t pub_len = 0;
+    int ret;
+
+    if (!wrapper || wrapper->cached_public_key_buf || !wrapper->cached_private_key ||
+            wrapper->curve_id == MBEDTLS_ECP_DP_NONE) {
+        return wrapper && wrapper->cached_public_key_buf ? 0 : -1;
+    }
+
+    group = crypto_ec_get_group_from_key((struct crypto_ec_key *) wrapper);
+    if (!group) {
+        return -1;
+    }
+    grp = (mbedtls_ecp_group *) group;
+
+    mbedtls_ecp_point_init(&q);
+
+#if CONFIG_MBEDTLS_HARDWARE_MPI && !CONFIG_MBEDTLS_HARDWARE_ECC
+    if (wrapper->curve_id == MBEDTLS_ECP_DP_SECP256R1) {
+        ret = crypto_ec_point_mul_p256_generator_comb_fast(
+                  grp, wrapper->cached_private_key, &q, false);
+    } else
+#endif
+    {
+        ret = crypto_ec_point_mul((struct crypto_ec *) grp,
+                                  (const struct crypto_ec_point *) &grp->MBEDTLS_PRIVATE(G),
+                                  (const struct crypto_bignum *) wrapper->cached_private_key,
+                                  (struct crypto_ec_point *) &q);
+        ret = ret == 0 ? 0 : -1;
+    }
+    if (ret != 0) {
+        mbedtls_ecp_point_free(&q);
+        return -1;
+    }
+
+    ret = mbedtls_ecp_point_write_binary(grp, &q,
+                                         MBEDTLS_ECP_PF_UNCOMPRESSED,
+                                         &pub_len, buf, sizeof(buf));
+    mbedtls_ecp_point_free(&q);
+    if (ret != 0) {
+        return -1;
+    }
+
+    return crypto_ec_key_cache_public_key_buf(wrapper, buf, pub_len);
+}
+
+static int crypto_ec_key_cache_public_key_from_private_scalar(crypto_ec_key_wrapper_t *wrapper)
+{
+    return crypto_ec_key_cache_public_key_from_private_scalar_internal(wrapper);
+}
+
+static int crypto_ec_key_ensure_public_key_cached(crypto_ec_key_wrapper_t *wrapper)
+{
+    unsigned char pub_key_buf[PSA_EXPORT_PUBLIC_KEY_MAX_SIZE];
+    size_t pub_key_len = 0;
+    psa_status_t status;
+
+    if (!wrapper) {
+        return -1;
+    }
+
+    if (wrapper->cached_public_key_buf) {
+        return 0;
+    }
+
+    status = psa_export_public_key(wrapper->key_id, pub_key_buf,
+                                   sizeof(pub_key_buf), &pub_key_len);
+    if (status != PSA_SUCCESS) {
+        wpa_printf(MSG_ERROR, "psa_export_public_key failed with %d", status);
+        return -1;
+    }
+
+    return crypto_ec_key_cache_public_key_buf(wrapper, pub_key_buf, pub_key_len);
+}
+#endif
 
 // NOTE: Used with mpi, no PSA equivalent
 struct crypto_ec *crypto_ec_init(int group)
@@ -358,6 +601,12 @@ cleanup:
 }
 
 #if CONFIG_MBEDTLS_HARDWARE_MPI && !CONFIG_MBEDTLS_HARDWARE_ECC
+#define P256_WINDOW_BITS               4U
+#define P256_WINDOW_ENTRY_COUNT        (1U << P256_WINDOW_BITS)
+#define P256_WINDOW_PRECOMP_COUNT      (P256_WINDOW_ENTRY_COUNT - 1U)
+#define P256_WINDOW_BATCH_COUNT        (P256_WINDOW_PRECOMP_COUNT - 1U)
+#define P256_SCALAR_WINDOW_COUNT       ((P256_WORDS * 32U) / P256_WINDOW_BITS)
+
 typedef struct {
     u32 X[P256_WORDS];
     u32 Y[P256_WORDS];
@@ -399,6 +648,70 @@ static void p256_fast_words_sub_mod(u32 *z, const u32 *x, const u32 *y)
     }
 }
 
+static void p256_words_rshift1_with_carry(u32 *z, u32 carry)
+{
+    int i;
+
+    for (i = P256_WORDS - 1; i >= 0; i--) {
+        u32 next = z[i] & 1U;
+
+        z[i] = (z[i] >> 1) | (carry << 31);
+        carry = next;
+    }
+}
+
+static void p256_fast_half_mod(u32 *z)
+{
+    if (z[0] & 1U) {
+        u32 tmp[P256_WORDS];
+        u32 carry = p256_fast_words_add_carry(tmp, z, p256_p_le);
+
+        p256_words_rshift1_with_carry(tmp, carry);
+        os_memcpy(z, tmp, sizeof(tmp));
+        return;
+    }
+
+    p256_words_rshift1_with_carry(z, 0);
+}
+
+static int p256_fast_inv_std(u32 out[P256_WORDS], const u32 in[P256_WORDS])
+{
+    u32 u[P256_WORDS], v[P256_WORDS], r[P256_WORDS], s[P256_WORDS];
+
+    if (p256_words_is_zero(in)) {
+        return -1;
+    }
+
+    os_memcpy(u, in, sizeof(u));
+    os_memcpy(v, p256_p_le, sizeof(v));
+    os_memset(r, 0, sizeof(r));
+    os_memset(s, 0, sizeof(s));
+    r[0] = 1U;
+
+    while (!p256_words_is_one(u) && !p256_words_is_one(v)) {
+        while ((u[0] & 1U) == 0U) {
+            p256_words_rshift1_with_carry(u, 0);
+            p256_fast_half_mod(r);
+        }
+
+        while ((v[0] & 1U) == 0U) {
+            p256_words_rshift1_with_carry(v, 0);
+            p256_fast_half_mod(s);
+        }
+
+        if (p256_words_cmp(u, v) >= 0) {
+            (void) p256_words_sub_borrow(u, u, v);
+            p256_fast_words_sub_mod(r, r, s);
+        } else {
+            (void) p256_words_sub_borrow(v, v, u);
+            p256_fast_words_sub_mod(s, s, r);
+        }
+    }
+
+    os_memcpy(out, p256_words_is_one(u) ? r : s, sizeof(u));
+    return 0;
+}
+
 static void p256_fast_to_mont(u32 out[P256_WORDS],
                               const u32 in[P256_WORDS])
 {
@@ -412,6 +725,44 @@ static void p256_fast_from_mont(u32 out[P256_WORDS],
 
     p256_mont_mul(out, in, one);
 }
+
+static const u32 p256_base_comb4_x[P256_WINDOW_ENTRY_COUNT][P256_WORDS] = {
+    {0},
+    {0x18a9143cU, 0x79e730d4U, 0x5fedb601U, 0x75ba95fcU, 0x77622510U, 0x79fb732bU, 0xa53755c6U, 0x18905f76U},
+    {0x16a0d2bbU, 0x4f922fc5U, 0x1a623499U, 0x0d5cc16cU, 0x57c62c8bU, 0x9241cf3aU, 0xfd1b667fU, 0x2f5e6961U},
+    {0xe137bbbcU, 0x9e566847U, 0x8a6a0becU, 0xe434469eU, 0x79d73463U, 0xb1c42761U, 0x133d0015U, 0x5abe0285U},
+    {0xbfe20925U, 0x62a8c244U, 0x8fdce867U, 0x91c19ac3U, 0xdd387063U, 0x5a96a5d5U, 0x21d324f6U, 0x61d587d4U},
+    {0x2cb19ffdU, 0x1c891f2bU, 0xb1923c23U, 0x01ba8d5bU, 0x8ac5ca8eU, 0xb6d03d67U, 0x1f13bedcU, 0x586eb04cU},
+    {0xd2b533d5U, 0x62577734U, 0xa1bdddc0U, 0x673b8af6U, 0xa79ec293U, 0x577e7c9aU, 0xc3b266b1U, 0xbb6de651U},
+    {0x1ae5aa1cU, 0xbd6a38e1U, 0x49e73658U, 0xb8b7652bU, 0xee5f87edU, 0x0b130014U, 0xaeebffcdU, 0x9d0f27b2U},
+    {0xf4f8b16aU, 0x56f8410eU, 0xc47b266aU, 0x97241afeU, 0x6d9c87c1U, 0x0a406b8eU, 0xcd42ab1bU, 0x803f3e02U},
+    {0xc379ab34U, 0x846a56f2U, 0x841df8d1U, 0xa8ee068bU, 0x176c68efU, 0x20314459U, 0x915f1f30U, 0xf1af32d5U},
+    {0xd5be5a2bU, 0xed93e225U, 0x5934f3c6U, 0x6fe79983U, 0x22626ffcU, 0x43140926U, 0x7990216aU, 0x50bbb4d9U},
+    {0x9b391593U, 0xfc68b5c5U, 0x598270fcU, 0xc385f5a2U, 0xd19adcbbU, 0x7144f3aaU, 0x83fbae0cU, 0xdd558999U},
+    {0x80ec21feU, 0x5fe14bfeU, 0xc255be82U, 0xf6ce116aU, 0x2f4a5d67U, 0x98bc5a07U, 0xdb7e63afU, 0xfad27148U},
+    {0xa56c0dd7U, 0x1e9ecc49U, 0x46086c74U, 0xa5cffcd8U, 0xf505aeceU, 0x8f7a1408U, 0xbef0c47eU, 0xb37b85c0U},
+    {0x95c8f8beU, 0x0a1c7294U, 0x3bf362bfU, 0x2961c480U, 0xdf63d4acU, 0x9e418403U, 0x91ece900U, 0xc109f9cbU},
+    {0x42913074U, 0x0d5ae356U, 0x48a542b1U, 0x55491b27U, 0xb310732aU, 0x469ca665U, 0x5f1a4cc1U, 0x29591d52U},
+};
+
+static const u32 p256_base_comb4_y[P256_WINDOW_ENTRY_COUNT][P256_WORDS] = {
+    {0},
+    {0xce95560aU, 0xddf25357U, 0xba19e45cU, 0x8b4ab8e4U, 0xdd21f325U, 0xd2e88688U, 0x25885d85U, 0x8571ff18U},
+    {0xf5a01797U, 0x5c15c70bU, 0x60956192U, 0x3d20b44dU, 0x071fdb52U, 0x04911b37U, 0x8d6f0f7bU, 0xf648f916U},
+    {0xc04c7dabU, 0x92aa837cU, 0x43260c07U, 0x573d9f4cU, 0x78e6cc37U, 0x0c931562U, 0x6b6f7383U, 0x94bb725bU},
+    {0xa37173eaU, 0xe87673a2U, 0x53778b65U, 0x23848008U, 0x05bab43eU, 0x10f8441eU, 0x4621efbeU, 0xfa11fe12U},
+    {0x27e8ed09U, 0x0c35c6e5U, 0x1819ede2U, 0x1e81a33cU, 0x56c652faU, 0x278fd6c0U, 0x70864f11U, 0x19d5ac08U},
+    {0xb65259b3U, 0xe7e9303aU, 0xd03a7480U, 0xd6a0afd3U, 0x9b3cfc27U, 0xc5ac83d1U, 0x5d18b99bU, 0x60b4619aU},
+    {0x7a730a55U, 0xca924631U, 0xddbbc83aU, 0x9c955b2fU, 0xac019a71U, 0x07c1dfe0U, 0x356ec48dU, 0x244a566dU},
+    {0x04dbec69U, 0x7f0309a8U, 0x3bbad05fU, 0xa83b85f7U, 0xad8e197fU, 0xc6097273U, 0x5067adc1U, 0xc097440eU},
+    {0x5d75bd50U, 0x99c37531U, 0xf72f67bcU, 0x837cffbaU, 0x48d7723fU, 0x0613a418U, 0xe2d41c8bU, 0x23d0f130U},
+    {0xe57ec63eU, 0x378191c6U, 0x181dcdb2U, 0x65422c40U, 0x0236e0f6U, 0x41a8099bU, 0x01fe49c3U, 0x2b100118U},
+    {0x74b82ff4U, 0x93b88b8eU, 0x71e734c9U, 0xd2e03c40U, 0x43c0322aU, 0x9a7a9eafU, 0x149d6041U, 0xe6e4c551U},
+    {0x29ab05b3U, 0x90c0b6acU, 0x4e251ae6U, 0x37a9a83cU, 0xc2aade7dU, 0x0a7dc875U, 0x9f0e1a84U, 0x77387de3U},
+    {0xcc0e6a8fU, 0x3596b6e4U, 0x6b388f23U, 0xfd6d4bbfU, 0xc39cef4eU, 0xaba453faU, 0xf9f628d5U, 0x9c135ac8U},
+    {0x58945705U, 0xc2d095d0U, 0xddeb85c0U, 0xb9083d96U, 0x7a40449bU, 0x84692b8dU, 0x2eee1ee1U, 0x9bc3344fU},
+    {0xb84f983fU, 0xe76f5b6bU, 0x9f5f84e1U, 0xbe7eef41U, 0x80baa189U, 0x1200d496U, 0x18ef332cU, 0x6376551fU},
+};
 
 static void p256_fast_sqr(u32 out[P256_WORDS], const u32 in[P256_WORDS])
 {
@@ -450,6 +801,24 @@ static void p256_fast_eight(u32 out[P256_WORDS], const u32 in[P256_WORDS])
 static void p256_fast_point_set_zero(p256_fast_jac_point *p)
 {
     os_memset(p, 0, sizeof(*p));
+}
+
+static inline u32 p256_words_get_bit(const u32 *scalar, unsigned bit)
+{
+    return (scalar[bit / 32] >> (bit % 32)) & 1U;
+}
+
+static inline u32 p256_words_get_window(const u32 *scalar,
+                                        unsigned bit,
+                                        unsigned width)
+{
+    u32 value = scalar[bit / 32] >> (bit % 32);
+
+    if ((bit % 32) + width > 32 && (bit / 32) + 1 < P256_WORDS) {
+        value |= scalar[(bit / 32) + 1] << (32 - (bit % 32));
+    }
+
+    return value & ((1U << width) - 1U);
 }
 
 static void p256_fast_point_from_affine(p256_fast_jac_point *p,
@@ -563,7 +932,6 @@ static int p256_fast_point_normalize(const mbedtls_ecp_group *grp,
                                      const p256_fast_jac_point *p,
                                      mbedtls_ecp_point *res)
 {
-    mbedtls_mpi z_mpi, inv_mpi;
     u32 z_std[P256_WORDS], inv_std[P256_WORDS], inv_mont[P256_WORDS];
     u32 x_std[P256_WORDS], y_std[P256_WORDS], tmp[P256_WORDS];
     int ret = MBEDTLS_ERR_ECP_BAD_INPUT_DATA;
@@ -572,13 +940,8 @@ static int p256_fast_point_normalize(const mbedtls_ecp_group *grp,
         return mbedtls_ecp_set_zero(res);
     }
 
-    mbedtls_mpi_init(&z_mpi);
-    mbedtls_mpi_init(&inv_mpi);
-
     p256_fast_from_mont(z_std, p->Z);
-    MBEDTLS_MPI_CHK(p256_words_to_mpi(z_std, &z_mpi));
-    MBEDTLS_MPI_CHK(mbedtls_mpi_inv_mod(&inv_mpi, &z_mpi, &grp->P));
-    if (p256_words_from_mpi_reduced(&inv_mpi, inv_std) != 0) {
+    if (p256_fast_inv_std(inv_std, z_std) != 0) {
         ret = MBEDTLS_ERR_ECP_BAD_INPUT_DATA;
         goto cleanup;
     }
@@ -596,30 +959,91 @@ static int p256_fast_point_normalize(const mbedtls_ecp_group *grp,
     MBEDTLS_MPI_CHK(mbedtls_mpi_lset(&res->MBEDTLS_PRIVATE(Z), 1));
 
 cleanup:
-    mbedtls_mpi_free(&z_mpi);
-    mbedtls_mpi_free(&inv_mpi);
     return ret;
 }
 
-static int crypto_ec_point_mul_p256_jacobian_fast(const mbedtls_ecp_group *grp,
-                                                  const mbedtls_ecp_point *p,
-                                                  const mbedtls_mpi *k,
-                                                  mbedtls_ecp_point *res)
+static int p256_fast_points_batch_to_affine_mont(
+    const p256_fast_jac_point *points, size_t num,
+    u32(*xs)[P256_WORDS], u32(*ys)[P256_WORDS])
 {
-    p256_fast_jac_point r;
+    u32 prefix[P256_WINDOW_BATCH_COUNT][P256_WORDS];
+    u32 prod_std[P256_WORDS], inv_std[P256_WORDS];
+    u32 running_inv[P256_WORDS], inv_z[P256_WORDS];
+    u32 tmp[P256_WORDS];
+    size_t i;
+
+    if (!points || !xs || !ys) {
+        return -1;
+    }
+
+    if (num == 0) {
+        return 0;
+    }
+
+    if (num > ARRAY_SIZE(prefix)) {
+        return -1;
+    }
+
+    os_memcpy(prefix[0], points[0].Z, sizeof(prefix[0]));
+    for (i = 1; i < num; i++) {
+        p256_fast_mul(prefix[i], prefix[i - 1], points[i].Z);
+    }
+
+    p256_fast_from_mont(prod_std, prefix[num - 1]);
+    if (p256_fast_inv_std(inv_std, prod_std) != 0) {
+        return -1;
+    }
+
+    p256_fast_to_mont(running_inv, inv_std);
+
+    for (i = num; i-- > 0;) {
+        if (i == 0) {
+            os_memcpy(inv_z, running_inv, sizeof(inv_z));
+        } else {
+            p256_fast_mul(inv_z, running_inv, prefix[i - 1]);
+        }
+
+        p256_fast_sqr(tmp, inv_z);
+        p256_fast_mul(xs[i], points[i].X, tmp);
+        p256_fast_mul(tmp, tmp, inv_z);
+        p256_fast_mul(ys[i], points[i].Y, tmp);
+
+        p256_fast_mul(tmp, running_inv, points[i].Z);
+        os_memcpy(running_inv, tmp, sizeof(running_inv));
+    }
+
+    return 0;
+}
+
+struct p256_window4_scratch {
+    p256_fast_jac_point precomp[P256_WINDOW_PRECOMP_COUNT];
+    u32 table_x[P256_WINDOW_ENTRY_COUNT][P256_WORDS];
+    u32 table_y[P256_WINDOW_ENTRY_COUNT][P256_WORDS];
+};
+
+static int crypto_ec_point_mul_p256_window4_core(const mbedtls_ecp_group *grp,
+                                                 const mbedtls_ecp_point *p,
+                                                 const mbedtls_mpi *k,
+                                                 p256_fast_jac_point *r,
+                                                 bool validate_inputs)
+{
+    struct p256_window4_scratch *scratch = NULL;
     u32 scalar[P256_WORDS], x_std[P256_WORDS], y_std[P256_WORDS];
     u32 x_mont[P256_WORDS], y_mont[P256_WORDS], one_mont[P256_WORDS];
     static const u32 one_std[P256_WORDS] = {1};
-    int bit;
+    int window;
     int ret = MBEDTLS_ERR_ECP_FEATURE_UNAVAILABLE;
+    bool started = false;
 
     if (!grp || grp->id != MBEDTLS_ECP_DP_SECP256R1 ||
             mbedtls_mpi_cmp_int(&p->MBEDTLS_PRIVATE(Z), 1) != 0) {
         return MBEDTLS_ERR_ECP_FEATURE_UNAVAILABLE;
     }
 
-    MBEDTLS_MPI_CHK(mbedtls_ecp_check_privkey(grp, k));
-    MBEDTLS_MPI_CHK(mbedtls_ecp_check_pubkey(grp, p));
+    if (validate_inputs) {
+        MBEDTLS_MPI_CHK(mbedtls_ecp_check_privkey(grp, k));
+        MBEDTLS_MPI_CHK(mbedtls_ecp_check_pubkey(grp, p));
+    }
 
     if (p256_words_from_mpi(k, scalar) != 0 ||
             p256_words_from_mpi_reduced(&p->MBEDTLS_PRIVATE(X), x_std) != 0 ||
@@ -628,21 +1052,144 @@ static int crypto_ec_point_mul_p256_jacobian_fast(const mbedtls_ecp_group *grp,
         goto cleanup;
     }
 
-    bit = (int) p256_words_bitlen(scalar);
-    if (bit <= 0) {
-        ret = mbedtls_ecp_set_zero(res);
+    if (p256_words_bitlen(scalar) == 0) {
+        p256_fast_point_set_zero(r);
+        ret = 0;
+        goto cleanup;
+    }
+
+    scratch = os_malloc(sizeof(*scratch));
+    if (!scratch) {
+        ret = MBEDTLS_ERR_MPI_ALLOC_FAILED;
         goto cleanup;
     }
 
     p256_fast_to_mont(x_mont, x_std);
     p256_fast_to_mont(y_mont, y_std);
     p256_fast_to_mont(one_mont, one_std);
-    p256_fast_point_from_affine(&r, x_mont, y_mont, one_mont);
+    os_memcpy(scratch->table_x[1], x_mont, sizeof(scratch->table_x[1]));
+    os_memcpy(scratch->table_y[1], y_mont, sizeof(scratch->table_y[1]));
 
-    for (bit -= 2; bit >= 0; bit--) {
+    p256_fast_point_from_affine(&scratch->precomp[0], x_mont, y_mont, one_mont);
+    os_memcpy(&scratch->precomp[1], &scratch->precomp[0], sizeof(scratch->precomp[1]));
+    p256_fast_point_double(&scratch->precomp[1]);
+    for (window = 2; window < P256_WINDOW_PRECOMP_COUNT; window++) {
+        os_memcpy(&scratch->precomp[window], &scratch->precomp[window - 1],
+                  sizeof(scratch->precomp[window]));
+        p256_fast_point_add_mixed(&scratch->precomp[window], x_mont, y_mont,
+                                  one_mont);
+    }
+
+    if (p256_fast_points_batch_to_affine_mont(&scratch->precomp[1],
+                                              P256_WINDOW_BATCH_COUNT,
+                                              &scratch->table_x[2],
+                                              &scratch->table_y[2]) != 0) {
+        ret = MBEDTLS_ERR_ECP_FEATURE_UNAVAILABLE;
+        goto cleanup;
+    }
+
+    p256_fast_point_set_zero(r);
+
+    for (window = P256_SCALAR_WINDOW_COUNT - 1; window >= 0; window--) {
+        u32 idx = p256_words_get_window(scalar,
+                                        (unsigned) window * P256_WINDOW_BITS,
+                                        P256_WINDOW_BITS);
+
+        if (started) {
+            unsigned int dbl;
+
+            for (dbl = 0; dbl < P256_WINDOW_BITS; dbl++) {
+                p256_fast_point_double(r);
+            }
+        }
+
+        if (idx == 0U) {
+            continue;
+        }
+
+        if (!started) {
+            p256_fast_point_from_affine(r, scratch->table_x[idx],
+                                        scratch->table_y[idx], one_mont);
+            started = true;
+        } else {
+            p256_fast_point_add_mixed(r, scratch->table_x[idx],
+                                      scratch->table_y[idx], one_mont);
+        }
+    }
+
+    ret = 0;
+
+cleanup:
+    forced_memzero(scalar, sizeof(scalar));
+    if (scratch) {
+        forced_memzero(scratch, sizeof(*scratch));
+    }
+    os_free(scratch);
+    return ret;
+}
+
+static int crypto_ec_point_mul_p256_jacobian_fast_internal(const mbedtls_ecp_group *grp,
+                                                           const mbedtls_ecp_point *p,
+                                                           const mbedtls_mpi *k,
+                                                           mbedtls_ecp_point *res,
+                                                           bool validate_inputs)
+{
+    p256_fast_jac_point r;
+    int ret;
+
+    ret = crypto_ec_point_mul_p256_window4_core(grp, p, k, &r, validate_inputs);
+    if (ret != 0) {
+        return ret;
+    }
+
+    return p256_fast_point_normalize(grp, &r, res);
+}
+
+static int crypto_ec_point_mul_p256_generator_comb_fast(const mbedtls_ecp_group *grp,
+                                                        const mbedtls_mpi *k,
+                                                        mbedtls_ecp_point *res,
+                                                        bool validate_inputs)
+{
+    p256_fast_jac_point r;
+    u32 scalar[P256_WORDS];
+    u32 one_mont[P256_WORDS];
+    static const u32 one_std[P256_WORDS] = {1};
+    int col;
+    int ret = MBEDTLS_ERR_ECP_FEATURE_UNAVAILABLE;
+
+    if (!grp || grp->id != MBEDTLS_ECP_DP_SECP256R1) {
+        return MBEDTLS_ERR_ECP_FEATURE_UNAVAILABLE;
+    }
+
+    if (validate_inputs) {
+        MBEDTLS_MPI_CHK(mbedtls_ecp_check_privkey(grp, k));
+    }
+
+    if (p256_words_from_mpi(k, scalar) != 0) {
+        ret = MBEDTLS_ERR_ECP_FEATURE_UNAVAILABLE;
+        goto cleanup;
+    }
+
+    if (p256_words_bitlen(scalar) == 0) {
+        ret = mbedtls_ecp_set_zero(res);
+        goto cleanup;
+    }
+
+    p256_fast_to_mont(one_mont, one_std);
+    p256_fast_point_set_zero(&r);
+
+    for (col = 63; col >= 0; col--) {
+        u32 idx = p256_words_get_bit(scalar, (unsigned) col) |
+                  (p256_words_get_bit(scalar, (unsigned)(col + 64)) << 1) |
+                  (p256_words_get_bit(scalar, (unsigned)(col + 128)) << 2) |
+                  (p256_words_get_bit(scalar, (unsigned)(col + 192)) << 3);
+
         p256_fast_point_double(&r);
-        if ((scalar[bit / 32] >> (bit % 32)) & 1U) {
-            p256_fast_point_add_mixed(&r, x_mont, y_mont, one_mont);
+        if (idx != 0U) {
+            p256_fast_point_add_mixed(&r,
+                                      p256_base_comb4_x[idx],
+                                      p256_base_comb4_y[idx],
+                                      one_mont);
         }
     }
 
@@ -651,9 +1198,15 @@ static int crypto_ec_point_mul_p256_jacobian_fast(const mbedtls_ecp_group *grp,
 cleanup:
     mbedtls_platform_zeroize(scalar, sizeof(scalar));
     mbedtls_platform_zeroize(&r, sizeof(r));
-    mbedtls_platform_zeroize(x_mont, sizeof(x_mont));
-    mbedtls_platform_zeroize(y_mont, sizeof(y_mont));
     return ret;
+}
+
+static int crypto_ec_point_mul_p256_jacobian_fast(const mbedtls_ecp_group *grp,
+                                                  const mbedtls_ecp_point *p,
+                                                  const mbedtls_mpi *k,
+                                                  mbedtls_ecp_point *res)
+{
+    return crypto_ec_point_mul_p256_jacobian_fast_internal(grp, p, k, res, true);
 }
 #endif
 
@@ -1057,6 +1610,24 @@ static psa_ecc_family_t group_id_to_psa(mbedtls_ecp_group_id grp_id, size_t *bit
     }
 }
 
+static size_t crypto_ecdh_output_size(const crypto_ec_key_wrapper_t *wrapper)
+{
+    size_t key_bits = 0;
+    psa_ecc_family_t ecc_family;
+
+    if (!wrapper) {
+        return 0;
+    }
+
+    ecc_family = group_id_to_psa(wrapper->curve_id, &key_bits);
+    if (ecc_family == 0 || key_bits == 0) {
+        return 0;
+    }
+
+    return PSA_RAW_KEY_AGREEMENT_OUTPUT_SIZE(
+               PSA_KEY_TYPE_ECC_KEY_PAIR(ecc_family), key_bits);
+}
+
 struct crypto_ec_key * crypto_ec_key_set_pub(const struct crypto_ec_group *group,
                                              const u8 *buf, size_t len)
 {
@@ -1164,6 +1735,11 @@ struct crypto_ec_key * crypto_ec_key_set_pub(const struct crypto_ec_group *group
         return NULL;
     }
 
+#if CONFIG_MBEDTLS_HARDWARE_MPI && !CONFIG_MBEDTLS_HARDWARE_ECC
+    if (crypto_ec_key_cache_public_key_buf(wrapper, key_buf, key_len) < 0) {
+        wpa_printf(MSG_DEBUG, "Failed to cache imported public key");
+    }
+#endif
     os_free(key_buf);
 
     return (struct crypto_ec_key *)wrapper;
@@ -1189,31 +1765,44 @@ struct crypto_ec_point *crypto_ec_key_get_public_key(struct crypto_ec_key *key)
         return (struct crypto_ec_point *)wrapper->cached_public_key;
     }
 
+#if CONFIG_MBEDTLS_HARDWARE_MPI && !CONFIG_MBEDTLS_HARDWARE_ECC
+    if (crypto_ec_key_ensure_public_key_cached(wrapper) < 0) {
+        return NULL;
+    }
+    if (wrapper->cached_public_key_len < 3 || wrapper->cached_public_key_buf[0] != 0x04) {
+        wpa_printf(MSG_ERROR, "Invalid public key format (expected uncompressed point)");
+        return NULL;
+    }
+    if ((wrapper->cached_public_key_len - 1) % 2 != 0) {
+        wpa_printf(MSG_ERROR, "Invalid public key format: odd length");
+        return NULL;
+    }
+#else
     psa_status_t status;
-
-    // Export public key in uncompressed format: 0x04 || X || Y
     uint8_t pub_key_buf[PSA_KEY_EXPORT_ECC_PUBLIC_KEY_MAX_SIZE(ESP_SUP_MAX_ECC_KEY_SIZE)];
     size_t pub_key_len = 0;
-
-    status = psa_export_public_key(wrapper->key_id, pub_key_buf, sizeof(pub_key_buf), &pub_key_len);
+    status = psa_export_public_key(wrapper->key_id, pub_key_buf, sizeof(pub_key_buf),
+                                   &pub_key_len);
     if (status != PSA_SUCCESS) {
         wpa_printf(MSG_ERROR, "Failed to export public key: %d", status);
         return NULL;
     }
-
-    // Validate format: should be 0x04 (uncompressed) || X || Y
     if (pub_key_len < 3 || pub_key_buf[0] != 0x04) {
         wpa_printf(MSG_ERROR, "Invalid public key format (expected uncompressed point)");
         return NULL;
     }
-
     if ((pub_key_len - 1) % 2 != 0) {
         wpa_printf(MSG_ERROR, "Invalid public key format: odd length");
         return NULL;
     }
+#endif
 
     // Calculate coordinate size: (total_len - 1) / 2
+#if CONFIG_MBEDTLS_HARDWARE_MPI && !CONFIG_MBEDTLS_HARDWARE_ECC
+    size_t coord_size = (wrapper->cached_public_key_len - 1) / 2;
+#else
     size_t coord_size = (pub_key_len - 1) / 2;
+#endif
 
     // Allocate and initialize the ECC point (cache it in wrapper)
     mbedtls_ecp_point *point = os_calloc(1, sizeof(mbedtls_ecp_point));
@@ -1225,7 +1814,12 @@ struct crypto_ec_point *crypto_ec_key_get_public_key(struct crypto_ec_key *key)
 
     // Parse X coordinate
     int ret = mbedtls_mpi_read_binary(&point->MBEDTLS_PRIVATE(X),
-                                      pub_key_buf + 1, coord_size);
+#if CONFIG_MBEDTLS_HARDWARE_MPI && !CONFIG_MBEDTLS_HARDWARE_ECC
+                                      wrapper->cached_public_key_buf + 1,
+#else
+                                      pub_key_buf + 1,
+#endif
+                                      coord_size);
     if (ret != 0) {
         wpa_printf(MSG_ERROR, "Failed to parse X coordinate: -0x%04x", -ret);
         mbedtls_ecp_point_free(point);
@@ -1235,7 +1829,12 @@ struct crypto_ec_point *crypto_ec_key_get_public_key(struct crypto_ec_key *key)
 
     // Parse Y coordinate
     ret = mbedtls_mpi_read_binary(&point->MBEDTLS_PRIVATE(Y),
-                                  pub_key_buf + 1 + coord_size, coord_size);
+#if CONFIG_MBEDTLS_HARDWARE_MPI && !CONFIG_MBEDTLS_HARDWARE_ECC
+                                  wrapper->cached_public_key_buf + 1 + coord_size,
+#else
+                                  pub_key_buf + 1 + coord_size,
+#endif
+                                  coord_size);
     if (ret != 0) {
         wpa_printf(MSG_ERROR, "Failed to parse Y coordinate: -0x%04x", -ret);
         mbedtls_ecp_point_free(point);
@@ -1471,6 +2070,28 @@ int crypto_ec_get_publickey_buf(struct crypto_ec_key *key, u8 *key_buf, int len)
         return PSA_EXPORT_PUBLIC_KEY_OUTPUT_SIZE(key_type, key_bits);
     }
 
+#if CONFIG_MBEDTLS_HARDWARE_MPI && !CONFIG_MBEDTLS_HARDWARE_ECC
+    if (wrapper->cached_public_key_buf) {
+        if (len < 0 || (size_t) len < wrapper->cached_public_key_len) {
+            return -1;
+        }
+
+        os_memcpy(key_buf, wrapper->cached_public_key_buf,
+                  wrapper->cached_public_key_len);
+        return wrapper->cached_public_key_len;
+    }
+
+    if (crypto_ec_key_ensure_public_key_cached(wrapper) < 0) {
+        return -1;
+    }
+
+    if (len < 0 || (size_t) len < wrapper->cached_public_key_len) {
+        return -1;
+    }
+
+    os_memcpy(key_buf, wrapper->cached_public_key_buf, wrapper->cached_public_key_len);
+    return wrapper->cached_public_key_len;
+#else
     size_t key_len = 0;
     status = psa_export_public_key(wrapper->key_id, key_buf, len, &key_len);
     if (status != PSA_SUCCESS) {
@@ -1479,6 +2100,7 @@ int crypto_ec_get_publickey_buf(struct crypto_ec_key *key, u8 *key_buf, int len)
     }
 
     return key_len;
+#endif
 }
 
 int crypto_write_pubkey_der(struct crypto_ec_key *key, unsigned char **key_buf)
@@ -1609,6 +2231,16 @@ struct crypto_ec_key *crypto_ec_key_parse_priv(const u8 *privkey, size_t privkey
         goto fail;
     }
 
+#if CONFIG_MBEDTLS_HARDWARE_MPI && !CONFIG_MBEDTLS_HARDWARE_ECC
+    if (crypto_ec_key_cache_private_key_from_pk(wrapper, kctx) < 0 &&
+            crypto_ec_key_cache_private_key_from_psa(wrapper) < 0) {
+        wpa_printf(MSG_DEBUG, "Failed to cache private key scalar");
+    }
+    if (crypto_ec_key_cache_public_key_from_pk(wrapper, kctx) < 0 &&
+            crypto_ec_key_cache_public_key_from_private_scalar(wrapper) < 0) {
+        wpa_printf(MSG_DEBUG, "Failed to cache private key public component");
+    }
+#endif
     mbedtls_pk_free(kctx);
 
     return (struct crypto_ec_key *)wrapper;
@@ -1654,26 +2286,131 @@ unsigned int crypto_ec_get_mbedtls_to_nist_group_id(int id, int bits)
     return nist_grpid;
 }
 
+#if CONFIG_MBEDTLS_HARDWARE_MPI && !CONFIG_MBEDTLS_HARDWARE_ECC
+static int crypto_ecdh_internal(struct crypto_ec_key *key_own,
+                                struct crypto_ec_key *key_peer,
+                                u8 *secret, size_t *secret_len)
+{
+    crypto_ec_key_wrapper_t *own_wrapper = (crypto_ec_key_wrapper_t *)key_own;
+    crypto_ec_key_wrapper_t *peer_wrapper = (crypto_ec_key_wrapper_t *)key_peer;
+    struct crypto_ec_group *group;
+    struct crypto_ec_point *peer_point;
+    struct crypto_ec_point *shared_point = NULL;
+    struct crypto_bignum *own_scalar;
+    size_t coord_len;
+    int ret = -1;
+
+    if (!own_wrapper || !peer_wrapper || !secret || !secret_len) {
+        return -1;
+    }
+
+    if (own_wrapper->curve_id == MBEDTLS_ECP_DP_NONE ||
+            own_wrapper->curve_id != peer_wrapper->curve_id) {
+        return -1;
+    }
+
+    group = crypto_ec_get_group_from_key(key_own);
+    peer_point = crypto_ec_key_get_public_key(key_peer);
+    own_scalar = crypto_ec_key_get_private_key(key_own);
+    if (!group || !peer_point || !own_scalar) {
+        goto cleanup;
+    }
+
+    coord_len = crypto_ec_prime_len((struct crypto_ec *) group);
+    if (*secret_len != 0 && *secret_len < coord_len) {
+        goto cleanup;
+    }
+
+    shared_point = crypto_ec_point_init((struct crypto_ec *) group);
+    if (!shared_point) {
+        goto cleanup;
+    }
+
+    if (crypto_ec_point_mul_p256_jacobian_fast_internal((mbedtls_ecp_group *) group,
+                                                        (const mbedtls_ecp_point *) peer_point,
+                                                        (const mbedtls_mpi *) own_scalar,
+                                                        (mbedtls_ecp_point *) shared_point,
+                                                        false) == 0) {
+        /* Fast path completed. */
+    } else if (crypto_ec_point_mul((struct crypto_ec *) group, peer_point,
+                                   own_scalar, shared_point) < 0) {
+        goto cleanup;
+    }
+
+    if (crypto_ec_point_is_at_infinity((struct crypto_ec *) group,
+                                       shared_point)) {
+        goto cleanup;
+    }
+
+    if (crypto_ec_point_to_bin((struct crypto_ec *) group, shared_point,
+                               secret, NULL) < 0) {
+        goto cleanup;
+    }
+
+    *secret_len = coord_len;
+    ret = 0;
+
+cleanup:
+    if (shared_point) {
+        crypto_ec_point_deinit(shared_point, 1);
+    }
+    return ret;
+}
+#endif
+
 int crypto_ecdh(struct crypto_ec_key *key_own, struct crypto_ec_key *key_peer,
                 u8 *secret, size_t *secret_len)
 {
-    int ret = 0;
-
     crypto_ec_key_wrapper_t *peer_wrapper = (crypto_ec_key_wrapper_t *)key_peer;
     crypto_ec_key_wrapper_t *own_wrapper = (crypto_ec_key_wrapper_t *)key_own;
+    size_t secret_buf_size;
+
     if (!peer_wrapper || !own_wrapper) {
         return -1;
     }
 
+    secret_buf_size = crypto_ecdh_output_size(own_wrapper);
+    if (secret_buf_size == 0) {
+        return -1;
+    }
+
+#if CONFIG_MBEDTLS_HARDWARE_MPI && !CONFIG_MBEDTLS_HARDWARE_ECC
+    *secret_len = 0;
+
+    if (crypto_ecdh_internal(key_own, key_peer, secret, secret_len) == 0) {
+        return 0;
+    }
+
+    if (crypto_ec_key_ensure_public_key_cached(peer_wrapper) < 0) {
+        return -1;
+    }
+
+    size_t secret_length = 0;
+    psa_status_t status = psa_raw_key_agreement(PSA_ALG_ECDH,
+                                                own_wrapper->key_id,
+                                                peer_wrapper->cached_public_key_buf,
+                                                peer_wrapper->cached_public_key_len,
+                                                secret, secret_buf_size,
+                                                &secret_length);
+    if (status != PSA_SUCCESS) {
+        wpa_printf(MSG_ERROR, "psa_raw_key_agreement failed with %d", status);
+        return -1;
+    }
+
+    *secret_len = secret_length;
+    return 0;
+#else
+    int ret = 0;
     unsigned char *peer_key_buf = os_calloc(PSA_EXPORT_PUBLIC_KEY_MAX_SIZE, sizeof(uint8_t));
     if (!peer_key_buf) {
         wpa_printf(MSG_ERROR, "memory allocation failed");
-        ret = -1;
-        goto fail;
+        return -1;
     }
 
     size_t peer_key_len = 0;
-    psa_status_t status = psa_export_public_key(peer_wrapper->key_id, peer_key_buf, PSA_EXPORT_PUBLIC_KEY_MAX_SIZE, &peer_key_len);
+    psa_status_t status = psa_export_public_key(peer_wrapper->key_id, peer_key_buf,
+                                                PSA_EXPORT_PUBLIC_KEY_MAX_SIZE,
+                                                &peer_key_len);
     if (status != PSA_SUCCESS) {
         wpa_printf(MSG_ERROR, "psa_export_public_key failed with %d", status);
         ret = -1;
@@ -1682,25 +2419,12 @@ int crypto_ecdh(struct crypto_ec_key *key_own, struct crypto_ec_key *key_peer,
 
     *secret_len = 0;
     size_t secret_length = 0;
-
-    // Debug: Check key attributes before key agreement
-    psa_key_attributes_t key_attributes = PSA_KEY_ATTRIBUTES_INIT;
-    psa_status_t attr_status = psa_get_key_attributes(own_wrapper->key_id, &key_attributes);
-    if (attr_status == PSA_SUCCESS) {
-        psa_key_usage_t usage = psa_get_key_usage_flags(&key_attributes);
-        psa_algorithm_t alg = psa_get_key_algorithm(&key_attributes);
-        psa_key_type_t key_type = psa_get_key_type(&key_attributes);
-        wpa_printf(MSG_DEBUG, "crypto_ecdh: key usage=0x%x, algorithm=0x%x, type=0x%x",
-                   usage, alg, key_type);
-        printf("crypto_ecdh: key usage=0x%x, algorithm=0x%x, type=0x%x\n",
-               usage, alg, key_type);
-        psa_reset_key_attributes(&key_attributes);
-    }
-
-    status = psa_raw_key_agreement(PSA_ALG_ECDH, own_wrapper->key_id, peer_key_buf, peer_key_len, secret, 66, &secret_length);
+    status = psa_raw_key_agreement(PSA_ALG_ECDH, own_wrapper->key_id,
+                                   peer_key_buf, peer_key_len, secret,
+                                   secret_buf_size,
+                                   &secret_length);
     if (status != PSA_SUCCESS) {
         wpa_printf(MSG_ERROR, "psa_raw_key_agreement failed with %d", status);
-        printf("psa_raw_key_agreement failed with %d\n", status);
         ret = -1;
         goto fail;
     }
@@ -1708,11 +2432,9 @@ int crypto_ecdh(struct crypto_ec_key *key_own, struct crypto_ec_key *key_peer,
     *secret_len = secret_length;
 
 fail:
-    if (peer_key_buf) {
-        os_free(peer_key_buf);
-    }
-
+    os_free(peer_key_buf);
     return ret;
+#endif
 }
 
 int crypto_ecdsa_get_sign(unsigned char *hash,
@@ -1907,6 +2629,12 @@ struct crypto_ec_key *crypto_ec_parse_subpub_key(const unsigned char *p, size_t 
         return NULL;
     }
 
+#if CONFIG_MBEDTLS_HARDWARE_MPI && !CONFIG_MBEDTLS_HARDWARE_ECC
+    if (crypto_ec_key_cache_public_key_buf(wrapper, pub_key_buf, pub_key_len) < 0) {
+        wpa_printf(MSG_DEBUG, "Failed to cache parsed SPKI public key");
+    }
+#endif
+
     return (struct crypto_ec_key *)wrapper;
 }
 
@@ -1975,6 +2703,54 @@ struct crypto_ec_key * crypto_ec_key_gen(u16 ike_group)
     }
 
     psa_reset_key_attributes(&key_attributes);
+
+#if CONFIG_MBEDTLS_HARDWARE_MPI && !CONFIG_MBEDTLS_HARDWARE_ECC
+    {
+        unsigned char pub_buf[PSA_EXPORT_PUBLIC_KEY_MAX_SIZE];
+        size_t pub_len = 0;
+        size_t priv_len = 0;
+        size_t priv_size = PSA_EXPORT_KEY_OUTPUT_SIZE(
+                               PSA_KEY_TYPE_ECC_KEY_PAIR(ecc_family), key_bit_length);
+        unsigned char *priv_buf = os_malloc(priv_size);
+        bool public_cached = false;
+
+        if (priv_buf) {
+            status = psa_export_key(wrapper->key_id, priv_buf, priv_size, &priv_len);
+            if (status == PSA_SUCCESS) {
+                mbedtls_mpi *d = os_calloc(1, sizeof(*d));
+
+                if (d) {
+                    mbedtls_mpi_init(d);
+                    if (mbedtls_mpi_read_binary(d, priv_buf, priv_len) == 0) {
+                        wrapper->cached_private_key = d;
+                    } else {
+                        mbedtls_mpi_free(d);
+                        os_free(d);
+                    }
+                }
+            }
+            forced_memzero(priv_buf, priv_size);
+            os_free(priv_buf);
+        }
+
+        if (wrapper->curve_id == MBEDTLS_ECP_DP_SECP256R1 &&
+                wrapper->cached_private_key) {
+            if (crypto_ec_key_cache_public_key_from_private_scalar(wrapper) == 0) {
+                public_cached = true;
+            }
+        }
+
+        if (!public_cached) {
+            status = psa_export_public_key(wrapper->key_id, pub_buf,
+                                           sizeof(pub_buf), &pub_len);
+            if (status == PSA_SUCCESS) {
+                if (crypto_ec_key_cache_public_key_buf(wrapper, pub_buf, pub_len) < 0) {
+                    wpa_printf(MSG_DEBUG, "Failed to cache generated public key");
+                }
+            }
+        }
+    }
+#endif
 
     return (struct crypto_ec_key *)wrapper;
 }
@@ -2412,6 +3188,11 @@ struct crypto_ec_key *crypto_ec_key_parse_pub(const u8 *der, size_t der_len)
         os_free(pkey);
         return NULL;
     }
+#if CONFIG_MBEDTLS_HARDWARE_MPI && !CONFIG_MBEDTLS_HARDWARE_ECC
+    if (crypto_ec_key_cache_public_key_from_pk(wrapper, pkey) < 0) {
+        wpa_printf(MSG_DEBUG, "Failed to cache parsed public key");
+    }
+#endif
     psa_reset_key_attributes(&key_attributes);
     mbedtls_pk_free(pkey);
     os_free(pkey);
@@ -2437,6 +3218,15 @@ void crypto_ec_key_deinit(struct crypto_ec_key *key)
         mbedtls_ecp_point_free(wrapper->cached_public_key);
         os_free(wrapper->cached_public_key);
     }
+#if CONFIG_MBEDTLS_HARDWARE_MPI && !CONFIG_MBEDTLS_HARDWARE_ECC
+    if (wrapper->cached_public_key_buf) {
+        if (wrapper->cached_public_key_len) {
+            forced_memzero(wrapper->cached_public_key_buf,
+                           wrapper->cached_public_key_len);
+        }
+        os_free(wrapper->cached_public_key_buf);
+    }
+#endif
     // Free cached private key bignum if allocated
     if (wrapper->cached_private_key) {
         mbedtls_mpi_free(wrapper->cached_private_key);

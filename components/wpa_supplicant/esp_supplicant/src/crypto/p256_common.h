@@ -50,6 +50,39 @@ static inline int p256_words_is_zero(const u32 *a)
     return 1;
 }
 
+static inline int p256_words_is_one(const u32 *a)
+{
+    size_t i;
+
+    if (a[0] != 1U) {
+        return 0;
+    }
+
+    for (i = 1; i < P256_WORDS; i++) {
+        if (a[i] != 0U) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+static inline int p256_words_cmp(const u32 *x, const u32 *y)
+{
+    int i;
+
+    for (i = P256_WORDS - 1; i >= 0; i--) {
+        if (x[i] > y[i]) {
+            return 1;
+        }
+        if (x[i] < y[i]) {
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
 static inline size_t p256_words_bitlen(const u32 *a)
 {
     int i;
