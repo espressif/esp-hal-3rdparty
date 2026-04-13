@@ -55,6 +55,7 @@ typedef enum {
     CACHE_LL_PRELOAD_ARBITRARY = 2,
 } cache_ll_preload_strategy_t;
 
+
 /**
  * @brief Initialize the cache clock
  */
@@ -158,13 +159,13 @@ static inline bool cache_ll_l1_is_dcache_preload_busy(uint32_t cache_id)
  * @param cache_id   id of the cache (0 or CACHE_LL_ID_ALL on S3)
  * @param vaddr      start virtual address for preload
  * @param size_bytes size of region in bytes
- * @param ascending  true: ascending (order 0); false: descending (order 1)
+ * @param order      preload order
  */
 __attribute__((always_inline))
-static inline void cache_ll_l1_icache_preload(uint32_t cache_id, uint32_t vaddr, uint32_t size_bytes, bool ascending)
+static inline void cache_ll_l1_icache_preload(uint32_t cache_id, uint32_t vaddr, uint32_t size_bytes, cache_preload_order_t order)
 {
     (void)cache_id;
-    Cache_Start_ICache_Preload(vaddr, size_bytes, ascending ? 0 : 1);
+    Cache_Start_ICache_Preload(vaddr, size_bytes, order);
 }
 
 /**
@@ -173,13 +174,13 @@ static inline void cache_ll_l1_icache_preload(uint32_t cache_id, uint32_t vaddr,
  * @param cache_id   id of the cache (0 or CACHE_LL_ID_ALL on S3)
  * @param vaddr      start virtual address for preload
  * @param size_bytes size of region in bytes
- * @param ascending  true: ascending (order 0); false: descending (order 1)
+ * @param order      preload order
  */
 __attribute__((always_inline))
-static inline void cache_ll_l1_dcache_preload(uint32_t cache_id, uint32_t vaddr, uint32_t size_bytes, bool ascending)
+static inline void cache_ll_l1_dcache_preload(uint32_t cache_id, uint32_t vaddr, uint32_t size_bytes, cache_preload_order_t order)
 {
     (void)cache_id;
-    Cache_Start_DCache_Preload(vaddr, size_bytes, ascending ? 0 : 1);
+    Cache_Start_DCache_Preload(vaddr, size_bytes, order);
 }
 
 /**
@@ -231,23 +232,23 @@ static inline void cache_ll_preload_set_strategy(uint32_t cache_level, cache_typ
  * @param cache_id     id of the cache (0 or CACHE_LL_ID_ALL)
  * @param vaddr        start virtual address for preload
  * @param size         size of region in bytes
- * @param ascending    true: ascending order; false: descending
+ * @param order        preload order, see `cache_preload_order_t`
  */
 __attribute__((always_inline))
-static inline void cache_ll_preload(uint32_t cache_level, cache_type_t type, uint32_t cache_id, uint32_t vaddr, uint32_t size, bool ascending)
+static inline void cache_ll_preload(uint32_t cache_level, cache_type_t type, uint32_t cache_id, uint32_t vaddr, uint32_t size, cache_preload_order_t order)
 {
     HAL_ASSERT(cache_level == 1);
     switch (type) {
     case CACHE_TYPE_INSTRUCTION:
-        cache_ll_l1_icache_preload(cache_id, vaddr, size, ascending);
+        cache_ll_l1_icache_preload(cache_id, vaddr, size, order);
         break;
     case CACHE_TYPE_DATA:
-        cache_ll_l1_dcache_preload(cache_id, vaddr, size, ascending);
+        cache_ll_l1_dcache_preload(cache_id, vaddr, size, order);
         break;
     case CACHE_TYPE_ALL:
     default:
-        cache_ll_l1_icache_preload(cache_id, vaddr, size, ascending);
-        cache_ll_l1_dcache_preload(cache_id, vaddr, size, ascending);
+        cache_ll_l1_icache_preload(cache_id, vaddr, size, order);
+        cache_ll_l1_dcache_preload(cache_id, vaddr, size, order);
         break;
     }
 }
