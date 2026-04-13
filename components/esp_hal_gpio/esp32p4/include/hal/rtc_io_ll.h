@@ -58,64 +58,60 @@ static inline void _rtcio_ll_enable_io_clock(bool enable)
 #define rtcio_ll_enable_io_clock(...) _rtcio_ll_enable_io_clock(__VA_ARGS__)
 
 /**
- * @brief Select RTC GPIO input to a signal.
+ * @brief Configure peripheral signal input whether to bypass LP_GPIO matrix.
  *
- * @param rtcio_num The index of rtcio. 0 ~ MAX(rtcio).
  * @param signal_idx LP peripheral signal index.
- * @param inv True to invert input signal; False then no invert.
+ * @param from_gpio_matrix True if not to bypass LP_GPIO matrix, otherwise False.
  */
-static inline void rtcio_ll_matrix_in(int rtcio_num, uint32_t signal_idx, bool inv)
-{
-    lp_gpio_func_in_sel_cfg_reg_t reg;
-    reg.func_in_sel = rtcio_num;
-    reg.in_inv_sel = inv;
-    reg.sig_in_sel = 1; // Signal should not bypass LP_GPIO matrix
-    LP_GPIO.func_in_sel_cfg[signal_idx].val = reg.val;
-}
-
-/**
- * @brief Select signal output to a RTC GPIO.
- *
- * @param rtcio_num The index of rtcio. 0 ~ MAX(rtcio).
- * @param signal_idx LP peripheral signal index.
- * @param out_inv True to invert output signal; False then no invert.
- * @param oen_inv True to invert output enable signal; False then no invert.
- */
-static inline void rtcio_ll_matrix_out(int rtcio_num, uint32_t signal_idx, bool out_inv, bool oen_inv)
-{
-    lp_gpio_func_out_sel_cfg_reg_t reg;
-    reg.func_out_sel = signal_idx;
-    reg.out_inv_sel = out_inv;
-    reg.oe_inv_sel = oen_inv;
-    reg.oe_sel = 0; // output enable signal controlled by peripheral
-    LP_GPIO.func_out_sel_cfg[rtcio_num].val = reg.val;
-
-    HAL_FORCE_MODIFY_U32_REG_FIELD(LP_GPIO.enable_w1ts, reg_gpio_enable_data_w1ts, BIT(rtcio_num));
-}
-
-/**
-  * @brief Configure peripheral signal input whether to bypass LP_GPIO matrix.
-  *
-  * @param signal_idx LP peripheral signal index.
-  * @param from_gpio_matrix True if not to bypass LP_GPIO matrix, otherwise False.
-  */
 static inline void rtcio_ll_set_input_signal_from(uint32_t signal_idx, bool from_gpio_matrix)
 {
     LP_GPIO.func_in_sel_cfg[signal_idx].sig_in_sel = from_gpio_matrix;
 }
 
 /**
-  * @brief Configure the source of output enable signal for the pad (only takes effect if func sel is selected to be LP_GPIO).
-  *
-  * @param rtcio_num The index of rtcio. 0 ~ MAX(rtcio).
-  * @param ctrl_by_periph True if use output enable signal from peripheral, false if force the output enable signal to be sourced from bit n of LP_GPIO_ENABLE_REG
-  * @param oen_inv True if the output enable needs to be inverted, otherwise False.
-  */
+ * @brief Connect a LP GPIO input with a LP peripheral signal, which tagged as input attribute.
+ *
+ * @param rtcio_num The index of rtcio. 0 ~ MAX(rtcio).
+ * @param signal_idx LP peripheral signal index.
+ * @param inv True to invert input signal; False then no invert.
+ */
+static inline void rtcio_ll_set_input_signal_matrix_source(int rtcio_num, uint32_t signal_idx, bool inv)
+{
+    lp_gpio_func_in_sel_cfg_reg_t reg;
+    reg.func_in_sel = rtcio_num;
+    reg.in_inv_sel = inv;
+    LP_GPIO.func_in_sel_cfg[signal_idx].val = reg.val;
+    rtcio_ll_set_input_signal_from(signal_idx, true); // Signal should not bypass LP_GPIO matrix
+}
+
+/**
+ * @brief Configure the source of output enable signal for the pad (only takes effect if func sel is selected to be LP_GPIO).
+ *
+ * @param rtcio_num The index of rtcio. 0 ~ MAX(rtcio).
+ * @param ctrl_by_periph True if use output enable signal from peripheral, false if force the output enable signal to be sourced from bit n of LP_GPIO_ENABLE_REG
+ * @param oen_inv True if the output enable needs to be inverted, otherwise False.
+ */
 __attribute__((always_inline))
 static inline void rtcio_ll_set_output_enable_ctrl(int rtcio_num, bool ctrl_by_periph, bool oen_inv)
 {
     LP_GPIO.func_out_sel_cfg[rtcio_num].oe_inv_sel = oen_inv;       // control valid only when using lp gpio matrix to route signal to the LP IO
     LP_GPIO.func_out_sel_cfg[rtcio_num].oe_sel = !ctrl_by_periph;
+}
+
+/**
+ * @brief Connect a LP peripheral signal which tagged as output attribute with a LP GPIO.
+ *
+ * @param rtcio_num The index of rtcio. 0 ~ MAX(rtcio).
+ * @param signal_idx LP peripheral signal index.
+ * @param out_inv True to invert output signal; False then no invert.
+ */
+__attribute__((always_inline))
+static inline void rtcio_ll_set_output_signal_matrix_source(int rtcio_num, uint32_t signal_idx, bool out_inv)
+{
+    lp_gpio_func_out_sel_cfg_reg_t reg;
+    reg.func_out_sel = signal_idx;
+    reg.out_inv_sel = out_inv;
+    LP_GPIO.func_out_sel_cfg[rtcio_num].val = reg.val;
 }
 
 /**

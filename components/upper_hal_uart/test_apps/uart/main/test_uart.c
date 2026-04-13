@@ -533,10 +533,9 @@ TEST_CASE("uart int state restored after flush", "[uart]")
         // This means RX IO should also only use LP_GPIO matrix to connect the RX signal
         // In case the selected RX IO is the LP UART IOMUX IO, and the IO has been configured to IOMUX function in the driver
         // Do the following:
-        TEST_ESP_OK(rtc_gpio_iomux_func_sel(uart_rx, RTCIO_LL_PIN_FUNC));
         const int uart_rx_signal = uart_periph_signal[uart_num].pins[SOC_UART_PERIPH_SIGNAL_RX].signal;
-        TEST_ESP_OK(lp_gpio_connect_in_signal(uart_rx, uart_rx_signal, false));
-        TEST_ESP_OK(lp_gpio_connect_out_signal(uart_rx, uart_tx_signal, false, false));
+        TEST_ESP_OK(lp_gpio_matrix_input(uart_rx, uart_rx_signal, false));
+        TEST_ESP_OK(lp_gpio_matrix_output(uart_rx, uart_tx_signal, false, false));
 #else
         // The only way is to use loop back feature
         TEST_ESP_OK(uart_set_loop_back(uart_num, true));
@@ -710,25 +709,27 @@ IRAM_ATTR static void uart_signal_inject_glitch_task(void *param)
     uart_port_param_t *port_param = (uart_port_param_t *)param;
     uart_port_t uart_num = port_param->port_num;
     uint32_t tx_pin = port_param->tx_pin_num;
+    uint32_t tx_signal = UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_TX);
     // while sending, frequently disconnect from UART TX signal and set level to high to create glitches
     gpio_ll_set_level(&GPIO, tx_pin, 1);
+    gpio_ll_output_enable(&GPIO, tx_pin);
 #if SOC_UART_LP_NUM > 0 && SOC_LP_GPIO_MATRIX_SUPPORTED
     uint32_t rtc_gpio_num = rtc_io_number_get(tx_pin);
     rtcio_ll_set_level(rtc_gpio_num, 1);
+    rtcio_ll_output_enable(rtc_gpio_num);
 #endif
 
     while (1) {
         // make sure the glitch is always less than 6us
         portDISABLE_INTERRUPTS();
         if (uart_num < SOC_UART_HP_NUM) {
-            esp_rom_gpio_connect_out_signal(tx_pin, SIG_GPIO_OUT_IDX, false, false);
-            gpio_ll_set_output_enable_ctrl(&GPIO, tx_pin, false, false);
-            esp_rom_gpio_connect_out_signal(tx_pin, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_TX), false, false);
+            gpio_ll_set_output_signal_matrix_source(&GPIO, tx_pin, SIG_GPIO_OUT_IDX, false);
+            // // When IO is set to GPIO use, its output control is only controlled by the GPIO_ENABLE_REG only
+            gpio_ll_set_output_signal_matrix_source(&GPIO, tx_pin, tx_signal, false);
 #if SOC_UART_LP_NUM > 0 && SOC_LP_GPIO_MATRIX_SUPPORTED
         } else {
-            rtcio_ll_matrix_out(rtc_gpio_num, LP_SIG_GPIO_OUT_IDX, false, false);
-            rtcio_ll_set_output_enable_ctrl(rtc_gpio_num, false, false);
-            rtcio_ll_matrix_out(rtc_gpio_num, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_TX), false, false);
+            rtcio_ll_set_output_signal_matrix_source(rtc_gpio_num, LP_SIG_GPIO_OUT_IDX, false);
+            rtcio_ll_set_output_signal_matrix_source(rtc_gpio_num, tx_signal, false);
 #endif
         }
         portENABLE_INTERRUPTS();

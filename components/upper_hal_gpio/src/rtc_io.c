@@ -216,7 +216,7 @@ esp_err_t rtc_gpio_iomux_output(gpio_num_t gpio_num, int func)
 }
 
 #if SOC_LP_GPIO_MATRIX_SUPPORTED
-esp_err_t lp_gpio_connect_in_signal(gpio_num_t gpio_num, uint32_t signal_idx, bool inv)
+esp_err_t lp_gpio_matrix_input(gpio_num_t gpio_num, uint32_t signal_idx, bool inv)
 {
     uint32_t io_num;
     if (gpio_num == LP_GPIO_MATRIX_CONST_ZERO_INPUT || gpio_num == LP_GPIO_MATRIX_CONST_ONE_INPUT) {
@@ -229,12 +229,35 @@ esp_err_t lp_gpio_connect_in_signal(gpio_num_t gpio_num, uint32_t signal_idx, bo
     return ESP_OK;
 }
 
-esp_err_t lp_gpio_connect_out_signal(gpio_num_t gpio_num, uint32_t signal_idx, bool out_inv, bool out_en_inv)
+esp_err_t lp_gpio_matrix_output(gpio_num_t gpio_num, uint32_t signal_idx, bool out_inv, bool out_en_inv)
 {
     ESP_RETURN_ON_FALSE(rtc_gpio_is_valid_gpio(gpio_num), ESP_ERR_INVALID_ARG, RTCIO_TAG, "LP_IO number error");
     rtcio_hal_matrix_out(rtc_io_number_get(gpio_num), signal_idx, out_inv, out_en_inv);
     return ESP_OK;
 }
+
+esp_err_t lp_gpio_connect_in_signal(gpio_num_t gpio_num, uint32_t signal_idx, bool inv)
+{
+    uint32_t io_num;
+    if (gpio_num == LP_GPIO_MATRIX_CONST_ZERO_INPUT || gpio_num == LP_GPIO_MATRIX_CONST_ONE_INPUT) {
+        io_num = gpio_num;
+    } else {
+        ESP_RETURN_ON_FALSE(rtc_gpio_is_valid_gpio(gpio_num), ESP_ERR_INVALID_ARG, RTCIO_TAG, "LP_IO number error");
+        io_num = rtc_io_number_get(gpio_num);
+    }
+    rtcio_ll_set_input_signal_matrix_source(io_num, signal_idx, inv);
+    return ESP_OK;
+}
+
+esp_err_t lp_gpio_connect_out_signal(gpio_num_t gpio_num, uint32_t signal_idx, bool out_inv, bool out_en_inv)
+{
+    ESP_RETURN_ON_FALSE(rtc_gpio_is_valid_gpio(gpio_num), ESP_ERR_INVALID_ARG, RTCIO_TAG, "LP_IO number error");
+    uint32_t rtcio_num = rtc_io_number_get(gpio_num);
+    rtcio_ll_set_output_signal_matrix_source(rtcio_num, signal_idx, out_inv);
+    rtcio_ll_set_output_enable_ctrl(rtcio_num, true, out_en_inv);
+    return ESP_OK;
+}
+
 #endif // SOC_LP_GPIO_MATRIX_SUPPORTED
 
 #endif // SOC_RTCIO_INPUT_OUTPUT_SUPPORTED

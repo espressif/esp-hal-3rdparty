@@ -264,7 +264,7 @@ static bool uart_module_enable(uart_port_t uart_num)
             // Workaround: Set RX signal to high to avoid false RX BRK_DET interrupt raised after register reset
             if (uart_context[uart_num].rx_io_num == -1) { // if RX pin is already configured, then workaround not needed, skip
 #if SOC_LP_GPIO_MATRIX_SUPPORTED
-                lp_gpio_connect_in_signal(LP_GPIO_MATRIX_CONST_ONE_INPUT, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_RX), false);
+                rtcio_ll_set_input_signal_matrix_source(LP_GPIO_MATRIX_CONST_ONE_INPUT, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_RX), false);
 #else
                 // the signal is directly connected to its LP IO pin, the only way is to enable its pullup
                 uint32_t io_num = uart_periph_signal[uart_num].pins[SOC_UART_PERIPH_SIGNAL_RX].default_gpio;
@@ -782,7 +782,7 @@ static void uart_release_pin(uart_port_t uart_num, bool release_tx, bool release
 #if (SOC_UART_LP_NUM >= 1)
         else {
 #if SOC_LP_GPIO_MATRIX_SUPPORTED
-            lp_gpio_connect_in_signal(LP_GPIO_MATRIX_CONST_ONE_INPUT, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_RX), false);
+            lp_gpio_matrix_input(LP_GPIO_MATRIX_CONST_ONE_INPUT, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_RX), false);
 #endif
             rtc_gpio_deinit(uart_context[uart_num].rx_io_num);
         }
@@ -814,7 +814,7 @@ static void uart_release_pin(uart_port_t uart_num, bool release_tx, bool release
 #if (SOC_UART_LP_NUM >= 1)
         else {
 #if SOC_LP_GPIO_MATRIX_SUPPORTED
-            lp_gpio_connect_in_signal(LP_GPIO_MATRIX_CONST_ZERO_INPUT, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_CTS), false);
+            lp_gpio_matrix_input(LP_GPIO_MATRIX_CONST_ZERO_INPUT, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_CTS), false);
 #endif
             rtc_gpio_deinit(uart_context[uart_num].cts_io_num);
         }
@@ -843,7 +843,7 @@ static void uart_release_pin(uart_port_t uart_num, bool release_tx, bool release
 #if (SOC_UART_LP_NUM >= 1)
         else {
 #if SOC_LP_GPIO_MATRIX_SUPPORTED
-            lp_gpio_connect_in_signal(LP_GPIO_MATRIX_CONST_ZERO_INPUT, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_DSR), false);
+            lp_gpio_matrix_input(LP_GPIO_MATRIX_CONST_ZERO_INPUT, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_DSR), false);
 #endif
             rtc_gpio_deinit(uart_context[uart_num].dsr_io_num);
         }
@@ -928,8 +928,8 @@ esp_err_t _uart_set_pin6(uart_port_t uart_num, int tx_io_num, int rx_io_num, int
 #if SOC_LP_GPIO_MATRIX_SUPPORTED && (SOC_UART_LP_NUM >= 1)
             else {
                 rtc_gpio_init(tx_io_num); // set as a LP_GPIO pin
-                lp_gpio_connect_out_signal(tx_io_num, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_TX), 0, 0);
-                // output enable is set inside lp_gpio_connect_out_signal func after the signal is connected
+                lp_gpio_matrix_output(tx_io_num, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_TX), 0, 0);
+                // output enable is set inside lp_gpio_matrix_output func after the signal is connected
             }
 #endif
         }
@@ -950,13 +950,10 @@ esp_err_t _uart_set_pin6(uart_port_t uart_num, int tx_io_num, int rx_io_num, int
             }
 #if SOC_LP_GPIO_MATRIX_SUPPORTED && (SOC_UART_LP_NUM >= 1)
             else {
-                rtc_gpio_mode_t mode = (tx_rx_same_io ? RTC_GPIO_MODE_INPUT_OUTPUT : RTC_GPIO_MODE_INPUT_ONLY);
-                rtc_gpio_set_direction(rx_io_num, mode);
                 if (!tx_rx_same_io) { // set the same pin again as a LP_GPIO will overwrite connected out_signal, not desired, so skip
                     rtc_gpio_init(rx_io_num); // set as a LP_GPIO pin
                 }
-
-                lp_gpio_connect_in_signal(rx_io_num, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_RX), 0);
+                lp_gpio_matrix_input(rx_io_num, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_RX), 0);
             }
 #endif
         }
@@ -969,8 +966,8 @@ esp_err_t _uart_set_pin6(uart_port_t uart_num, int tx_io_num, int rx_io_num, int
 #if SOC_LP_GPIO_MATRIX_SUPPORTED && (SOC_UART_LP_NUM >= 1)
         else {
             rtc_gpio_init(rts_io_num); // set as a LP_GPIO pin
-            lp_gpio_connect_out_signal(rts_io_num, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_RTS), 0, 0);
-            // output enable is set inside lp_gpio_connect_out_signal func after the signal is connected
+            lp_gpio_matrix_output(rts_io_num, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_RTS), 0, 0);
+            // output enable is set inside lp_gpio_matrix_output func after the signal is connected
         }
 #endif
     }
@@ -982,9 +979,8 @@ esp_err_t _uart_set_pin6(uart_port_t uart_num, int tx_io_num, int rx_io_num, int
         }
 #if SOC_LP_GPIO_MATRIX_SUPPORTED && (SOC_UART_LP_NUM >= 1)
         else {
-            rtc_gpio_set_direction(cts_io_num, RTC_GPIO_MODE_INPUT_ONLY);
             rtc_gpio_init(cts_io_num); // set as a LP_GPIO pin
-            lp_gpio_connect_in_signal(cts_io_num, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_CTS), 0);
+            lp_gpio_matrix_input(cts_io_num, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_CTS), 0);
         }
 #endif
     }
@@ -996,8 +992,8 @@ esp_err_t _uart_set_pin6(uart_port_t uart_num, int tx_io_num, int rx_io_num, int
 #if SOC_LP_GPIO_MATRIX_SUPPORTED && (SOC_UART_LP_NUM >= 1)
         else {
             rtc_gpio_init(dtr_io_num); // set as a LP_GPIO pin
-            lp_gpio_connect_out_signal(dtr_io_num, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_DTR), 0, 0);
-            // output enable is set inside lp_gpio_connect_out_signal func after the signal is connected
+            lp_gpio_matrix_output(dtr_io_num, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_DTR), 0, 0);
+            // output enable is set inside lp_gpio_matrix_output func after the signal is connected
         }
 #endif
     }
@@ -1009,9 +1005,8 @@ esp_err_t _uart_set_pin6(uart_port_t uart_num, int tx_io_num, int rx_io_num, int
         }
 #if SOC_LP_GPIO_MATRIX_SUPPORTED && (SOC_UART_LP_NUM >= 1)
         else {
-            rtc_gpio_set_direction(dsr_io_num, RTC_GPIO_MODE_INPUT_ONLY);
             rtc_gpio_init(dsr_io_num); // set as a LP_GPIO pin
-            lp_gpio_connect_in_signal(dsr_io_num, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_DSR), 0);
+            lp_gpio_matrix_input(dsr_io_num, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_DSR), 0);
         }
 #endif
     }
