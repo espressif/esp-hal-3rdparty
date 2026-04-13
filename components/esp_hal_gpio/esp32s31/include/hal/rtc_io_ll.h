@@ -44,20 +44,6 @@ typedef enum {
 } rtcio_ll_out_mode_t;
 
 /**
- * @brief Select a RTC IOMUX function for the RTC IO
- *
- * @param rtcio_num The index of rtcio. 0 ~ MAX(rtcio).
- * @param func Function to assign to the pin
- */
-static inline void rtcio_ll_iomux_func_sel(int rtcio_num, int func)
-{
-    LP_IO_MUX.gpion[rtcio_num].gpion_mcu_sel = func;
-    if (func == RTCIO_LL_PIN_FUNC) {
-        LP_GPIO.funcn_out_sel_cfg[rtcio_num].funcn_out_sel = LP_SIG_GPIO_OUT_IDX;
-    }
-}
-
-/**
  * @brief Enable/Disable LP_GPIO peripheral clock.
  *
  * @param enable true to enable the clock / false to disable the clock
@@ -74,6 +60,20 @@ static inline void _rtcio_ll_enable_io_clock(bool enable)
 #define rtcio_ll_enable_io_clock(...) _rtcio_ll_enable_io_clock(__VA_ARGS__)
 
 /**
+ * @brief Select a RTC IOMUX function for the RTC IO
+ *
+ * @param rtcio_num The index of rtcio. 0 ~ MAX(rtcio).
+ * @param func Function to assign to the pin
+ */
+static inline void rtcio_ll_iomux_func_sel(int rtcio_num, int func)
+{
+    LP_IO_MUX.gpion[rtcio_num].gpion_mcu_sel = func;
+    if (func == RTCIO_LL_PIN_FUNC) {
+        LP_GPIO.funcn_out_sel_cfg[rtcio_num].funcn_out_sel = LP_SIG_GPIO_OUT_IDX;
+    }
+}
+
+/**
  * @brief Select the rtcio function.
  *
  * @note The RTC function must be selected before the pad analog function is enabled.
@@ -87,7 +87,6 @@ static inline void rtcio_ll_function_select(int rtcio_num, rtcio_ll_func_t func)
         uint32_t sel = HAL_FORCE_READ_U32_REG_FIELD(LP_SYS.padctrl, pad_mux_sel);
         sel |= BIT(rtcio_num);
         HAL_FORCE_MODIFY_U32_REG_FIELD(LP_SYS.padctrl, pad_mux_sel, sel);
-        rtcio_ll_iomux_func_sel(rtcio_num, RTCIO_LL_PIN_FUNC);
     } else if (func == RTCIO_LL_FUNC_DIGITAL) {
         uint32_t sel = HAL_FORCE_READ_U32_REG_FIELD(LP_SYS.padctrl, pad_mux_sel);
         sel &= ~BIT(rtcio_num);
