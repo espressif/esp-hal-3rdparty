@@ -53,6 +53,7 @@ typedef enum {
     CACHE_LL_PRELOAD_ARBITRARY = 2,
 } cache_ll_preload_strategy_t;
 
+
 /**
  * @brief Initialize the cache clock
  */
@@ -222,14 +223,14 @@ static inline void cache_ll_preload_set_strategy(uint32_t cache_level, cache_typ
  * @brief Preload cache (no-op; ROM has no manual preload API)
  */
 __attribute__((always_inline))
-static inline void cache_ll_preload(uint32_t cache_level, cache_type_t type, uint32_t cache_id, uint32_t vaddr, uint32_t size, bool ascending)
+static inline void cache_ll_preload(uint32_t cache_level, cache_type_t type, uint32_t cache_id, uint32_t vaddr, uint32_t size, cache_preload_order_t order)
 {
     (void)cache_level;
     (void)type;
     (void)cache_id;
     (void)vaddr;
     (void)size;
-    (void)ascending;
+    (void)order;
 }
 
 /**

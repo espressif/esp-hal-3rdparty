@@ -40,6 +40,7 @@ typedef enum {
     CACHE_LL_PRELOAD_ARBITRARY = 2,
 } cache_ll_preload_strategy_t;
 
+
 /**
  * @brief Initialize the cache clock
  */
@@ -121,27 +122,31 @@ static inline void cache_ll_preload_set_strategy(uint32_t cache_level, cache_typ
 }
 
 /**
- * @brief Preload cache (L1 only)
+ * @brief Preload cache
  *
- * Starts preload for the given region and does not wait. Use
- * cache_ll_preload_wait_done() to wait for completion.
+ * @param cache_level  level of the cache (must be CACHE_LL_LEVEL_EXT_MEM)
+ * @param type         see `cache_type_t` (INSTRUCTION, DATA, or ALL)
+ * @param cache_id     id of the cache (unused on S2; pass 0 or CACHE_LL_ID_ALL)
+ * @param vaddr        start virtual address of the preload region
+ * @param size         size of the preload region in bytes
+ * @param order        preload order, see `cache_preload_order_t`
  */
 __attribute__((always_inline))
-static inline void cache_ll_preload(uint32_t cache_level, cache_type_t type, uint32_t cache_id, uint32_t vaddr, uint32_t size, bool ascending)
+static inline void cache_ll_preload(uint32_t cache_level, cache_type_t type, uint32_t cache_id, uint32_t vaddr, uint32_t size, cache_preload_order_t order)
 {
     (void)cache_id;
     HAL_ASSERT(cache_level == CACHE_LL_LEVEL_EXT_MEM);
     switch (type) {
     case CACHE_TYPE_INSTRUCTION:
-        Cache_Start_ICache_Preload(vaddr, size, ascending ? 0 : 1);
+        Cache_Start_ICache_Preload(vaddr, size, order);
         break;
     case CACHE_TYPE_DATA:
-        Cache_Start_DCache_Preload(vaddr, size, ascending ? 0 : 1);
+        Cache_Start_DCache_Preload(vaddr, size, order);
         break;
     case CACHE_TYPE_ALL:
     default:
-        Cache_Start_ICache_Preload(vaddr, size, ascending ? 0 : 1);
-        Cache_Start_DCache_Preload(vaddr, size, ascending ? 0 : 1);
+        Cache_Start_ICache_Preload(vaddr, size, order);
+        Cache_Start_DCache_Preload(vaddr, size, order);
         break;
     }
 }
