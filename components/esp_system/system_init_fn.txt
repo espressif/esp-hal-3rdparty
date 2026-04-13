@@ -50,7 +50,7 @@ CORE: 102: init_libc in components/esp_libc/src/init.c on BIT(0)
 CORE: 103: psram_core_stage_init in components/esp_psram/system_layer/esp_psram.c on BIT(0)
 
 CORE: 105: init_brownout in components/esp_system/startup_funcs.c on BIT(0)
-CORE: 106: init_newlib_time in components/esp_system/startup_funcs.c on BIT(0)
+CORE: 106: init_libc_time in components/esp_libc/src/init.c on BIT(0)
 
 # Peripheral-specific implementation operators should be filled first
 # Then register vfs console, and follow by esp_libc stdio initialization
