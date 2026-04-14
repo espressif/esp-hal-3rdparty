@@ -25,6 +25,10 @@ static void _twai_rcc_clock_ctrl(uint8_t ctrlr_id, bool enable)
     PERIPH_RCC_ATOMIC() {
         twai_ll_enable_clock(ctrlr_id, enable);
     }
+#if TWAI_LL_SUPPORT(MEM_LP)
+    twai_ll_mem_power_by_pmu(ctrlr_id);
+    twai_ll_mem_lp_mode_sel(ctrlr_id, TWAI_LL_MEM_LP_MODE_SHUT_DOWN);
+#endif
 }
 static void _twai_rcc_clock_sel(uint8_t ctrlr_id, twai_clock_source_t clock)
 {

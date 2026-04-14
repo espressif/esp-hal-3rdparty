@@ -57,7 +57,7 @@ TEST_CASE("twai install uninstall (loopback)", "[twai]")
     node_config.io_cfg.rx = TEST_TX_GPIO; // Using same pin for test without transceiver
     node_config.io_cfg.quanta_clk_out = GPIO_NUM_NC;
     node_config.io_cfg.bus_off_indicator = GPIO_NUM_NC;
-    node_config.bit_timing.bitrate = 1000000;
+    node_config.bit_timing.bitrate = 500000;
     node_config.tx_queue_depth = TEST_TWAI_QUEUE_DEPTH;
     node_config.flags.enable_self_test = true;
     node_config.flags.enable_loopback = true;
