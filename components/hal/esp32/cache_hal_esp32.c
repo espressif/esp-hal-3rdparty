@@ -77,7 +77,7 @@ bool cache_hal_invalidate_addr(uint32_t vaddr, uint32_t size)
     abort();
 }
 
-void cache_hal_preload(uint32_t cache_level, cache_type_t type, uint32_t vaddr, uint32_t size, bool ascending)
+void cache_hal_preload(uint32_t cache_level, cache_type_t type, uint32_t vaddr, uint32_t size, cache_preload_order_t order)
 {
     //not supported, for compatibility
 }

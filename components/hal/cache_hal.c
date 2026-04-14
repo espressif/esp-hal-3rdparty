@@ -328,9 +328,9 @@ uint32_t cache_hal_get_cache_line_size(uint32_t cache_level, cache_type_t type)
     return line_size;
 }
 
-void cache_hal_preload(uint32_t cache_level, cache_type_t type, uint32_t vaddr, uint32_t size, bool ascending)
+void cache_hal_preload(uint32_t cache_level, cache_type_t type, uint32_t vaddr, uint32_t size, cache_preload_order_t order)
 {
-    cache_ll_preload(cache_level, type, CACHE_LL_ID_ALL, vaddr, size, ascending);
+    cache_ll_preload(cache_level, type, CACHE_LL_ID_ALL, vaddr, size, order);
 }
 
 void cache_hal_preload_wait_done(uint32_t cache_level, cache_type_t type)
