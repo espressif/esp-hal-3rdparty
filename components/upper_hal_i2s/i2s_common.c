@@ -882,15 +882,38 @@ static uint64_t s_i2s_get_pair_chan_gpio_mask(i2s_chan_handle_t handle)
     return handle->controller->tx_chan ? handle->controller->tx_chan->reserve_gpio_mask : 0;
 }
 
+static bool s_i2s_gpio_used_by_pair_chan(i2s_chan_handle_t handle, int gpio_num)
+{
+    if (!handle->controller->full_duplex) {
+        return false;
+    }
+    return !!(s_i2s_get_pair_chan_gpio_mask(handle) & BIT64(gpio_num));
+}
+
+/**
+ * @note Call before IO_MUX/matrix reconfiguration. Input pins are not added to the
+ *       global GPIO reserve map (no esp_gpio_reserve), to avoid esp_gpio_revoke()
+ *       clearing bits that MSPI or other subsystems already own.
+ */
+static void s_i2c_input_gpio_reserve_check(i2s_chan_handle_t handle, int gpio_num)
+{
+    if (s_i2s_gpio_used_by_pair_chan(handle, gpio_num)) {
+        return;
+    }
+    if (esp_gpio_is_reserved(BIT64(gpio_num))) {
+        ESP_LOGW(TAG, "GPIO %d is already reserved; selecting GPIO matrix input on this pin may conflict (e.g. MSPI/Flash)", gpio_num);
+    }
+}
+
 void i2s_output_gpio_reserve(i2s_chan_handle_t handle, int gpio_num)
 {
-    bool used_by_pair_chan = false;
     /* If the gpio is used by the pair channel do not show warning for this case */
-    if (handle->controller->full_duplex) {
-        used_by_pair_chan = !!(s_i2s_get_pair_chan_gpio_mask(handle) & BIT64(gpio_num));
+    if (s_i2s_gpio_used_by_pair_chan(handle, gpio_num)) {
+        handle->reserve_gpio_mask |= BIT64(gpio_num);
+        return;
     }
     /* reserve the GPIO output path, because we don't expect another peripheral to signal to the same GPIO */
-    if (!used_by_pair_chan && (esp_gpio_reserve(BIT64(gpio_num)) & BIT64(gpio_num))) {
+    if (esp_gpio_reserve(BIT64(gpio_num)) & BIT64(gpio_num)) {
         ESP_LOGW(TAG, "GPIO %d is not usable, maybe conflict with others", gpio_num);
     }
     handle->reserve_gpio_mask |= BIT64(gpio_num);
@@ -913,14 +936,15 @@ void i2s_gpio_check_and_set(i2s_chan_handle_t handle, int gpio, uint32_t signal_
 {
     /* Ignore the pin if pin = I2S_GPIO_UNUSED */
     if (gpio != (int)I2S_GPIO_UNUSED) {
-        gpio_func_sel(gpio, PIN_FUNC_GPIO);
+        /* Reserve / warn before IO_MUX changes so e.g. MSPI pads are not remuxed with no prior notice */
         if (is_input) {
-            /* Enable the input, for some GPIOs, the input function are not enabled as default */
+            s_i2c_input_gpio_reserve_check(handle, gpio);
+            gpio_func_sel(gpio, PIN_FUNC_GPIO);
             gpio_input_enable(gpio);
             esp_rom_gpio_connect_in_signal(gpio, signal_idx, is_invert);
         } else {
             i2s_output_gpio_reserve(handle, gpio);
-            /* output will be enabled in esp_rom_gpio_connect_out_signal */
+            gpio_func_sel(gpio, PIN_FUNC_GPIO);
             esp_rom_gpio_connect_out_signal(gpio, signal_idx, is_invert, 0);
         }
     }
