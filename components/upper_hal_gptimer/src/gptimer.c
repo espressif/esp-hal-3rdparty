@@ -17,9 +17,9 @@ static esp_err_t gptimer_create_sleep_retention_link_cb(void *timer)
 {
     int group_id = ((gptimer_t *)timer)->group->group_id;
     int timer_id = ((gptimer_t *)timer)->timer_id;
-    esp_err_t err = sleep_retention_entries_create(soc_timg_gptimer_retention_infos[group_id][timer_id].regdma_entry_array,
-                                                   soc_timg_gptimer_retention_infos[group_id][timer_id].array_size,
-                                                   REGDMA_LINK_PRI_GPTIMER, soc_timg_gptimer_retention_infos[group_id][timer_id].module);
+    esp_err_t err = sleep_retention_entries_create(gptimer_retention_infos[group_id][timer_id].regdma_entry_array,
+                                                   gptimer_retention_infos[group_id][timer_id].array_size,
+                                                   REGDMA_LINK_PRI_GPTIMER, gptimer_retention_infos[group_id][timer_id].module);
     return err;
 }
 
@@ -27,7 +27,7 @@ static void gptimer_create_retention_module(gptimer_t *timer)
 {
     int group_id = timer->group->group_id;
     int timer_id = timer->timer_id;
-    sleep_retention_module_t module = soc_timg_gptimer_retention_infos[group_id][timer_id].module;
+    sleep_retention_module_t module = gptimer_retention_infos[group_id][timer_id].module;
     if (sleep_retention_is_module_inited(module) && !sleep_retention_is_module_created(module)) {
         if (sleep_retention_module_allocate(module) != ESP_OK) {
             // even though the sleep retention module create failed, GPTimer driver should still work, so just warning here
@@ -65,7 +65,7 @@ static esp_err_t gptimer_register_to_group(gptimer_t *timer)
     ESP_RETURN_ON_FALSE(timer_id != -1, ESP_ERR_NOT_FOUND, TAG, "no free timer");
 
 #if GPTIMER_USE_RETENTION_LINK
-    sleep_retention_module_t module = soc_timg_gptimer_retention_infos[group->group_id][timer_id].module;
+    sleep_retention_module_t module = gptimer_retention_infos[group->group_id][timer_id].module;
     sleep_retention_module_init_param_t init_param = {
         .cbs = {
             .create = {
@@ -93,7 +93,7 @@ static void gptimer_unregister_from_group(gptimer_t *timer)
     portEXIT_CRITICAL(&group->spinlock);
 
 #if GPTIMER_USE_RETENTION_LINK
-    sleep_retention_module_t module = soc_timg_gptimer_retention_infos[group->group_id][timer_id].module;
+    sleep_retention_module_t module = gptimer_retention_infos[group->group_id][timer_id].module;
     if (sleep_retention_is_module_created(module)) {
         sleep_retention_module_free(module);
     }
