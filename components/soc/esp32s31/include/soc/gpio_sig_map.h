@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2025-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  */
@@ -23,7 +23,6 @@
 #define SD_CARD_CDATA7_2_PAD_IN_IDX             7
 #define SD_CARD_CDATA7_2_PAD_OUT_IDX            7
 #define PAD_MODEM_ANT_SEL0_IDX                  8
-#define ANT_SEL0_IDX                            (PAD_MODEM_ANT_SEL0_IDX)
 #define PAD_MODEM_ANT_SEL1_IDX                  9
 #define ANT_SEL0_IDX                            PAD_MODEM_ANT_SEL0_IDX
 #define ANT_SEL1_IDX                            PAD_MODEM_ANT_SEL1_IDX
@@ -509,3 +508,20 @@
 #define SIG_IN_FUNC255_IDX                      255
 // version date 2312260
 #define SIG_GPIO_OUT_IDX                        256
+
+#define ANT_SEL0_IDX  PAD_MODEM_ANT_SEL0_IDX
+#define ANT_SEL1_IDX  PAD_MODEM_ANT_SEL1_IDX
+#define ANT_SEL2_IDX  PAD_MODEM_ANT_SEL2_IDX
+#define ANT_SEL3_IDX  PAD_MODEM_ANT_SEL3_IDX
+#define ANT_SEL4_IDX  PAD_MODEM_ANT_SEL4_IDX
+#define ANT_SEL5_IDX  PAD_MODEM_ANT_SEL5_IDX
+#define ANT_SEL6_IDX  PAD_MODEM_ANT_SEL6_IDX
+#define ANT_SEL7_IDX  PAD_MODEM_ANT_SEL7_IDX
+#define ANT_SEL8_IDX  PAD_MODEM_ANT_SEL8_IDX
+#define ANT_SEL9_IDX  PAD_MODEM_ANT_SEL9_IDX
+#define ANT_SEL10_IDX  PAD_MODEM_ANT_SEL10_IDX
+#define ANT_SEL11_IDX  PAD_MODEM_ANT_SEL11_IDX
+#define ANT_SEL12_IDX  PAD_MODEM_ANT_SEL12_IDX
+#define ANT_SEL13_IDX  PAD_MODEM_ANT_SEL13_IDX
+#define ANT_SEL14_IDX  PAD_MODEM_ANT_SEL14_IDX
+#define ANT_SEL15_IDX  PAD_MODEM_ANT_SEL15_IDX
