@@ -65,9 +65,9 @@ void ana_cmpr_default_intr_handler(void *usr_data)
     if (cmpr_handle->cbs.on_cross && (status & cmpr_handle->intr_mask)) {
         // some chip can distinguish the edge of the cross event
 #if ANALOG_CMPR_LL_SUPPORT(EDGE_TYPE)
-        if (status & ANALOG_CMPR_LL_POS_CROSS_MASK(cmpr_handle->unit)) {
+        if (status & ANALOG_CMPR_LL_POS_CROSS_MASK(cmpr_handle->unit, 0)) {
             evt_data.cross_type = ANA_CMPR_CROSS_POS;
-        } else if (status & ANALOG_CMPR_LL_NEG_CROSS_MASK(cmpr_handle->unit)) {
+        } else if (status & ANALOG_CMPR_LL_NEG_CROSS_MASK(cmpr_handle->unit, 0)) {
             evt_data.cross_type = ANA_CMPR_CROSS_NEG;
         }
 #endif  // ANALOG_CMPR_LL_SUPPORT(EDGE_TYPE)
@@ -123,10 +123,25 @@ esp_err_t ana_cmpr_new_unit(const ana_cmpr_config_t *config, ana_cmpr_handle_t *
     ana_cmpr_hdl->unit = unit;
     ana_cmpr_hdl->intr_priority = config->intr_priority;
     atomic_init(&ana_cmpr_hdl->fsm, ANA_CMPR_FSM_INIT);
-
+    // Enable bus clock
+    analog_cmpr_ll_enable_bus_clock(unit, true);
+    // Reset register
+    analog_cmpr_ll_reset_register(unit);
     ana_cmpr_clk_src_t clk_src = config->clk_src ? config->clk_src : ANA_CMPR_CLK_SRC_DEFAULT;
-    // Analog comparator located in the IO MUX, but IO MUX clock might be shared with other submodules as well, check if there's conflict
+#if ANALOG_CMPR_LL_GET(IP_VERSION) > 1
+    // Reset core
+    analog_cmpr_ll_reset_core(unit);
+    // Set clock source (use default if not specified in config)
+    analog_cmpr_ll_set_clk_src(unit, clk_src);
+    // Set clock divider to 1
+    analog_cmpr_ll_set_clk_div(unit, 1);
+    // Enable function clock
+    analog_cmpr_ll_enable_function_clock(unit, true);
+#else
+    // Analog comparator located in the IO MUX module in older chips, so the clock source is shared with IO MUX.
+    // TODO: Check if the clock source conflicts with other IOMUX consumers
     ESP_GOTO_ON_ERROR(io_mux_set_clock_source((soc_module_clk_t)clk_src), err, TAG, "clock source conflicts with other IOMUX consumers");
+#endif
     ESP_GOTO_ON_ERROR(esp_clk_tree_src_get_freq_hz((soc_module_clk_t)clk_src, ESP_CLK_TREE_SRC_FREQ_PRECISION_CACHED, &ana_cmpr_hdl->src_clk_freq_hz),
                       err, TAG, "get source clock frequency failed");
 
@@ -146,13 +161,13 @@ esp_err_t ana_cmpr_new_unit(const ana_cmpr_config_t *config, ana_cmpr_handle_t *
 #endif  // !ANALOG_CMPR_LL_SUPPORT(EDGE_TYPE)
     // record the interrupt mask, the interrupt will be lazy installed when register user callbacks
     // different cross type means different interrupt mask
-    ana_cmpr_hdl->intr_mask = analog_cmpr_ll_get_intr_mask_by_type(ana_cmpr_hdl->dev, config->cross_type);
+    ana_cmpr_hdl->intr_mask = analog_cmpr_ll_get_intr_mask_by_type(unit, 0, config->cross_type);
 
     // different unit share the same interrupt register, so using a spin lock to protect it
     portENTER_CRITICAL(&s_spinlock);
     // disable the interrupt by default, and clear pending status
-    analog_cmpr_ll_enable_intr(ana_cmpr_hdl->dev, ANALOG_CMPR_LL_ALL_INTR_MASK(unit), false);
-    analog_cmpr_ll_clear_intr(ana_cmpr_hdl->dev, ANALOG_CMPR_LL_ALL_INTR_MASK(unit));
+    analog_cmpr_ll_enable_intr(ana_cmpr_hdl->dev, ANALOG_CMPR_LL_ALL_INTR_MASK(unit, 0), false);
+    analog_cmpr_ll_clear_intr(ana_cmpr_hdl->dev, ANALOG_CMPR_LL_ALL_INTR_MASK(unit, 0));
     portEXIT_CRITICAL(&s_spinlock);
 
     // GPIO configuration
@@ -191,6 +206,11 @@ esp_err_t ana_cmpr_del_unit(ana_cmpr_handle_t cmpr)
     ESP_RETURN_ON_FALSE(unit != -1, ESP_ERR_INVALID_ARG, TAG, "unregistered unit handle");
     ESP_RETURN_ON_FALSE(atomic_load(&cmpr->fsm) == ANA_CMPR_FSM_INIT, ESP_ERR_INVALID_STATE, TAG, "not in init state");
 
+    // Disable function clock first
+    analog_cmpr_ll_enable_function_clock(unit, false);
+    // Disable bus clock last
+    analog_cmpr_ll_enable_bus_clock(unit, false);
+
     ana_cmpr_destroy_unit(cmpr);
     // unregister it from the global object array
     s_ana_cmpr[unit] = NULL;
@@ -225,7 +245,7 @@ esp_err_t ana_cmpr_set_debounce(ana_cmpr_handle_t cmpr, const ana_cmpr_debounce_
     uint32_t wait_cycle = dbc_cfg->wait_us * (cmpr->src_clk_freq_hz / 1000000);
     // the underlying register may be accessed by different threads at the same time, so use spin lock to protect it
     portENTER_CRITICAL_SAFE(&s_spinlock);
-    analog_cmpr_ll_set_debounce_cycle(cmpr->dev, wait_cycle);
+    analog_cmpr_ll_set_cross_debounce_cycle(cmpr->dev, wait_cycle);
     portEXIT_CRITICAL_SAFE(&s_spinlock);
 
     return ESP_OK;
@@ -248,7 +268,7 @@ esp_err_t ana_cmpr_set_cross_type(ana_cmpr_handle_t cmpr, ana_cmpr_cross_type_t 
 
     portENTER_CRITICAL_SAFE(&s_spinlock);
     analog_cmpr_ll_set_intr_cross_type(cmpr->dev, cross_type);
-    cmpr->intr_mask = analog_cmpr_ll_get_intr_mask_by_type(cmpr->dev, cross_type);
+    cmpr->intr_mask = analog_cmpr_ll_get_intr_mask_by_type(cmpr->unit, 0, cross_type);
     portEXIT_CRITICAL_SAFE(&s_spinlock);
 
     return ESP_OK;

@@ -18,15 +18,6 @@ extern "C" {
 #endif
 
 /**
- * @brief Analog Comparator ETM Events for each unit
- *
- */
-typedef enum {
-    ANA_CMPR_EVENT_POS_CROSS,           /*!< Positive cross event when the source signal becomes higher than the reference signal */
-    ANA_CMPR_EVENT_NEG_CROSS,           /*!< Negative cross event when the source signal becomes lower than the reference signal */
-} ana_cmpr_event_type_t;
-
-/**
  * @brief Analog Comparator ETM event configuration
  *
  */
