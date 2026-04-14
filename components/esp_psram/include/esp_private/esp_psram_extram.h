@@ -56,6 +56,20 @@ esp_err_t esp_psram_extram_reserve_dma_pool(size_t size);
 bool esp_psram_extram_test(void);
 
 /**
+ * @brief Get start virtual address of the heap-eligible PSRAM region.
+ *
+ * @return Virtual address start, or 0 if PSRAM is not initialized.
+ */
+uintptr_t esp_psram_extram_vaddr_start(void);
+
+/**
+ * @brief Get end virtual address of the heap-eligible PSRAM region.
+ *
+ * @return Virtual address end, or 0 if PSRAM is not initialized.
+ */
+uintptr_t esp_psram_extram_vaddr_end(void);
+
+/**
  * @brief Init .bss on psram
  */
 void esp_psram_bss_init(void);

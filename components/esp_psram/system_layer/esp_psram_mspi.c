@@ -19,6 +19,7 @@
 #include "hal/mspi_periph.h"
 #include "esp_private/mspi_intr.h"
 #include "esp_private/esp_psram_mspi.h"
+#include "platform/os.h"
 #if CONFIG_SPIRAM
 #if !CONFIG_IDF_TARGET_ESP32 && !CONFIG_IDF_TARGET_ESP32S2
 #include "hal/psram_ctrlr_ll.h"
@@ -84,11 +85,11 @@ esp_err_t esp_psram_mspi_register_isr(void)
     };
     ret = esp_mspi_register_isr(&isr);
 #else
-    ret = esp_intr_alloc(mspi_hw_info.instances[PSRAM_CTRLR_LL_MSPI_ID_SYSTEM].irq,
-                         PSRAM_ISR_FLAGS,
-                         mspi_psram_isr_handler_wrapper,
-                         NULL,
-                         &s_mspi_psram_intr_handle);
+    ret = esp_os_intr_alloc(mspi_hw_info.instances[PSRAM_CTRLR_LL_MSPI_ID_SYSTEM].irq,
+                            PSRAM_ISR_FLAGS,
+                            mspi_psram_isr_handler_wrapper,
+                            NULL,
+                            &s_mspi_psram_intr_handle);
 
     ESP_RETURN_ON_ERROR(ret, TAG, "Failed to allocate MSPI psram interrupt");
 

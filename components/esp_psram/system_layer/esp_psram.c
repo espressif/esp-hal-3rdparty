@@ -16,7 +16,7 @@
 #include "esp_attr.h"
 #include "esp_err.h"
 #include "esp_log.h"
-#include "freertos/FreeRTOS.h"
+#include "platform/os.h"
 #include "esp_heap_caps_init.h"
 #include "esp_psram.h"
 #include "esp_mmu_map.h"
@@ -673,6 +673,24 @@ bool esp_psram_extram_test(void)
     }
 
     return true;
+}
+
+uintptr_t esp_psram_extram_vaddr_start(void)
+{
+    if (!s_psram_ctx.is_initialised) {
+        return 0;
+    }
+
+    return (uintptr_t)s_psram_ctx.regions_to_heap[PSRAM_MEM_8BIT_ALIGNED].vaddr_start;
+}
+
+uintptr_t esp_psram_extram_vaddr_end(void)
+{
+    if (!s_psram_ctx.is_initialised) {
+        return 0;
+    }
+
+    return (uintptr_t)s_psram_ctx.regions_to_heap[PSRAM_MEM_8BIT_ALIGNED].vaddr_end;
 }
 
 void esp_psram_bss_init(void)
