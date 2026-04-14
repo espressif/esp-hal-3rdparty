@@ -8,7 +8,7 @@
 #include <string.h>
 #include <stdatomic.h>
 #include "sdkconfig.h"
-#include "freertos/FreeRTOS.h"
+#include "platform/os.h"
 #include "esp_log.h"
 #include "esp_check.h"
 #include "soc/soc_caps.h"
@@ -27,7 +27,7 @@ typedef struct ldo_regulator_channel_t {
     } flags;
 } ldo_regulator_channel_t;
 
-static __attribute__((unused)) portMUX_TYPE s_spinlock = portMUX_INITIALIZER_UNLOCKED;
+DEFINE_CRIT_SECTION_LOCK_STATIC(s_spinlock, __attribute__((unused)));
 
 static const uint32_t s_ldo_channel_adjustable_mask = LDO_LL_ADJUSTABLE_CHAN_MASK; // each bit represents if the LDO channel is adjustable in hardware
 

@@ -464,3 +464,11 @@ void heap_caps_walk_all(heap_caps_walker_cb_t walker_func, void *user_data)
 {
 }
 
+esp_err_t heap_caps_add_region_with_caps(const uint32_t caps[],
+                                         intptr_t start, intptr_t end)
+{
+  UNUSED(caps);
+  UNUSED(start);
+  UNUSED(end);
+  return ESP_OK;
+}
