@@ -259,6 +259,38 @@ typedef enum {
     LEDC_USE_XTAL_CLK = SOC_MOD_CLK_XTAL,           /*!< Select XTAL as the source clock */
 } soc_periph_ledc_clk_src_legacy_t;
 
+/////////////////////////////////////////////////I2C////////////////////////////////////////////////////////////////////
+
+/**
+ * @brief Array initializer for all supported clock sources of I2C
+ */
+#define SOC_I2C_CLKS {SOC_MOD_CLK_XTAL, SOC_MOD_CLK_RC_FAST}
+
+/**
+ * @brief Type of I2C clock source.
+ */
+typedef enum {
+    I2C_CLK_SRC_XTAL = SOC_MOD_CLK_XTAL,            /*!< Select XTAL as the source clock */
+    I2C_CLK_SRC_RC_FAST = SOC_MOD_CLK_RC_FAST,      /*!< Select RC_FAST as the source clock */
+    I2C_CLK_SRC_DEFAULT = SOC_MOD_CLK_XTAL,         /*!< Select XTAL as the default clock choice */
+} soc_periph_i2c_clk_src_t;
+
+///////////////////////////////////////////////LP_I2C///////////////////////////////////////////////////////////////////
+
+/**
+ * @brief Array initializer for all supported clock sources of LP_I2C
+ */
+#define SOC_LP_I2C_CLKS {SOC_MOD_CLK_RTC_FAST, SOC_MOD_CLK_XTAL}
+
+/**
+ * @brief Type of LP_I2C clock source.
+ */
+typedef enum {
+    LP_I2C_SCLK_LP_FAST = SOC_MOD_CLK_RTC_FAST,                 /*!< LP_I2C source clock is RTC_FAST */
+    LP_I2C_SCLK_XTAL = SOC_MOD_CLK_XTAL,                  /*!< LP_I2C source clock is XTAL */
+    LP_I2C_SCLK_DEFAULT = SOC_MOD_CLK_RTC_FAST,                 /*!< LP_I2C source clock default choice is RTC_FAST */
+} soc_periph_lp_i2c_clk_src_t;
+
 /////////////////////////////////////////////////SPI////////////////////////////////////////////////////////////////////
 
 /**
