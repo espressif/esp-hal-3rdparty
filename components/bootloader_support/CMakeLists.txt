@@ -84,6 +84,7 @@ if(BOOTLOADER_BUILD OR CONFIG_APP_BUILD_TYPE_RAM)
     list(APPEND priv_requires esp_hal_wdt esp_hal_gpio esp_hal_uart esp_hal_ana_conv esp_hal_rtc_timer
          esp_hal_clock esp_hal_security)
     list(APPEND srcs
+    "src/bootloader_reset_common.c"
     "src/bootloader_init.c"
     "src/bootloader_clock_loader.c"
     "src/bootloader_console.c"

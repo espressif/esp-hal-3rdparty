@@ -1,11 +1,12 @@
 /*
- * SPDX-FileCopyrightText: 2023-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2023-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Unlicense OR CC0-1.0
  */
 #include "sdkconfig.h"
 #include <inttypes.h>
 #include "unity.h"
+#include "soc/soc_caps.h"
 #include "esp_system.h"
 #include "esp_task_wdt.h"
 #include "esp_attr.h"

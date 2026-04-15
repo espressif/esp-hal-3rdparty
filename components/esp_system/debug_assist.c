@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 #include "hal/assist_debug_hal.h"
+#include "hal/assist_debug_ll.h"
 #include "esp_private/hw_stack_guard.h"
 #include "esp_private/periph_ctrl.h"
 #include "esp_private/startup_internal.h"
@@ -12,12 +13,8 @@
 #include "esp_rom_sys.h"
 #include "esp_cpu.h"
 
-ESP_SYSTEM_INIT_FN(esp_hw_stack_guard_init, SECONDARY, ESP_SYSTEM_INIT_ALL_CORES, 101)
+static void esp_hw_debug_assist_enable_module(uint32_t core_id)
 {
-    uint32_t core_id = esp_cpu_get_core_id();
-
-    ESP_INTR_DISABLE(ETS_ASSIST_DEBUG_INUM);
-
 #if SOC_CPU_CORES_NUM > 1
     PERIPH_RCC_ATOMIC()
 #endif
@@ -25,16 +22,20 @@ ESP_SYSTEM_INIT_FN(esp_hw_stack_guard_init, SECONDARY, ESP_SYSTEM_INIT_ALL_CORES
         assist_debug_ll_enable_bus_clock(core_id, true);
         assist_debug_ll_reset_register(core_id);
     }
+}
 
-    assist_debug_ll_enable_pc_recording(core_id, true);
+#if CONFIG_ESP_SYSTEM_HW_STACK_GUARD
+static void esp_hw_stack_guard_init(uint32_t core_id)
+{
+    ESP_INTR_DISABLE(ETS_ASSIST_DEBUG_INUM);
 
-    /* set interrupt to matrix */
+    /* Set interrupt to matrix. */
     esp_rom_route_intr_matrix(core_id, ETS_ASSIST_DEBUG_INTR_SOURCE, ETS_ASSIST_DEBUG_INUM);
     esprv_int_set_type(ETS_ASSIST_DEBUG_INUM, INTR_TYPE_LEVEL);
     esprv_int_set_priority(ETS_ASSIST_DEBUG_INUM, SOC_INTERRUPT_LEVEL_MEDIUM);
 
     /*
-     * enable interrupt
+     * Enable interrupt.
      * Note: to control hw_stack_guard use monitor enable/disable because in case:
      * - monitor == active
      * - interrupt != active
@@ -46,6 +47,27 @@ ESP_SYSTEM_INIT_FN(esp_hw_stack_guard_init, SECONDARY, ESP_SYSTEM_INIT_ALL_CORES
     assist_debug_hal_sp_int_enable(core_id);
 
     ESP_INTR_ENABLE(ETS_ASSIST_DEBUG_INUM);
+}
+#endif
+
+ESP_SYSTEM_INIT_FN(esp_hw_debug_assist_init, SECONDARY, ESP_SYSTEM_INIT_ALL_CORES, 101)
+{
+    uint32_t core_id = esp_cpu_get_core_id();
+
+    esp_hw_debug_assist_enable_module(core_id);
+
+#if CONFIG_ESP_SYSTEM_HW_PC_RECORD
+    assist_debug_ll_enable_pc_recording(core_id, true);
+#endif
+
+#if CONFIG_ESP_SYSTEM_HW_STACK_GUARD
+    esp_hw_stack_guard_init(core_id);
+#endif
+
+#if SOC_CPU_LOCKUP_DEBUG_SUPPORTED
+    assist_debug_ll_lockup_monitor_enable(core_id, true);
+#endif
+
     return ESP_OK;
 }
 
@@ -56,14 +78,15 @@ void esp_hw_stack_guard_monitor_start(void)
 {
     uint32_t core_id = esp_cpu_get_core_id();
 
-    /* enable monitor. Interrupt is always enabled (see comment in esp_hw_stack_guard_init())  */
+    /* Enable monitor. Interrupt is configured during assist-debug init. */
     assist_debug_hal_sp_mon_enable(core_id);
 }
 
 void esp_hw_stack_guard_monitor_stop(void)
 {
     uint32_t core_id = esp_cpu_get_core_id();
-    /* disable monitor. Interrupt is always enabled (see comment in esp_hw_stack_guard_init())  */
+
+    /* Disable monitor. Interrupt is configured during assist-debug init. */
     assist_debug_hal_sp_mon_disable(core_id);
 }
 
