@@ -127,6 +127,10 @@ config SOC_SHA_SUPPORTED
     bool
     default y
 
+config SOC_HMAC_SUPPORTED
+    bool
+    default y
+
 config SOC_ECC_SUPPORTED
     bool
     default y
@@ -137,7 +141,7 @@ config SOC_ECC_EXTENDED_MODES_SUPPORTED
 
 config SOC_FLASH_ENC_SUPPORTED
     bool
-    default y
+    default n
 
 config SOC_PMU_SUPPORTED
     bool
