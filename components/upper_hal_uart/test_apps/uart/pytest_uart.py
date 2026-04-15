@@ -15,6 +15,7 @@ input_argv = {
     'esp32p4': ['uart', 'lp_uart'],
     'esp32c5': ['uart', 'lp_uart'],
     'esp32c61': ['uart'],
+    'esp32s31': ['uart', 'lp_uart'],
 }
 
 
@@ -29,7 +30,6 @@ input_argv = {
     indirect=True,
 )
 @idf_parametrize('target', ['supported_targets'], indirect=['target'])
-@pytest.mark.temp_skip_ci(targets=['esp32s31'], reason='s31 bringup on this module is not done')
 def test_uart_single_dev(case_tester) -> None:  # type: ignore
     dut = case_tester.first_dut
     chip_type = dut.app.target
