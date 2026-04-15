@@ -28,9 +28,9 @@
 #define ANALOG_CMPR_LL_SRC_CHANNEL_NUM 1
 
 #define ANALOG_CMPR_LL_GET_HW(unit)     (&ANALOG_CMPR[unit])
-#define ANALOG_CMPR_LL_EVENT_CROSS      (1 << 0)
 
-#define ANALOG_CMPR_LL_ALL_INTR_MASK(unit, src_chan) (ANALOG_CMPR_LL_EVENT_CROSS)
+#define ANALOG_CMPR_LL_CROSS_INTR_MASK      0x01
+#define ANALOG_CMPR_LL_ALL_INTR_MASK(unit)  ANALOG_CMPR_LL_CROSS_INTR_MASK
 
 #ifdef __cplusplus
 extern "C" {
@@ -50,7 +50,7 @@ static inline uint32_t analog_cmpr_ll_get_intr_mask_by_type(uint32_t unit_id, ui
     (void)type;
     (void)unit_id;
     (void)src_chan;
-    return ANALOG_CMPR_LL_EVENT_CROSS;
+    return ANALOG_CMPR_LL_CROSS_INTR_MASK;
 }
 
 /**
@@ -156,7 +156,7 @@ static inline void analog_cmpr_ll_enable_intr(analog_cmpr_dev_t *hw, uint32_t ma
 __attribute__((always_inline))
 static inline uint32_t analog_cmpr_ll_get_intr_status(analog_cmpr_dev_t *hw)
 {
-    return hw->int_st->val;
+    return hw->int_st->val & ANALOG_CMPR_LL_ALL_INTR_MASK(0);
 }
 
 /**
