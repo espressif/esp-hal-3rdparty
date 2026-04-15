@@ -51,16 +51,6 @@ typedef struct {
 } ana_cmpr_debounce_config_t;
 
 /**
- * @brief Group of Analog Comparator callbacks
- * @note The callbacks are all running under ISR environment
- * @note When CONFIG_ANA_CMPR_ISR_CACHE_SAFE is enabled, the callback itself and functions called by it should be placed in IRAM.
- *       The variables used in the function should be in the SRAM as well.
- */
-typedef struct {
-    ana_cmpr_cross_cb_t on_cross;               /*!< The callback function on cross interrupt */
-} ana_cmpr_event_callbacks_t;
-
-/**
  * @brief Allocating a new analog comparator unit handle
  *
  * @param[in]  config       The config of the analog comparator unit
@@ -94,9 +84,9 @@ esp_err_t ana_cmpr_del_unit(ana_cmpr_handle_t cmpr);
  * @param[in]  cmpr         The handle of analog comparator unit
  * @param[in]  ref_cfg      Internal reference configuration
  * @return
- *      - ESP_OK                Set denounce configuration success
+ *      - ESP_OK                Set internal reference configuration success
  *      - ESP_ERR_INVALID_ARG   NULL pointer of the parameters
- *      - ESP_ERR_INVALID_STATE The reference source is not `ANA_CMPR_REF_SRC_INTERNAL`
+ *      - ESP_ERR_NOT_ALLOWED   Set the reference voltage for external reference channel is not allowed
  */
 esp_err_t ana_cmpr_set_internal_reference(ana_cmpr_handle_t cmpr, const ana_cmpr_internal_ref_config_t *ref_cfg);
 
@@ -109,7 +99,7 @@ esp_err_t ana_cmpr_set_internal_reference(ana_cmpr_handle_t cmpr, const ana_cmpr
  * @param[in]  cmpr         The handle of analog comparator unit
  * @param[in]  dbc_cfg      Debounce configuration
  * @return
- *      - ESP_OK                Set denounce configuration success
+ *      - ESP_OK                Set debounce configuration success
  *      - ESP_ERR_INVALID_ARG   NULL pointer of the parameters
  */
 esp_err_t ana_cmpr_set_debounce(ana_cmpr_handle_t cmpr, const ana_cmpr_debounce_config_t *dbc_cfg);
@@ -123,7 +113,7 @@ esp_err_t ana_cmpr_set_debounce(ana_cmpr_handle_t cmpr, const ana_cmpr_debounce_
  * @param[in]  cmpr         The handle of analog comparator unit
  * @param[in]  cross_type   The source signal cross type that can trigger the interrupt
  * @return
- *      - ESP_OK                Set denounce configuration success
+ *      - ESP_OK                Set cross type configuration success
  *      - ESP_ERR_INVALID_ARG   NULL pointer of the parameters
  */
 esp_err_t ana_cmpr_set_cross_type(ana_cmpr_handle_t cmpr, ana_cmpr_cross_type_t cross_type);

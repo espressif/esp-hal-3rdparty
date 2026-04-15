@@ -41,13 +41,12 @@ typedef zero_dev_t analog_cmpr_dev_t;
 
 #define ANALOG_CMPR_LL_GET_HW(unit)     (&ZERO_DET)
 
-#define ANALOG_CMPR_LL_NEG_CROSS_MASK(unit, src_chan) (1UL << ((2 - (src_chan)) * 3 + 0))
-#define ANALOG_CMPR_LL_POS_CROSS_MASK(unit, src_chan) (1UL << ((2 - (src_chan)) * 3 + 1))
-#define ANALOG_CMPR_LL_ANY_CROSS_MASK(unit, src_chan) (1UL << ((2 - (src_chan)) * 3 + 2))
+#define ANALOG_CMPR_LL_NEG_CROSS_INTR_MASK(unit, src_chan) (1UL << ((2 - (src_chan)) * 3 + 0))
+#define ANALOG_CMPR_LL_POS_CROSS_INTR_MASK(unit, src_chan) (1UL << ((2 - (src_chan)) * 3 + 1))
+#define ANALOG_CMPR_LL_ANY_CROSS_INTR_MASK(unit, src_chan) (ANALOG_CMPR_LL_NEG_CROSS_INTR_MASK(unit, src_chan) | ANALOG_CMPR_LL_POS_CROSS_INTR_MASK(unit, src_chan))
+#define ANALOG_CMPR_LL_ALL_INTR_MASK(unit)                 0x1FF
 
-#define ANALOG_CMPR_LL_ALL_INTR_MASK(unit, src_chan)  (ANALOG_CMPR_LL_NEG_CROSS_MASK(unit, src_chan) | ANALOG_CMPR_LL_POS_CROSS_MASK(unit, src_chan) | ANALOG_CMPR_LL_ANY_CROSS_MASK(unit, src_chan))
-
-#define ANALOG_CMPR_LL_ETM_SOURCE(unit, src_chan, type)  (ZERO_DET_EVT_CHANNEL_1_POS + (src_chan) + ((type) * ANALOG_CMPR_LL_SRC_CHANNEL_NUM))
+#define ANALOG_CMPR_LL_ETM_SOURCE(unit, src_chan, type)    (ZERO_DET_EVT_CHANNEL_1_POS + (src_chan) + ((type) * ANALOG_CMPR_LL_SRC_CHANNEL_NUM))
 
 /**
  * @brief Enable the bus clock for Analog Comparator module
@@ -143,13 +142,13 @@ static inline uint32_t analog_cmpr_ll_get_intr_mask_by_type(uint32_t unit_id, ui
     uint32_t mask = 0;
     switch (type) {
     case ANA_CMPR_CROSS_POS:
-        mask |= ANALOG_CMPR_LL_POS_CROSS_MASK(unit_id, src_chan);
+        mask |= ANALOG_CMPR_LL_POS_CROSS_INTR_MASK(unit_id, src_chan);
         break;
     case ANA_CMPR_CROSS_NEG:
-        mask |= ANALOG_CMPR_LL_NEG_CROSS_MASK(unit_id, src_chan);
+        mask |= ANALOG_CMPR_LL_NEG_CROSS_INTR_MASK(unit_id, src_chan);
         break;
     case ANA_CMPR_CROSS_ANY:
-        mask |= ANALOG_CMPR_LL_ANY_CROSS_MASK(unit_id, src_chan);
+        mask |= ANALOG_CMPR_LL_ANY_CROSS_INTR_MASK(unit_id, src_chan);
         break;
     default:
         break;
@@ -244,7 +243,7 @@ static inline void analog_cmpr_ll_enable_intr(analog_cmpr_dev_t *hw, uint32_t ma
 __attribute__((always_inline))
 static inline uint32_t analog_cmpr_ll_get_intr_status(analog_cmpr_dev_t *hw)
 {
-    return hw->det_int_st.val;
+    return hw->det_int_st.val & ANALOG_CMPR_LL_ALL_INTR_MASK(0);
 }
 
 /**
