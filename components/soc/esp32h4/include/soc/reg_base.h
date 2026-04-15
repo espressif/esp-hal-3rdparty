@@ -79,3 +79,4 @@
 #define DR_REG_CLINT_M_BASE                       0x20000000    // TODO: [ESP32H4] IDF-12303 inherit from verify code, need check
 
 #define IEEE802154_REG_BASE                       0x600C3000
+#define PWDET_CONF_REG                            0x600C0808
