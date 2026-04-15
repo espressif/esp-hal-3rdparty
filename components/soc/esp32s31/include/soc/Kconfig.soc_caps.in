@@ -179,6 +179,10 @@ config SOC_REGI2C_SUPPORTED
     bool
     default y
 
+config SOC_JPEG_CODEC_SUPPORTED
+    bool
+    default y
+
 config SOC_USB_OTG_PERIPH_NUM
     int
     default 1
@@ -912,5 +916,13 @@ config SOC_MCPWM_SUPPORT_EVENT_COMPARATOR
     default y
 
 config SOC_MCPWM_CAPTURE_CLK_FROM_GROUP
+    bool
+    default y
+
+config SOC_JPEG_DECODE_SUPPORTED
+    bool
+    default y
+
+config SOC_JPEG_ENCODE_SUPPORTED
     bool
     default y
