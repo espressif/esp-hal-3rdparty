@@ -569,7 +569,7 @@ static inline void gpio_ll_set_input_signal_from(gpio_dev_t *hw, uint32_t signal
  */
 static inline void gpio_ll_set_input_signal_matrix_source(gpio_dev_t *hw, uint32_t signal_idx, uint32_t gpio_num, bool in_inv)
 {
-    hw->func_in_sel_cfg[signal_idx].in_sel = gpio_num;
+    HAL_FORCE_MODIFY_U32_REG_FIELD(hw->func_in_sel_cfg[signal_idx], in_sel, gpio_num);
     hw->func_in_sel_cfg[signal_idx].in_inv_sel = in_inv;
     gpio_ll_set_input_signal_from(hw, signal_idx, true);
 }
