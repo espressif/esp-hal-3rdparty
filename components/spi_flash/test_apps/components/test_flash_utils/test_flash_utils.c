@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2023-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2023-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -14,6 +14,7 @@
 #include "esp_partition.h"
 #include "esp_log.h"
 #include "esp_check.h"
+#include "rom/cache.h"
 
 #define ALIGN_UP_TO_64KB(x) (((x) + 0xFFFF) & ~0xFFFF)
 
@@ -137,7 +138,11 @@ esp_err_t spi_flash_suspend_test_deinit(flash_test_handle_t *handle)
 
 void spi_flash_suspend_test_invalidate_cache(void)
 {
+#if CONFIG_IDF_TARGET_ESP32S31
+    Cache_Invalidate_All(CACHE_MAP_MASK);
+#else
     cache_ll_invalidate_all(CACHE_LL_LEVEL_ALL, CACHE_TYPE_ALL, CACHE_LL_ID_ALL);
+#endif
 }
 
 #endif // SOC_SPI_MEM_SUPPORT_AUTO_SUSPEND

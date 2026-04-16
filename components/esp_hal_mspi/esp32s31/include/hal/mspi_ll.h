@@ -39,6 +39,7 @@
 #include "soc/spi_mem_c_reg.h"
 #include "soc/spi1_mem_c_reg.h"
 #include "soc/clk_tree_defs.h"
+#include "hal/misc.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,6 +48,7 @@ extern "C" {
 #define MSPI_LL_PERIPH_NUM                            4
 #define MSPI_TIMING_LL_MSPI_ID_0                      0
 #define MSPI_TIMING_LL_MSPI_ID_1                      1
+#define MSPI_TIMING_LL_FLASH_CORE_80M_CLK_DIV         6
 
 // PSRAM frequency should be constrained by AXI frequency to avoid FIFO underflow.
 #define MSPI_TIMING_LL_PSRAM_FREQ_AXI_CONSTRAINED     1
@@ -214,6 +216,25 @@ static inline void _mspi_timing_ll_set_flash_clk_src(uint32_t mspi_id, soc_perip
     HP_SYS_CLKRST.flash_ctrl0.reg_flash_sys_clk_en = 1;
     HP_SYS_CLKRST.flash_ctrl0.reg_flash_pll_clk_en = 1;
     HP_SYS_CLKRST.flash_ctrl0.reg_flash_clk_src_sel = clk_val;
+}
+
+/**
+ * Set MSPI Flash core clock
+ *
+ * @param spi_num       SPI0 / SPI1
+ * @param core_clk_mhz  core clock mhz
+ */
+__attribute__((always_inline))
+static inline void _mspi_timing_ll_set_flash_core_clock(int spi_num, uint32_t core_clk_mhz)
+{
+    HAL_ASSERT(spi_num == MSPI_TIMING_LL_MSPI_ID_0);
+    if (core_clk_mhz == 80) {
+        HAL_FORCE_MODIFY_U32_REG_FIELD(HP_SYS_CLKRST.flash_ctrl0, reg_flash_core_clk_div_num, (MSPI_TIMING_LL_FLASH_CORE_80M_CLK_DIV - 1));
+        HP_SYS_CLKRST.flash_ctrl0.reg_flash_core_clk_en = 1;
+    } else {
+        //ESP32S31 flash timing tuning is based on SPLL==480MHz, flash_core_clock==120MHz / 80MHz. We add assertion here to ensure this
+        HAL_ASSERT(false);
+    }
 }
 
 /*---------------------------------------------------------------
