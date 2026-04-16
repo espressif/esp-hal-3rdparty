@@ -41,6 +41,7 @@
 #include "hal/efuse_hal.h"
 #include "hal/lpwdt_ll.h"
 #include "hal/assist_debug_ll.h"
+#include "hal/brownout_ll.h"
 
 ESP_LOG_ATTR_TAG(TAG, "boot.esp32h4");
 
@@ -101,7 +102,7 @@ static inline void bootloader_ana_reset_config(void)
     //Enable super WDT reset.
     bootloader_ana_super_wdt_reset_config(true);
     //Enable BOD reset
-    //TODO: [ESP32H4] IDF-12295 need check
+    brownout_ll_ana_reset_enable(true);
 }
 
 static inline void bootloader_config_dcache(void)
