@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2018-2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2018-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -324,6 +324,25 @@ int coex_schm_register_callback(coex_schm_callback_type_t type, void *callback);
  *  @return : ESP_OK - success, other - failed
  */
 esp_err_t esp_coex_adapter_register(coex_adapter_funcs_t *funcs);
+
+#if CONFIG_COEX_ISO_INT_SCHEME
+/**
+ * @brief Register coexistence dynamic log functions.
+ *
+ *  @param funcs : coexistence dynamic log functions
+ *  @return : ESP_OK - success, other - failed
+ */
+esp_err_t esp_coex_dynamic_log_register(void *funcs);
+
+/**
+ * @brief Register coexistence iso end wifi callback function.
+ *
+ *  @param is_reg : register or unregister
+ *  @param funcs : coexistence iso end wifi function
+ *  @return : ESP_OK - success, other - failed
+ */
+esp_err_t esp_coex_configure_iso_end_wifi_cb(bool is_reg, void *funcs);
+#endif /* CONFIG_COEX_ISO_INT_SCHEME */
 
 #if CONFIG_EXTERNAL_COEX_ENABLE
 /**

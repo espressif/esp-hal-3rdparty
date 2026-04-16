@@ -30,6 +30,7 @@
 #include "aes_wrap.h"
 #include "crypto.h"
 #include "mbedtls/esp_config.h"
+#include "mbedtls/private/pkcs5.h"
 
 #include "psa/crypto.h"
 #include "mbedtls/psa_util.h"
