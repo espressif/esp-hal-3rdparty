@@ -40,7 +40,8 @@
 // #define SOC_LCDCAM_I80_LCD_SUPPORTED    1      // TODO: [ESP32S31] IDF-14722
 // #define SOC_LCDCAM_RGB_LCD_SUPPORTED    1      // TODO: [ESP32S31] IDF-14722
 #define SOC_MCPWM_SUPPORTED             1
-// #define SOC_TWAI_SUPPORTED              1      // TODO: [ESP32S31] IDF-14719
+#define SOC_TWAI_SUPPORTED              1
+#define SOC_TWAI_FD_SUPPORTED           1
 #define SOC_ETM_SUPPORTED               1
 // #define SOC_PARLIO_SUPPORTED            1      // TODO: [ESP32S31] IDF-14711
 #define SOC_ASYNC_MEMCPY_SUPPORTED      1
@@ -287,6 +288,12 @@
 /*--------------------------- WATCHDOG CAPS ---------------------------------------*/
 #define SOC_MWDT_SUPPORT_XTAL              (1)
 // #define SOC_MWDT_SUPPORT_SLEEP_RETENTION   (1)
+
+/*-------------------------- TWAI CAPS ---------------------------------------*/
+#define SOC_TWAI_CONTROLLER_NUM             2U
+#define SOC_TWAI_MASK_FILTER_NUM            3U
+#define SOC_TWAI_RANGE_FILTER_NUM           1U
+#define SOC_TWAI_SUPPORT_SLEEP_RETENTION    1
 
 /*-------------------------- AES CAPS ----------------------------------------*/
 #define SOC_AES_GDMA                            (1)
