@@ -45,7 +45,8 @@ void IRAM_ATTR bootloader_flash_cs_timing_config(void)
 
 void IRAM_ATTR bootloader_init_mspi_clock(void)
 {
-    // IDF-14777
+    _mspi_timing_ll_set_flash_clk_src(0, FLASH_CLK_SRC_DEFAULT);
+    _mspi_timing_ll_set_flash_core_clock(0, 80);
 }
 
 void IRAM_ATTR bootloader_flash_clock_config(const esp_image_header_t *pfhdr)
@@ -224,6 +225,7 @@ static void bootloader_spi_flash_resume(void)
 
 esp_err_t bootloader_init_spi_flash(void)
 {
+    bootloader_init_mspi_clock();
     bootloader_init_flash_configure();
 
 #if CONFIG_BOOTLOADER_FLASH_DC_AWARE
