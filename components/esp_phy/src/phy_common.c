@@ -22,6 +22,10 @@
 #include "hal/temperature_sensor_ll.h"
 #endif
 
+#ifndef ANT_SEL0_IDX
+#define ANT_SEL0_IDX PAD_MODEM_ANT_SEL0_IDX
+#endif
+
 static const char* TAG = "phy_comm";
 
 static volatile uint16_t s_phy_modem_flag = 0;

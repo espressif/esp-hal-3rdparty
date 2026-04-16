@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2018-2023 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2018-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -149,13 +149,16 @@ typedef struct wifi_osi_funcs_t {
     int (* _coex_schm_process_restart)(void);
     int (* _coex_schm_register_cb)(int, int (* cb)(int));
     int (* _coex_register_start_cb)(int (* cb)(void));
-#if CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32C5 || CONFIG_IDF_TARGET_ESP32C61
+#if CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32C5 || CONFIG_IDF_TARGET_ESP32C61 || CONFIG_IDF_TARGET_ESP32S31
     void (* _regdma_link_set_write_wait_content)(void *, uint32_t, uint32_t);
     void * (* _sleep_retention_find_link_by_id)(int);
 #endif
     int (*_coex_schm_flexible_period_set)(uint8_t);
     uint8_t (*_coex_schm_flexible_period_get)(void);
     void * (*_coex_schm_get_phase_by_idx)(int);
+#if CONFIG_IDF_TARGET_ESP32S31
+    int (* _coex_configure_preemption_end_cb)(bool is_register, int(*cb)(uint32_t));
+#endif
     int32_t _magic;
 } wifi_osi_funcs_t;
 
