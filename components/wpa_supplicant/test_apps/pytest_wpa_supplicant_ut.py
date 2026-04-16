@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2023-2025 Espressif Systems (Shanghai) CO LTD
+# SPDX-FileCopyrightText: 2023-2026 Espressif Systems (Shanghai) CO LTD
 # SPDX-License-Identifier: CC0-1.0
 import pytest
 from pytest_embedded import Dut
@@ -9,7 +9,16 @@ from pytest_embedded_idf.utils import idf_parametrize
 @pytest.mark.generic
 @idf_parametrize(
     'target',
-    ['esp32', 'esp32s2', 'esp32s3', 'esp32s31', 'esp32c3', 'esp32c2', 'esp32c6', 'esp32c61', 'esp32c5'],
+    [
+        'esp32',
+        'esp32s2',
+        'esp32s3',
+        'esp32c3',
+        'esp32c2',
+        'esp32c6',
+        'esp32c61',
+        'esp32c5',
+    ],
     indirect=['target'],
 )
 def test_wpa_supplicant_ut(dut: Dut) -> None:
@@ -26,7 +35,8 @@ def test_wpa_supplicant_ut(dut: Dut) -> None:
 )
 @idf_parametrize(
     'target',
-    ['esp32', 'esp32s2', 'esp32s3', 'esp32s31', 'esp32c6', 'esp32c61', 'esp32c5'],
+    # esp32s31: no two_duts runner in CI (rev_default) yet
+    ['esp32', 'esp32s2', 'esp32s3', 'esp32c6', 'esp32c61', 'esp32c5'],
     indirect=['target'],
 )
 def test_wpa_supplicant_ut_offchan(case_tester: CaseTester) -> None:
