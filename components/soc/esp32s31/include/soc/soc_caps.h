@@ -109,6 +109,9 @@
 #define SOC_USB_FSLS_PHY_NUM            (0U)
 #define SOC_USB_UTMI_PHY_NUM            (1U)
 
+#define SOC_PHY_SUPPORTED                1
+#define SOC_WIFI_SUPPORTED               1
+#define SOC_PHY_CALIBRATION_CLOCK_IS_INDEPENDENT 1
 /*-------------------------- XTAL CAPS ---------------------------------------*/
 #define SOC_XTAL_SUPPORT_40M            1
 
@@ -367,6 +370,8 @@
 
 // /*-------------------------- CLOCK SUBSYSTEM CAPS ----------------------------------------*/
 #define SOC_MODEM_CLOCK_IS_INDEPENDENT            (1)
+#define SOC_MODEM_CLOCK_SOC_PLL_SOURCE_CG_SUPPORTED (1)
+#define SOC_MODEM_CLOCK_WIFI_BB_80X1_AS_APB       (1)
 
 #define SOC_CLK_RC_FAST_SUPPORT_CALIBRATION       (1)
 
@@ -445,3 +450,16 @@
 /*--------------------------- JPEG --------------------------------*/
 #define SOC_JPEG_DECODE_SUPPORTED                 (1)
 #define SOC_JPEG_ENCODE_SUPPORTED                 (1)
+/*------------------------------------ WI-FI CAPS ------------------------------------*/
+#define SOC_WIFI_HW_TSF                     (1)    /*!< Support hardware TSF */
+#define SOC_WIFI_FTM_SUPPORT                (1)    /*!< Support FTM */
+#define SOC_WIFI_GCMP_SUPPORT               (1)    /*!< Support GCMP(GCMP128 and GCMP256) */
+#define SOC_WIFI_WAPI_SUPPORT               (1)    /*!< Support WAPI */
+#define SOC_WIFI_CSI_SUPPORT                (1)    /*!< Support CSI */
+#define SOC_WIFI_MESH_SUPPORT               (1)    /*!< Support WIFI MESH */
+#define SOC_WIFI_HE_SUPPORT                 (1)    /*!< Support Wi-Fi 6 */
+#define SOC_WIFI_MAC_VERSION_NUM            (3)    /*!< Wi-Fi MAC version num is 3 */
+#define SOC_WIFI_NAN_SUPPORT                (1)    /*!< Support WIFI Aware (NAN) */
+
+/*--------------- WIFI LIGHT SLEEP CLOCK WIDTH CAPS --------------------------*/
+#define SOC_WIFI_LIGHT_SLEEP_CLK_WIDTH  (12)
