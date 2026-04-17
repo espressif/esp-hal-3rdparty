@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2025-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -2239,6 +2239,17 @@ const esp_efuse_desc_t* ESP_EFUSE_MAC[] = {
     &MAC[3],    		// [MAC_FACTORY] MAC address
     &MAC[4],    		// [MAC_FACTORY] MAC address
     &MAC[5],    		// [MAC_FACTORY] MAC address
+    NULL
+};
+
+static const esp_efuse_desc_t MAC_EXT[] = {
+    {EFUSE_BLK1, 56, 8}, 	 // [] Stores the extended bits of MAC address,
+    {EFUSE_BLK1, 48, 8}, 	 // [] Stores the extended bits of MAC address,
+};
+
+const esp_efuse_desc_t* ESP_EFUSE_MAC_EXT[] = {
+    &MAC_EXT[0],    		// [] Stores the extended bits of MAC address
+    &MAC_EXT[1],    		// [] Stores the extended bits of MAC address
     NULL
 };
 

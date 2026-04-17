@@ -264,6 +264,7 @@ extern const esp_efuse_desc_t* ESP_EFUSE_RMA_CHIP_INFO_SOURCE[];
 extern const esp_efuse_desc_t* ESP_EFUSE_RMA_DISABLE_FAST_VEF[];
 extern const esp_efuse_desc_t* ESP_EFUSE_MAC[];
 #define ESP_EFUSE_MAC_FACTORY ESP_EFUSE_MAC
+extern const esp_efuse_desc_t* ESP_EFUSE_MAC_EXT[];
 extern const esp_efuse_desc_t* ESP_EFUSE_WAFER_VERSION_MINOR[];
 extern const esp_efuse_desc_t* ESP_EFUSE_WAFER_VERSION_MAJOR[];
 extern const esp_efuse_desc_t* ESP_EFUSE_DISABLE_WAFER_VERSION_MAJOR[];

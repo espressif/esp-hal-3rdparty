@@ -111,6 +111,7 @@
 
 #define SOC_PHY_SUPPORTED                1
 #define SOC_WIFI_SUPPORTED               1
+#define SOC_IEEE802154_SUPPORTED        1
 #define SOC_PHY_CALIBRATION_CLOCK_IS_INDEPENDENT 1
 /*-------------------------- XTAL CAPS ---------------------------------------*/
 #define SOC_XTAL_SUPPORT_40M            1
