@@ -283,10 +283,6 @@ btdm_lp_enable_clock(esp_btdm_controller_config_t *cfg)
 {
     modem_clock_module_enable(PERIPH_BT_MODULE);
     modem_clock_module_mac_reset(PERIPH_BT_MODULE);
-#if CONFIG_IDF_TARGET_ESP32S31
-    // TODO: PM-704
-    REG_WRITE(HP_SYS_CLKRST_MODEM_CONF_REG, 0x3d);
-#endif
     btdm_lp_timer_clk_init(cfg);
 }
 
@@ -379,8 +375,8 @@ btdm_lp_reset(bool enable_stage)
         esp_btbb_enable();
         s_bt_active = true;
     } else {
+        esp_btbb_disable();
         if (s_bt_active) {
-            esp_btbb_disable();
             esp_phy_disable(PHY_MODEM_BT);
 #if CONFIG_PM_ENABLE
             esp_pm_lock_release(s_pm_lock);
