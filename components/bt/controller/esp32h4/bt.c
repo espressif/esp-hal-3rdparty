@@ -32,11 +32,19 @@
 #if UC_BT_CTRL_HCI_INTERFACE_USE_RAM
 #define BT_HCI_TRANSPORT_MODE HCI_TRANSPORT_VHCI
 #elif UC_BT_CTRL_HCI_INTERFACE_USE_UART
-#define BT_HCI_TRANSPORT_MODE HCI_TRANSPORT_UART_NO_DMA
 #if UC_BT_CTRL_UART_HCI_DMA_MODE
 #define BT_HCI_TRANSPORT_MODE HCI_TRANSPORT_UART_UHCI
+#else
+#define BT_HCI_TRANSPORT_MODE HCI_TRANSPORT_UART_NO_DMA
 #endif // UC_BT_CTRL_UART_HCI_DMA_MODE
+#else
+#error "Unknown HCI transport mode!!"
 #endif // UC_BT_CTRL_HCI_INTERFACE_USE_RAM
+
+#if defined(UNUSED)
+#undef UNUSED
+#endif
+#define UNUSED(x)                           (void)(x)
 
 /*
  ***************************************************************************************************
@@ -44,7 +52,7 @@
  ***************************************************************************************************
  */
 extern const char *r_btdm_get_compile_version(void);
-extern int r_btdm_hci_fc_env_init();
+extern int r_btdm_hci_fc_env_init(void);
 extern void r_btdm_hci_fc_env_deinit(void);
 extern int r_btdm_hci_fc_enable(void);
 extern void r_btdm_hci_fc_disable(void);
@@ -74,8 +82,66 @@ bt_shutdown(void)
         return;
     }
 
+    s_btdm_controller_status = ESP_BT_CONTROLLER_STATUS_INITED;
     r_btdm_task_shutdown();
     btdm_lp_shutdown();
+}
+
+static esp_err_t
+bt_controller_deinit(void)
+{
+    s_btdm_controller_status = ESP_BT_CONTROLLER_STATUS_IDLE;
+
+    hci_transport_deinit();
+
+#if UC_BT_CTRL_BR_EDR_IS_ENABLE
+    bredr_stack_deinit();
+#endif // UC_BT_CTRL_BR_EDR_IS_ENABLE
+
+#if UC_BT_CTRL_BLE_IS_ENABLE
+    ble_stack_deinit();
+#endif // UC_BT_CTRL_BLE_IS_ENABLE
+
+#if UC_BT_CTRL_CONN_FC_ENABLE
+    r_btdm_hci_fc_env_deinit();
+#endif // UC_BT_CTRL_CONN_FC_ENABLE
+
+    btdm_lp_deinit();
+    r_btdm_task_deinit();
+    btdm_lp_disable_clock();
+    btdm_coex_deinit();
+    btdm_external_deinit();
+    btdm_log_deinit();
+    btdm_osal_elem_mempool_deinit();
+
+    return ESP_OK;
+}
+
+static esp_err_t
+bt_controller_disable(void)
+{
+    s_btdm_controller_status = ESP_BT_CONTROLLER_STATUS_INITED;
+
+    esp_unregister_shutdown_handler(bt_shutdown);
+
+    r_btdm_task_disable();
+
+#if UC_BT_CTRL_CONN_FC_ENABLE
+    r_btdm_hci_fc_disable();
+#endif // UC_BT_CTRL_CONN_FC_ENABLE
+
+#if UC_BT_CTRL_BR_EDR_IS_ENABLE
+    bredr_stack_disable();
+#endif // UC_BT_CTRL_BR_EDR_IS_ENABLE
+
+#if UC_BT_CTRL_BLE_IS_ENABLE
+    ble_stack_disable();
+#endif // UC_BT_CTRL_BLE_IS_ENABLE
+
+    btdm_coex_disable();
+    btdm_lp_reset(false);
+
+    return ESP_OK;
 }
 
 /*
@@ -86,6 +152,7 @@ bt_shutdown(void)
 esp_err_t
 esp_bt_mem_release(esp_bt_mode_t mode)
 {
+    // TODO: Support bluetooth stack memory release
     ESP_LOGW(BTDM_LOG_TAG, "esp_bt_mem_release not implement yet!");
     return ESP_OK;
 }
@@ -93,7 +160,7 @@ esp_bt_mem_release(esp_bt_mode_t mode)
 esp_err_t
 esp_bt_controller_mem_release(esp_bt_mode_t mode)
 {
-
+    // TODO: Support bt controller memory release
     ESP_LOGW(BTDM_LOG_TAG, "esp_bt_controller_mem_release not implement yet!");
     return ESP_OK;
 }
@@ -111,6 +178,10 @@ esp_bt_controller_init(esp_bt_controller_config_t *cfg)
         .mutex_count = 1,
     };
 
+    if (cfg == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
     ESP_LOGI(BTDM_LOG_TAG, "BTDM version [%s]", r_btdm_get_compile_version());
 
     if (cfg->btdm.bluetooth_mode == ESP_BT_MODE_IDLE) {
@@ -121,9 +192,6 @@ esp_bt_controller_init(esp_bt_controller_config_t *cfg)
     if (s_btdm_controller_status != ESP_BT_CONTROLLER_STATUS_IDLE) {
         return ESP_ERR_INVALID_STATE;
     }
-    s_btdm_controller_status = ESP_BT_CONTROLLER_STATUS_INITED;
-
-    ret = ESP_FAIL;
 
 #if UC_BT_CTRL_BLE_IS_ENABLE
     ble_osal_elem_calc(cfg, &elem);
@@ -202,11 +270,12 @@ esp_bt_controller_init(esp_bt_controller_config_t *cfg)
     }
 
     ESP_LOGI(BTDM_LOG_TAG, "BTDM controller init OK");
+    s_btdm_controller_status = ESP_BT_CONTROLLER_STATUS_INITED;
 
     return ESP_OK;
 
 init_failed:
-    esp_bt_controller_deinit();
+    bt_controller_deinit();
 
     return ESP_FAIL;
 }
@@ -217,31 +286,7 @@ esp_bt_controller_deinit(void)
     if (s_btdm_controller_status != ESP_BT_CONTROLLER_STATUS_INITED) {
         return ESP_ERR_INVALID_STATE;
     }
-    s_btdm_controller_status = ESP_BT_CONTROLLER_STATUS_IDLE;
-
-    hci_transport_deinit();
-
-#if UC_BT_CTRL_BR_EDR_IS_ENABLE
-    bredr_stack_deinit();
-#endif // UC_BT_CTRL_BR_EDR_IS_ENABLE
-
-#if UC_BT_CTRL_BLE_IS_ENABLE
-    ble_stack_deinit();
-#endif // UC_BT_CTRL_BLE_IS_ENABLE
-
-#if UC_BT_CTRL_CONN_FC_ENABLE
-    r_btdm_hci_fc_env_deinit();
-#endif // UC_BT_CTRL_CONN_FC_ENABLE
-
-    btdm_lp_deinit();
-    r_btdm_task_deinit();
-    btdm_lp_disable_clock();
-    btdm_coex_deinit();
-    btdm_log_deinit();
-    btdm_external_deinit();
-    btdm_osal_elem_mempool_deinit();
-
-    return ESP_OK;
+    return bt_controller_deinit();
 }
 
 esp_err_t
@@ -249,10 +294,10 @@ esp_bt_controller_enable(esp_bt_mode_t mode)
 {
     int ret;
 
+    UNUSED(mode);
     if (s_btdm_controller_status != ESP_BT_CONTROLLER_STATUS_INITED) {
         return ESP_ERR_INVALID_STATE;
     }
-    s_btdm_controller_status = ESP_BT_CONTROLLER_STATUS_ENABLED;
 
     btdm_lp_reset(true);
 
@@ -297,10 +342,11 @@ esp_bt_controller_enable(esp_bt_mode_t mode)
         ESP_LOGW(BTDM_LOG_TAG, "Register shutdown handler failed, ret = 0x%x", ret);
     }
 
+    s_btdm_controller_status = ESP_BT_CONTROLLER_STATUS_ENABLED;
     return ESP_OK;
 
 enable_failed:
-    esp_bt_controller_disable();
+    bt_controller_disable();
     return ESP_FAIL;
 }
 
@@ -310,26 +356,8 @@ esp_bt_controller_disable(void)
     if (s_btdm_controller_status != ESP_BT_CONTROLLER_STATUS_ENABLED) {
         return ESP_ERR_INVALID_STATE;
     }
-    s_btdm_controller_status = ESP_BT_CONTROLLER_STATUS_INITED;
 
-    esp_unregister_shutdown_handler(bt_shutdown);
-
-    r_btdm_task_disable();
-
-#if UC_BT_CTRL_CONN_FC_ENABLE
-    r_btdm_hci_fc_disable();
-#endif // UC_BT_CTRL_CONN_FC_ENABLE
-
-#if UC_BT_CTRL_BR_EDR_IS_ENABLE
-    bredr_stack_disable();
-#endif // UC_BT_CTRL_BR_EDR_IS_ENABLE
-
-#if UC_BT_CTRL_BLE_IS_ENABLE
-    ble_stack_disable();
-#endif // UC_BT_CTRL_BLE_IS_ENABLE
-
-    btdm_coex_disable();
-    btdm_lp_reset(false);
+    bt_controller_disable();
 
     return ESP_OK;
 }
