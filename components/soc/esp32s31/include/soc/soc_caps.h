@@ -26,7 +26,7 @@
 // #define SOC_ADC_SUPPORTED               1      // TODO: [ESP32S31] IDF-14741
 // #define SOC_ANA_CMPR_SUPPORTED          1      // TODO: [ESP32S31] IDF-14787
 #define SOC_DEDICATED_GPIO_SUPPORTED    1
-#define SOC_UART_SUPPORTED              1         // TODO: [ESP32S31] IDF-14789
+#define SOC_UART_SUPPORTED              1
 #define SOC_GDMA_SUPPORTED              1
 // #define SOC_UHCI_SUPPORTED              1      // TODO: [ESP32S31] IDF-14791
 #define SOC_AHB_GDMA_SUPPORTED          1
@@ -353,20 +353,23 @@
 #define SOC_FLASH_ENCRYPTED_XTS_AES_BLOCK_MAX   (64)
 
 /*-------------------------- UART CAPS ---------------------------------------*/
-// TODO: [ESP32S31] IDF-14789
-#define SOC_UART_NUM                    (4)
+#define SOC_UART_NUM                    (5)
 #define SOC_UART_HP_NUM                 (4)
+#define SOC_UART_LP_NUM                 (1U)
 #define SOC_UART_FIFO_LEN               (128)       /*!< The UART hardware FIFO length */
 #define SOC_LP_UART_FIFO_LEN            (16)        /*!< The LP UART hardware FIFO length */
 #define SOC_UART_BITRATE_MAX            (5000000)   /*!< Max bit rate supported by UART */
 #define SOC_UART_SUPPORT_RTC_CLK        (1)         /*!< Support RTC clock as the clock source */
 #define SOC_UART_SUPPORT_XTAL_CLK       (1)         /*!< Support XTAL clock as the clock source */
 #define SOC_UART_SUPPORT_WAKEUP_INT     (1)         /*!< Support UART wakeup interrupt */
-// #define SOC_UART_HAS_LP_UART            (1)         /*!< Support LP UART */
-// #define SOC_UART_SUPPORT_SLEEP_RETENTION   (1)      /*!< Support back up registers before sleep */
+#define SOC_UART_HAS_LP_UART            (1)         /*!< Support LP UART */
+#define SOC_UART_SUPPORT_SLEEP_RETENTION   (1)      /*!< Support back up registers before sleep */
 
 #define SOC_UART_WAKEUP_CHARS_SEQ_MAX_LEN 5
 #define SOC_UART_WAKEUP_SUPPORT_ACTIVE_THRESH_MODE (1)
+#define SOC_UART_WAKEUP_SUPPORT_FIFO_THRESH_MODE   (1)
+#define SOC_UART_WAKEUP_SUPPORT_START_BIT_MODE     (1)
+#define SOC_UART_WAKEUP_SUPPORT_CHAR_SEQ_MODE      (1)
 
 // /*-------------------------- CLOCK SUBSYSTEM CAPS ----------------------------------------*/
 #define SOC_MODEM_CLOCK_IS_INDEPENDENT            (1)
