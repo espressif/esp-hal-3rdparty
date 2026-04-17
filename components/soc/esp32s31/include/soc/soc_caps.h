@@ -498,4 +498,4 @@
 #define SOC_BLE_CTE_SUPPORTED                       (1)     /*!< Support Bluetooth LE Constant Tone Extension (CTE) */
 #define SOC_BLE_SUBRATE_SUPPORTED                   (1)     /*!< Support Bluetooth LE Connection Subrating */
 #define SOC_BLE_PERIODIC_ADV_WITH_RESPONSE          (1)     /*!< Support Bluetooth LE Periodic Advertising with Response (PAwR) */
-#define SOC_BLE_ISO_SUPPORTED                       (1)     /*!< Support Bluetooth ISO */
+// #define SOC_BLE_ISO_SUPPORTED                       (1)     /*!< Support Bluetooth ISO */
