@@ -225,6 +225,8 @@ static bool uart_module_enable(uart_port_t uart_num)
             PERIPH_RCC_ATOMIC() {
                 uart_ll_enable_bus_clock(uart_num, true);
             }
+            uart_ll_mem_set_low_power_mode(uart_num, UART_LL_MEM_LP_MODE_SHUT_DOWN);
+            uart_ll_mem_power_by_pmu(uart_num);
             if (uart_num != CONFIG_ESP_CONSOLE_UART_NUM) {
                 // Workaround: Set RX signal to high to avoid false RX BRK_DET interrupt raised after register reset
                 if (uart_context[uart_num].rx_io_num == -1) {
@@ -270,6 +272,8 @@ static bool uart_module_enable(uart_port_t uart_num)
                 gpio_pullup_en(io_num);
 #endif
             }
+            lp_uart_ll_mem_set_low_power_mode(UART_LL_MEM_LP_MODE_SHUT_DOWN);
+            lp_uart_ll_mem_power_by_pmu();
             PERIPH_RCC_ATOMIC() {
                 lp_uart_ll_enable_bus_clock(TO_LP_UART_NUM(uart_num), true);
                 lp_uart_ll_reset_register(TO_LP_UART_NUM(uart_num));
