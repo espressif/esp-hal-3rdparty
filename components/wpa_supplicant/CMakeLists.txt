@@ -118,7 +118,7 @@ if(CONFIG_ESP_WIFI_MBEDTLS_CRYPTO)
     "esp_supplicant/src/crypto/crypto_mbedtls-bignum.c"
     "esp_supplicant/src/crypto/crypto_mbedtls-rsa.c"
     "esp_supplicant/src/crypto/crypto_mbedtls-ec.c")
-    if(NOT CONFIG_IDF_TARGET_ESP32)
+    if(NOT CONFIG_IDF_TARGET_ESP32 AND NOT CONFIG_IDF_TARGET_ESP32S31) # TDOD IDF-14630
         list(APPEND crypto_src "esp_supplicant/src/crypto/fastpsk.c")
     endif()
     # Add internal RC4 as RC4 has been removed from mbedtls
@@ -130,7 +130,8 @@ if(CONFIG_ESP_WIFI_MBEDTLS_CRYPTO)
         set(crypto_src ${crypto_src} "src/crypto/sha1-pbkdf2.c"
                        ${crypto_src} "src/crypto/sha1.c"
                        ${crypto_src} "src/crypto/sha1-internal.c")
-    else()
+    elseif(NOT CONFIG_IDF_TARGET_ESP32S31)
+        #TDOD IDF-14630: use mbedtls_pkcs5_pbkdf2_hmac (software) instead of fastpbkdf2.
         set(crypto_src ${crypto_src} "esp_supplicant/src/crypto/fastpbkdf2.c")
     endif()
     if(NOT CONFIG_MBEDTLS_SHA1_C AND CONFIG_MBEDTLS_HARDWARE_SHA)
@@ -281,7 +282,7 @@ target_compile_definitions(${COMPONENT_LIB} PRIVATE
     CONFIG_NO_RADIUS
     )
 
-if(CONFIG_MBEDTLS_SHA1_C OR CONFIG_MBEDTLS_HARDWARE_SHA)
+if((CONFIG_MBEDTLS_SHA1_C OR CONFIG_MBEDTLS_HARDWARE_SHA) AND NOT CONFIG_IDF_TARGET_ESP32S31) # TDOD IDF-14630
     target_compile_definitions(${COMPONENT_LIB} PRIVATE CONFIG_FAST_PBKDF2)
 endif()
 

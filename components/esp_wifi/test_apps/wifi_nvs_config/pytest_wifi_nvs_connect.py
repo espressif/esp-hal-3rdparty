@@ -9,6 +9,7 @@ from pytest_embedded_idf.utils import idf_parametrize
 @pytest.mark.parametrize('count', [2], indirect=True)
 @idf_parametrize(
     'target',
+    # esp32s31: no two_duts runner in CI (rev_default) yet
     ['esp32', 'esp32c3', 'esp32c5', 'esp32c6', 'esp32c61', 'esp32s2', 'esp32s3'],
     indirect=['target'],
 )
