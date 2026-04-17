@@ -74,7 +74,7 @@
 #define SOC_FLASH_ENC_SUPPORTED         0       // TODO: [ESP32H4] IDF-12261
 // #define SOC_SECURE_BOOT_SUPPORTED       1    // TODO: [ESP32H4] IDF-12262
 
-// #define SOC_BOD_SUPPORTED               1    // TODO: [ESP32H4] IDF-12295
+#define SOC_BOD_SUPPORTED               1
 // #define SOC_APM_SUPPORTED               1    // TODO: [ESP32H4] IDF-12256
 #define SOC_PMU_SUPPORTED               1    // TODO: [ESP32H4] IDF-12286
 #define SOC_PAU_SUPPORTED               1
