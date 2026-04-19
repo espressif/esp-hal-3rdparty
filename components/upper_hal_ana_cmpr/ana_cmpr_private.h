@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2023-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2023-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -21,6 +21,7 @@
 #include "esp_check.h"
 #include "esp_heap_caps.h"
 #include "esp_intr_alloc.h"
+#include "esp_pm.h"
 #include "driver/ana_cmpr_types.h"
 #include "soc/soc_caps.h"
 #include "hal/ana_cmpr_ll.h"
@@ -55,13 +56,41 @@ typedef enum {
     ANA_CMPR_FSM_WAIT,        // Comparator is in the middle of state change, so busy, other operations should wait
 } ana_cmpr_fsm_t;
 
-/**
- * @brief Get the analog comparator unit id from the handle
- *
- * @param cmpr The handle of the analog comparator unit
- * @return The id of the analog comparator unit
- */
-ana_cmpr_unit_t ana_cmpr_get_unit_id(ana_cmpr_handle_t cmpr);
+typedef struct ana_cmpr_t ana_cmpr_t;
+
+typedef struct ana_cmpr_ref_chan_t {
+    ana_cmpr_ref_source_t       ref_src;  // the reference source type of this reference channel, internal or external
+    // for internal reference channel
+    ana_cmpr_ref_voltage_t      ref_volt;
+    ana_cmpr_ref_hys_t          ref_hys_level;
+    // for external reference channel
+    int                         gpio_num;
+    uint32_t                    pad_id;   // the pad id corresponding to the gpio_num
+} ana_cmpr_ref_chan_t;
+
+typedef struct ana_cmpr_src_chan_t {
+    uint8_t                     chan_id;  // there're multiple source channels in the analog comparator unit
+    ana_cmpr_cross_type_t       cross_type;
+    int                         gpio_num;
+    uint32_t                    pad_id;   // the pad id corresponding to the gpio_num
+} ana_cmpr_src_chan_t;
+
+struct ana_cmpr_t {
+    int                         unit_id;            // Analog comparator unit id
+    analog_cmpr_dev_t           *dev;               // Analog comparator unit device address
+    _Atomic ana_cmpr_fsm_t      fsm;                // The state machine of the Analog Comparator unit
+    ana_cmpr_event_callbacks_t  cbs;                // The callback group that set by user
+    void                        *user_data;         // User data that passed to the callbacks
+    intr_handle_t               intr_handle;        // Interrupt handle
+    uint32_t                    intr_mask;          // Interrupt mask
+    int                         intr_priority;      // Interrupt priority
+    uint32_t                    src_clk_freq_hz;    // Source clock frequency of the Analog Comparator unit
+    ana_cmpr_src_chan_t         src_chans[ANALOG_CMPR_LL_GET(SRC_CHANNEL_NUM)]; // The source channel objects in the unit
+    ana_cmpr_ref_chan_t         ref_chan;           // The reference channel object in the unit
+#if CONFIG_PM_ENABLE
+    esp_pm_lock_handle_t        pm_lock;            // The Power Management lock that used to avoid unexpected power down of the clock domain
+#endif
+};
 
 #ifdef __cplusplus
 }
