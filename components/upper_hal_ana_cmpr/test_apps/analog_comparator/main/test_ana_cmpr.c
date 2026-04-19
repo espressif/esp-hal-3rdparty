@@ -44,7 +44,7 @@ TEST_CASE("ana_cmpr unit install/uninstall", "[ana_cmpr]")
     /* Try to set internal reference for a external unit */
     config.ref_src = ANA_CMPR_REF_SRC_EXTERNAL;
     TEST_ESP_OK(ana_cmpr_new_unit(&config, &cmpr));
-    TEST_ESP_ERR(ESP_ERR_INVALID_STATE, ana_cmpr_set_internal_reference(cmpr, &ref_cfg));
+    TEST_ESP_ERR(ESP_ERR_NOT_ALLOWED, ana_cmpr_set_internal_reference(cmpr, &ref_cfg));
     TEST_ESP_ERR(ESP_ERR_INVALID_ARG, ana_cmpr_del_unit(NULL));
     TEST_ESP_OK(ana_cmpr_del_unit(cmpr));
 }

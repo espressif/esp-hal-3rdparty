@@ -42,6 +42,7 @@ typedef struct {
     ana_cmpr_cross_type_t cross_type;   /*!< The cross type of the target signal to the reference signal.
                                          *   Will either be ANA_CMPR_CROSS_POS or ANA_CMPR_CROSS_NEG
                                          *   Always be ANA_CMPR_CROSS_ANY if target does not support independent interrupt (like ESP32H2) */
+    int src_chan_id;                    /*!< The source channel index that triggers the interrupt, valid when the target supports multiple source channels */
 } ana_cmpr_cross_event_data_t;
 
 /**
@@ -54,6 +55,16 @@ typedef struct {
  * @return Whether a high priority task has been waken up by this callback function
  */
 typedef bool (*ana_cmpr_cross_cb_t)(ana_cmpr_handle_t cmpr, const ana_cmpr_cross_event_data_t *edata, void *user_ctx);
+
+/**
+ * @brief Group of Analog Comparator callbacks
+ * @note The callbacks are all running under ISR environment
+ * @note When CONFIG_ANA_CMPR_ISR_CACHE_SAFE is enabled, the callback itself and functions called by it should be placed in IRAM.
+ *       The variables used in the function should be in the SRAM as well.
+ */
+typedef struct {
+    ana_cmpr_cross_cb_t on_cross;               /*!< The callback function on cross interrupt */
+} ana_cmpr_event_callbacks_t;
 
 #ifdef __cplusplus
 }
