@@ -25,7 +25,6 @@ extern "C" {
 
 #if CONFIG_IDF_TARGET_ESP32
 
-#include "clk_ctrl_os.h"
 #include "soc/regi2c_apll.h"
 #define TEST_BLOCK          I2C_APLL
 #define TEST_HOST_ID        I2C_APLL_HOSTID
