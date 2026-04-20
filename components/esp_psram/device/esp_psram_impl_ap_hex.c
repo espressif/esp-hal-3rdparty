@@ -14,8 +14,9 @@
 #include "esp_private/esp_psram_ldo.h"
 #include "hal/psram_ctrlr_ll.h"
 #include "hal/mspi_ll.h"
-#include "clk_ctrl_os.h"
 #include "soc/rtc.h"
+#include "esp_check.h"
+#include "esp_private/esp_clk_tree_common.h"
 
 #define AP_HEX_PSRAM_SYNC_READ             0x0000
 #define AP_HEX_PSRAM_SYNC_WRITE            0x8080
@@ -418,9 +419,10 @@ static void s_configure_psram_ecc(void)
 esp_err_t esp_psram_impl_enable(void)
 {
 #if SOC_CLK_MPLL_SUPPORTED
-    periph_rtc_mpll_acquire();
+    // We need to use the acquire and freq_set functions directly instead of general clk_tree API for IRAM safe function
+    esp_clk_tree_mpll_acquire();
     uint32_t real_mpll_freq = 0;
-    periph_rtc_mpll_freq_set(AP_HEX_PSRAM_MPLL_DEFAULT_FREQ_MHZ * 1000000, &real_mpll_freq);
+    esp_clk_tree_mpll_freq_set(AP_HEX_PSRAM_MPLL_DEFAULT_FREQ_MHZ * 1000000, &real_mpll_freq);
     ESP_EARLY_LOGD(TAG, "real_mpll_freq: %d", real_mpll_freq);
 #endif
 
