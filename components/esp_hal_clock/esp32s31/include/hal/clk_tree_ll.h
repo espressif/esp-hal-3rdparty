@@ -30,7 +30,6 @@
 #define CLK_LL_PLL_80M_FREQ_MHZ    (80)
 #define CLK_LL_PLL_160M_FREQ_MHZ   (160)
 #define CLK_LL_PLL_240M_FREQ_MHZ   (240)
-
 #define CLK_LL_PLL_320M_FREQ_MHZ   (320)
 
 #define CLK_LL_PLL_480M_FREQ_MHZ   (480)

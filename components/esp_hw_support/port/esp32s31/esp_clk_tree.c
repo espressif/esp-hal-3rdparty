@@ -94,6 +94,7 @@ void esp_clk_tree_initialize(void)
     }
 
     // Gating
+    // flash clock source is set to BBPLL in bootloader
 }
 
 bool esp_clk_tree_enable_power(soc_root_clk_circuit_t clk_circuit, bool enable)

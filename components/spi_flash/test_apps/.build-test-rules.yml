@@ -1,10 +1,6 @@
 # Documentation: .gitlab/ci/README.md#manifest-file-to-control-the-buildtest-apps
 
 components/spi_flash/test_apps/esp_flash:
-  disable:
-    - if: IDF_TARGET in ["esp32s31"]
-      temporary: true
-      reason: not support yet # TODO: TODO: [esp32s31] IDF-14777
   depends_filepatterns:
     - components/bootloader_support/bootloader_flash/**/*
   depends_components:
@@ -37,10 +33,6 @@ components/spi_flash/test_apps/esp_flash_freq_limit:
     - esp_hw_support
 
 components/spi_flash/test_apps/esp_flash_stress:
-  disable:
-    - if: IDF_TARGET in ["esp32s31"]
-      temporary: true
-      reason: not support yet # TODO: [ESP32S31] IDF-14777
   depends_components:
     - *common_components
     - esp_mm

@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2025-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -240,7 +240,7 @@ static inline void spimem_flash_ll_set_sus_delay(spi_mem_dev_t *dev, uint32_t dl
  */
 static inline void spimem_flash_set_cs_hold_delay(spi_mem_dev_t *dev, uint32_t cs_hold_delay)
 {
-    // SPIMEM0ctrl2.cs_hold_delay = cs_hold_delay;
+    SPIMEM0.mem_ctrl2.mem_cs_hold_delay = cs_hold_delay;
 }
 
 /**
@@ -296,7 +296,7 @@ static inline bool spimem_flash_ll_sus_status(spi_mem_dev_t *dev)
 static inline void spimem_flash_ll_sus_set_spi0_lock_trans(spi_mem_dev_t *dev, uint32_t lock_time)
 {
     dev->sus_status.spi0_lock_en = 1;
-    // SPIMEM0fsm.lock_delay_time = lock_time;
+    SPIMEM0.mem_fsm.mem_lock_delay_time = lock_time;
 }
 
 /**
@@ -677,7 +677,6 @@ static inline void spimem_flash_ll_set_fdummy_rin(spi_mem_dev_t *dev, uint32_t f
  */
 static inline uint8_t spimem_flash_ll_get_source_freq_mhz(void)
 {
-    return 80;
     int source_clk_mhz = 0;
 
     switch (HP_SYS_CLKRST.flash_ctrl0.reg_flash_clk_src_sel) {
@@ -685,7 +684,7 @@ static inline uint8_t spimem_flash_ll_get_source_freq_mhz(void)
         source_clk_mhz = clk_ll_xtal_get_freq_mhz();
         break;
     case 1:
-        source_clk_mhz = CLK_LL_PLL_480M_FREQ_MHZ; // SPLL
+        source_clk_mhz = CLK_LL_PLL_480M_FREQ_MHZ; // BBPLL
         break;
     case 2:
         source_clk_mhz = CLK_LL_PLL_320M_FREQ_MHZ; // CPLL
@@ -812,7 +811,7 @@ static inline void spimem_flash_ll_set_common_command_register_info(spi_mem_dev_
 }
 
 #define SPIMEM_FLASH_LL_SUSPEND_END_INTR  SPI1_MEM_C_PES_END_INT_ENA_M
-#define SPIMEM_FLASH_LL_INTERRUPT_SOURCE  ETS_MSPI_INTR_SOURCE
+#define SPIMEM_FLASH_LL_INTERRUPT_SOURCE  ETS_MSPI_FLASH_INTR_SOURCE
 
 /**
  * @brief Get the address of the interrupt status register.
