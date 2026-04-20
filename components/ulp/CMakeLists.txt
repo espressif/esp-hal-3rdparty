@@ -62,11 +62,11 @@ if(CONFIG_ULP_COPROC_TYPE_LP_CORE)
         "lp_core/shared/ulp_lp_core_lp_uart_shared.c")
     endif()
 
-    if(CONFIG_SOC_LP_I2C_SUPPORTED)
+    if(CONFIG_SOC_LP_CORE_SUPPORT_I2C)
         list(APPEND srcs "lp_core/lp_core_i2c.c")
     endif()
 
-    if(CONFIG_SOC_RTC_TIMER_V2)
+    if(CONFIG_SOC_RTC_TIMER_V2 OR CONFIG_SOC_RTC_TIMER_V3)
         list(APPEND srcs "lp_core/shared/ulp_lp_core_lp_timer_shared.c")
     endif()
 

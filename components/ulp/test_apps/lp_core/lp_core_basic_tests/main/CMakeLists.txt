@@ -1,6 +1,6 @@
 set(app_sources "test_app_main.c" "test_lp_core.c")
 
-if(CONFIG_SOC_LP_I2C_SUPPORTED)
+if(CONFIG_SOC_LP_CORE_SUPPORT_I2C)
     list(APPEND app_sources "test_lp_core_i2c.c")
 endif()
 
@@ -37,7 +37,7 @@ endif()
 
 set(lp_core_sources_gpio "lp_core/test_main_gpio.c")
 
-if(CONFIG_SOC_LP_I2C_SUPPORTED)
+if(CONFIG_SOC_LP_CORE_SUPPORT_I2C)
     set(lp_core_sources_i2c "lp_core/test_main_i2c.c")
 endif()
 
@@ -79,7 +79,7 @@ endif()
 
 ulp_embed_binary(lp_core_test_app_gpio "${lp_core_sources_gpio}" "${lp_core_exp_dep_srcs}")
 
-if(CONFIG_SOC_LP_I2C_SUPPORTED)
+if(CONFIG_SOC_LP_CORE_SUPPORT_I2C)
     ulp_embed_binary(lp_core_test_app_i2c "${lp_core_sources_i2c}" "${lp_core_exp_dep_srcs}")
 endif()
 
