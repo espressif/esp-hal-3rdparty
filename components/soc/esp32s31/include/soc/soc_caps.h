@@ -384,6 +384,12 @@
 #define SOC_UART_WAKEUP_SUPPORT_START_BIT_MODE     (1)
 #define SOC_UART_WAKEUP_SUPPORT_CHAR_SEQ_MODE      (1)
 
+/*-------------------------- COEXISTENCE HARDWARE PTI CAPS -------------------------------*/
+#define SOC_COEX_HW_PTI                 (1)
+
+/*-------------------------- EXTERNAL COEXISTENCE CAPS -------------------------------------*/
+#define SOC_EXTERNAL_COEX_ADVANCE              (1) /*!< HARDWARE  EXTERNAL COEXISTENCE CAPS */
+
 // /*-------------------------- CLOCK SUBSYSTEM CAPS ----------------------------------------*/
 #define SOC_MODEM_CLOCK_IS_INDEPENDENT            (1)
 #define SOC_MODEM_CLOCK_SOC_PLL_SOURCE_CG_SUPPORTED (1)
