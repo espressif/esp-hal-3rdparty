@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2023-2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2023-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -14,6 +14,9 @@ extern "C" {
 #include "esp_err.h"
 #include "hal/uart_types.h"
 #include "hal/gpio_types.h"
+#include "soc/soc_caps.h"
+
+#if SOC_ULP_LP_UART_SUPPORTED
 
 /**
  * Default LP_IO Mux pins for LP UART
@@ -100,6 +103,8 @@ typedef struct {
  * @return esp_err_t    ESP_OK when successful
  */
 esp_err_t lp_core_uart_init(const lp_core_uart_cfg_t *cfg);
+
+#endif /* SOC_ULP_LP_UART_SUPPORTED */
 
 #ifdef __cplusplus
 }
