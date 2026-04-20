@@ -1624,8 +1624,7 @@ static size_t crypto_ecdh_output_size(const crypto_ec_key_wrapper_t *wrapper)
         return 0;
     }
 
-    return PSA_RAW_KEY_AGREEMENT_OUTPUT_SIZE(
-               PSA_KEY_TYPE_ECC_KEY_PAIR(ecc_family), key_bits);
+    return PSA_BITS_TO_BYTES(key_bits);
 }
 
 struct crypto_ec_key * crypto_ec_key_set_pub(const struct crypto_ec_group *group,
