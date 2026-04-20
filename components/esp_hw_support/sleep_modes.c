@@ -2962,9 +2962,9 @@ static SLEEP_FN_ATTR uint32_t get_power_down_flags(void)
     }
 #endif
 
-#if CONFIG_IDF_TARGET_ESP32C6
+#if SOC_PM_TOP_DEPENDS_ON_RTC_PERIPH
     if (!(pd_flags & PMU_SLEEP_PD_TOP)) {
-        // TOP power domain depends on the RTC_PERIPH power domain on ESP32C6, RTC_PERIPH should only be disabled when the TOP domain is down.
+        // TOP power domain depends on the RTC_PERIPH power domain on ESP32C6 and ESP32H4, RTC_PERIPH should only be disabled when the TOP domain is down.
         pd_flags &= ~RTC_SLEEP_PD_RTC_PERIPH;
     }
 #endif

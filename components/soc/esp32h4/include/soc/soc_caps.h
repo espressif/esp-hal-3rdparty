@@ -476,7 +476,7 @@
 #define SOC_PM_SUPPORT_TOP_PD           (1)
 #define SOC_PM_SUPPORT_HP_AON_PD        (1)
 #define SOC_PM_SUPPORT_MAC_BB_PD        (1)
-// #define SOC_PM_SUPPORT_RTC_PERIPH_PD    (1)      // TODO： [ESP32H4] PM-484
+#define SOC_PM_SUPPORT_RTC_PERIPH_PD    (1)
 
 // #define SOC_PM_SUPPORT_PMU_MODEM_STATE  (1)
 // /* macro redefine for pass esp_wifi headers md5sum check */
@@ -494,6 +494,8 @@
 #define SOC_PM_PAU_LINK_NUM                 (4)
 #define SOC_PM_PAU_REGDMA_LINK_CONFIGURABLE (1)
 #define SOC_PM_RETENTION_MODULE_NUM         (64)
+
+#define SOC_PM_TOP_DEPENDS_ON_RTC_PERIPH    (1) // In ESP32H4, RTC_PERIPH should be pd only together with TOP, otherwise there is some current leak.
 
 /*-------------------------- CLOCK SUBSYSTEM CAPS ----------------------------------------*/
 #define SOC_CLK_RC_FAST_SUPPORT_CALIBRATION       (1)
