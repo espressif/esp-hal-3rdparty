@@ -45,7 +45,7 @@ rmt_group_t *rmt_acquire_group_handle(int group_id)
                 rmt_ll_reset_register(group_id);
             }
 #if RMT_USE_RETENTION_LINK
-            sleep_retention_module_t module = rmt_reg_retention_info[group_id].module;
+            sleep_retention_module_t module = rmt_retention_infos[group_id].module;
             sleep_retention_module_init_param_t init_param = {
                 .cbs = {
                     .create = {
@@ -104,7 +104,7 @@ void rmt_release_group_handle(rmt_group_t *group)
 
     if (do_deinitialize) {
 #if RMT_USE_RETENTION_LINK
-        sleep_retention_module_t module = rmt_reg_retention_info[group_id].module;
+        sleep_retention_module_t module = rmt_retention_infos[group_id].module;
         if (sleep_retention_is_module_created(module)) {
             sleep_retention_module_free(module);
         }
@@ -279,16 +279,16 @@ static esp_err_t rmt_create_sleep_retention_link_cb(void *arg)
 {
     rmt_group_t *group = (rmt_group_t *)arg;
     int group_id = group->group_id;
-    esp_err_t err = sleep_retention_entries_create(rmt_reg_retention_info[group_id].regdma_entry_array,
-                                                   rmt_reg_retention_info[group_id].array_size,
-                                                   REGDMA_LINK_PRI_RMT, rmt_reg_retention_info[group_id].module);
+    esp_err_t err = sleep_retention_entries_create(rmt_retention_infos[group_id].regdma_entry_array,
+                                                   rmt_retention_infos[group_id].array_size,
+                                                   REGDMA_LINK_PRI_RMT, rmt_retention_infos[group_id].module);
     return err;
 }
 
 void rmt_create_retention_module(rmt_group_t *group)
 {
     int group_id = group->group_id;
-    sleep_retention_module_t module = rmt_reg_retention_info[group_id].module;
+    sleep_retention_module_t module = rmt_retention_infos[group_id].module;
     _lock_acquire(&s_platform.mutex);
     if (sleep_retention_is_module_inited(module) && !sleep_retention_is_module_created(module)) {
         if (sleep_retention_module_allocate(module) != ESP_OK) {
