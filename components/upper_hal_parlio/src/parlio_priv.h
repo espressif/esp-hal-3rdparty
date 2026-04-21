@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2022-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2022-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -70,6 +70,16 @@
 
 // Use retention link only when the target supports sleep retention is enabled
 #define PARLIO_USE_RETENTION_LINK  (SOC_PARLIO_SUPPORT_SLEEP_RETENTION && CONFIG_PM_POWER_DOWN_PERIPHERAL_IN_LIGHT_SLEEP)
+
+#if SOC_PARLIO_SUPPORT_SLEEP_RETENTION
+typedef struct {
+    const periph_retention_module_t retention_module;
+    const regdma_entries_config_t *regdma_entry_array;
+    uint32_t array_size;
+} parlio_retention_desc_t;
+
+extern const parlio_retention_desc_t parlio_retention_infos[PARLIO_LL_GET(INST_NUM)];
+#endif // SOC_PARLIO_SUPPORT_SLEEP_RETENTION
 
 #define PARLIO_DMA_DESCRIPTOR_BUFFER_MAX_SIZE 4095
 

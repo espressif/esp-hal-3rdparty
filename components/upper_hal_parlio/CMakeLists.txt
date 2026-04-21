@@ -7,6 +7,10 @@ if(CONFIG_SOC_PARLIO_SUPPORTED)
                      "src/parlio_tx.c"
                      "src/parlio_rx.c")
 
+    if(CONFIG_SOC_PAU_SUPPORTED AND CONFIG_SOC_PARLIO_SUPPORT_SLEEP_RETENTION)
+        list(APPEND srcs "${target}/parlio_retention.c")
+    endif()
+
     if(CONFIG_SOC_BITSCRAMBLER_SUPPORTED)
         list(APPEND srcs "src/parlio_bitscrambler.c")
     endif()
@@ -21,7 +25,8 @@ endif()
 
 idf_component_register(SRCS ${srcs}
                        INCLUDE_DIRS ${public_include}
+                       PRIV_INCLUDE_DIRS "src"
                        PRIV_REQUIRES "${priv_requires}"
                        REQUIRES esp_hal_parlio
                        LDFRAGMENTS "linker.lf"
-                      )
+                       )
