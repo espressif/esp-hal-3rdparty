@@ -23,6 +23,7 @@
 #include "esp_intr_alloc.h"
 #include "esp_heap_caps.h"
 #include "esp_pm.h"
+#include "soc/regdma.h"
 #include "hal/timer_periph.h"
 #include "hal/timer_types.h"
 #include "hal/timer_hal.h"
@@ -31,6 +32,7 @@
 #include "esp_private/esp_clk_tree_common.h"
 #include "esp_private/sleep_retention.h"
 #include "esp_private/periph_ctrl.h"
+#include "driver/gptimer_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -101,6 +103,18 @@ struct gptimer_t {
 gptimer_group_t *gptimer_acquire_group_handle(int group_id);
 void gptimer_release_group_handle(gptimer_group_t *group);
 esp_err_t gptimer_select_periph_clock(gptimer_t *timer, gptimer_clock_source_t src_clk, uint32_t resolution_hz);
+
+#if SOC_PAU_SUPPORTED && SOC_TIMER_SUPPORT_SLEEP_RETENTION
+#include "soc/retention_periph_defs.h"
+
+typedef struct {
+    const periph_retention_module_t module;
+    const regdma_entries_config_t *regdma_entry_array;
+    const size_t array_size;
+} gptimer_retention_desc_t;
+
+extern const gptimer_retention_desc_t gptimer_retention_infos[TIMG_LL_GET(INST_NUM)][TIMG_LL_GET(GPTIMERS_PER_INST)];
+#endif // SOC_PAU_SUPPORTED && SOC_TIMER_SUPPORT_SLEEP_RETENTION
 
 #ifdef __cplusplus
 }
