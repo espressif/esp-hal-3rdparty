@@ -633,3 +633,7 @@ config BT_LE_DFT_TX_POWER_LEVEL_DBM_EFF
     default 18 if BT_LE_DFT_TX_POWER_LEVEL_P18
     default 20 if BT_LE_DFT_TX_POWER_LEVEL_P20
     default 0
+
+config BT_LE_DTM_ENABLED
+    bool "Enable Direct Test Mode (DTM) feature"
+    default n
