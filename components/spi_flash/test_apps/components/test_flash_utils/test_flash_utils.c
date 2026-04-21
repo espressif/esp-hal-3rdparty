@@ -138,11 +138,7 @@ esp_err_t spi_flash_suspend_test_deinit(flash_test_handle_t *handle)
 
 void spi_flash_suspend_test_invalidate_cache(void)
 {
-#if CONFIG_IDF_TARGET_ESP32S31
-    Cache_Invalidate_All(CACHE_MAP_MASK);
-#else
     cache_ll_invalidate_all(CACHE_LL_LEVEL_ALL, CACHE_TYPE_ALL, CACHE_LL_ID_ALL);
-#endif
 }
 
 #endif // SOC_SPI_MEM_SUPPORT_AUTO_SUSPEND
