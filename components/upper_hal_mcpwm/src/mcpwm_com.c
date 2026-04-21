@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2022-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2022-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -37,7 +37,7 @@ mcpwm_group_t *mcpwm_acquire_group_handle(int group_id)
             group->group_id = group_id;
             group->spinlock = (portMUX_TYPE)portMUX_INITIALIZER_UNLOCKED;
 #if MCPWM_USE_RETENTION_LINK
-            sleep_retention_module_t module = mcpwm_reg_retention_info[group_id].retention_module;
+            sleep_retention_module_t module = mcpwm_retention_infos[group_id].retention_module;
             sleep_retention_module_init_param_t init_param = {
                 .cbs = {
                     .create = {
@@ -113,7 +113,7 @@ void mcpwm_release_group_handle(mcpwm_group_t *group)
         }
 #endif
 #if MCPWM_USE_RETENTION_LINK
-        const periph_retention_module_t module_id = mcpwm_reg_retention_info[group_id].retention_module;
+        const periph_retention_module_t module_id = mcpwm_retention_infos[group_id].retention_module;
         if (sleep_retention_is_module_created(module_id)) {
             sleep_retention_module_free(module_id);
         }
@@ -248,16 +248,16 @@ static esp_err_t mcpwm_create_sleep_retention_link_cb(void *arg)
 {
     mcpwm_group_t *group = (mcpwm_group_t *)arg;
     int group_id = group->group_id;
-    sleep_retention_module_t module_id = mcpwm_reg_retention_info[group_id].retention_module;
-    esp_err_t err = sleep_retention_entries_create(mcpwm_reg_retention_info[group_id].regdma_entry_array,
-                                                   mcpwm_reg_retention_info[group_id].array_size,
+    sleep_retention_module_t module_id = mcpwm_retention_infos[group_id].retention_module;
+    esp_err_t err = sleep_retention_entries_create(mcpwm_retention_infos[group_id].regdma_entry_array,
+                                                   mcpwm_retention_infos[group_id].array_size,
                                                    REGDMA_LINK_PRI_MCPWM, module_id);
     return err;
 }
 void mcpwm_create_retention_module(mcpwm_group_t *group)
 {
     int group_id = group->group_id;
-    sleep_retention_module_t module_id = mcpwm_reg_retention_info[group_id].retention_module;
+    sleep_retention_module_t module_id = mcpwm_retention_infos[group_id].retention_module;
     _lock_acquire(&s_platform.mutex);
     if (sleep_retention_is_module_inited(module_id) && !sleep_retention_is_module_created(module_id)) {
         if (sleep_retention_module_allocate(module_id) != ESP_OK) {

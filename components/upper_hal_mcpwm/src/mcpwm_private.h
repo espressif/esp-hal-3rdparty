@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2022-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2022-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -49,6 +49,16 @@ extern "C" {
 
 // Use retention link only when the target supports sleep retention is enabled
 #define MCPWM_USE_RETENTION_LINK  (SOC_MCPWM_SUPPORT_SLEEP_RETENTION && CONFIG_PM_POWER_DOWN_PERIPHERAL_IN_LIGHT_SLEEP)
+
+#if SOC_MCPWM_SUPPORT_SLEEP_RETENTION
+typedef struct {
+    const regdma_entries_config_t *regdma_entry_array;
+    uint32_t array_size;
+    const periph_retention_module_t retention_module;
+} mcpwm_retention_desc_t;
+
+extern const mcpwm_retention_desc_t mcpwm_retention_infos[MCPWM_LL_GET(GROUP_NUM)];
+#endif // SOC_MCPWM_SUPPORT_SLEEP_RETENTION
 
 #define MCPWM_ALLOW_INTR_PRIORITY_MASK ESP_INTR_FLAG_LOWMED
 
