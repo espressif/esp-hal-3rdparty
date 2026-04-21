@@ -436,6 +436,10 @@ esp_err_t esp_psram_init(void)
     ret = esp_psram_impl_get_available_size(&psram_available_size);
     assert(ret == ESP_OK);
 
+#if SOC_MMU_PER_EXT_MEM_TARGET
+    //set PSRAM dedicated MMU
+    mmu_ll_set_page_size(1, CONFIG_MMU_PAGE_SIZE);
+#endif
     /**
      * `start_page` is the psram physical address in MMU page size.
      * MMU page size on ESP32S2 is 64KB
