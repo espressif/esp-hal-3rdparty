@@ -142,3 +142,4 @@
 #define DR_REG_TRACE_BASE                       DR_REG_TRACE0_BASE
 #define DR_REG_MB_BASE                          DR_REG_LP_MAILBOX_BASE
 #define DR_REG_AXI_IC_BASE                      (DR_REG_ICM_SYS_BASE + 0x400)
+#define IEEE802154_REG_BASE                     0x20103000

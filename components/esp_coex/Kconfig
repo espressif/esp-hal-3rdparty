@@ -12,6 +12,7 @@ menu "Wireless Coexistence"
             depends on (ESP_WIFI_ENABLED && BT_ENABLED) || \
                 (ESP_WIFI_ENABLED && IEEE802154_ENABLED)   || \
                 (IEEE802154_ENABLED && BT_ENABLED)
+            default n if IDF_TARGET_ESP32S31 #TODO: enable coexistence for ESP32S31
             default y
             select ESP_WIFI_STA_DISCONNECTED_PM_ENABLE if (ESP_WIFI_ENABLED)
             help

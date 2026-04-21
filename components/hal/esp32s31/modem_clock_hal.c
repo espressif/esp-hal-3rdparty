@@ -46,6 +46,7 @@ void IRAM_ATTR modem_clock_hal_set_clock_domain_icg_bitmap(modem_clock_hal_conte
         break;
 #if SOC_IEEE802154_SUPPORTED
     case MODEM_CLOCK_DOMAIN_IEEE802154:
+        modem_syscon_ll_set_bt_icg_bitmap(hal->syscon_dev, bitmap);
         modem_syscon_ll_set_ieee802154_icg_bitmap(hal->syscon_dev, bitmap);
         break;
 #endif
