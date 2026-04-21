@@ -227,6 +227,10 @@ config SOC_WIFI_SUPPORTED
     bool
     default y
 
+config SOC_IEEE802154_SUPPORTED
+    bool
+    default y
+
 config SOC_PHY_CALIBRATION_CLOCK_IS_INDEPENDENT
     bool
     default y
