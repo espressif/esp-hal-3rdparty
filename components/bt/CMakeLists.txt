@@ -6,10 +6,13 @@ endif()
 
 if(CONFIG_IDF_TARGET_ESP32S3)
     set(target_name "esp32c3")
+    set(TARGET_SRC_NAME "esp32c3")
 elseif(CONFIG_IDF_TARGET_ESP32C61)
     set(target_name "esp32c6")
+    set(TARGET_SRC_NAME "esp32c6")
 else()
     set(target_name "${idf_target}")
+    set(TARGET_SRC_NAME "${idf_target}")
 endif()
 
 # API headers that are used in the docs are also compiled
@@ -87,30 +90,12 @@ if(CONFIG_BT_ENABLED)
     set(srcs "")
     set(include_dirs "")
     set(ldscripts "linker_common.lf")
+
     if(CONFIG_BT_CONTROLLER_ENABLED)
-        list(APPEND srcs "controller/${target_name}/bt.c")
-
-        if(CONFIG_IDF_TARGET_ESP32)
-            list(APPEND srcs "controller/esp32/hli_api.c"
-                             "controller/esp32/hli_vectors.S")
-            list(APPEND ldscripts "linker_rw_bt_controller.lf")
-        elseif(CONFIG_IDF_TARGET_ESP32C3)
-            list(APPEND ldscripts "linker_rw_bt_controller.lf")
-        elseif(CONFIG_IDF_TARGET_ESP32S3)
-            list(APPEND ldscripts "linker_rw_bt_controller.lf")
-        elseif(CONFIG_IDF_TARGET_ESP32C2)
-            list(APPEND srcs "controller/${target_name}/ble.c")
-            list(APPEND srcs "controller/esp32c2/dummy.c")
-            set(ldscripts "linker_esp32c2.lf")
-        elseif(CONFIG_BT_DUAL_MODE_ARCH)
-            list(APPEND srcs "controller/${target_name}/bt.c")
-            list(APPEND ldscripts "linker_esp_btdm_controller.lf")
-        else()
-            list(APPEND srcs "controller/${target_name}/ble.c")
-            list(APPEND ldscripts "linker_esp_ble_controller.lf")
-        endif()
-
-        list(APPEND include_dirs ${target_specific_include_dirs})
+        add_subdirectory(controller)
+        list(APPEND srcs ${bt_ctrl_srcs})
+        list(APPEND include_dirs ${bt_ctrl_include_dirs} include/${target_name}/include)
+        list(APPEND ldscripts ${bt_ctrl_ldscripts})
     endif()
 
     # Common
@@ -120,13 +105,6 @@ if(CONFIG_BT_ENABLED)
             common/btc/include
             common/include
         )
-
-    if(NOT CONFIG_BT_DUAL_MODE_ARCH)
-        list(APPEND priv_include_dirs
-            porting/mem/
-            porting/include
-        )
-    endif()
 
     list(APPEND include_dirs ${common_include_dirs})
 
@@ -152,7 +130,6 @@ if(CONFIG_BT_ENABLED)
          "common/osi/thread.c"
          "common/osi/osi.c"
          "common/osi/semaphore.c"
-         "porting/mem/bt_osi_mem.c"
          "common/ble_log/deprecated/ble_log_spi_out.c"
          )
 
@@ -845,71 +822,28 @@ if(CONFIG_BT_ENABLED)
         endif()
     endif()
 
+    # porting or porting_btdm
     if(CONFIG_BT_DUAL_MODE_ARCH)
         add_subdirectory(porting_btdm)
-        list(APPEND srcs
-            ${porting_btdm_srcs}
-        )
+        list(APPEND srcs ${porting_btdm_srcs})
+        list(APPEND include_dirs ${porting_btdm_include_dirs})
 
         if(CONFIG_BT_NIMBLE_ENABLED)
             list(APPEND srcs
                 "host/nimble/nimble/nimble/transport/esp_ipc_btdm/src/hci_esp_ipc.c"
             )
         endif()
-
-        list(APPEND include_dirs
-            ${porting_btdm_include_dirs}
-        )
     elseif(CONFIG_BT_LE_CONTROLLER_NPL_OS_PORTING_SUPPORT)
-        list(APPEND srcs
-                "porting/npl/freertos/src/npl_os_freertos.c"
-                "porting/mem/os_msys_init.c"
-                "porting/mem/os_mempool.c"
-                "porting/transport/src/hci_transport.c"
-        )
+        add_subdirectory(porting)
+        list(APPEND srcs ${porting_srcs})
+        list(APPEND include_dirs ${porting_include_dirs})
+        list(APPEND priv_include_dirs ${porting_priv_include_dirs})
 
-        list(APPEND include_dirs
-            host/nimble/port/include
-        )
-
-        if(CONFIG_BT_CONTROLLER_DISABLED)
+        if(CONFIG_BT_NIMBLE_ENABLED)
             list(APPEND srcs
-                "host/nimble/nimble/porting/nimble/src/hal_uart.c"
+                "host/nimble/nimble/nimble/transport/esp_ipc/src/hci_esp_ipc.c"
             )
-        elseif(CONFIG_BT_LE_HCI_INTERFACE_USE_RAM)
-            if(CONFIG_BT_NIMBLE_ENABLED)
-                list(APPEND srcs
-                    "porting/transport/driver/vhci/hci_driver_nimble.c"
-                    "host/nimble/nimble/nimble/transport/esp_ipc/src/hci_esp_ipc.c"
-                )
-            else()
-                list(APPEND srcs
-                    "porting/transport/driver/vhci/hci_driver_standard.c"
-                )
-            endif()
-        elseif(CONFIG_BT_LE_HCI_INTERFACE_USE_UART)
-                list(APPEND srcs
-                    "porting/transport/driver/common/hci_driver_util.c"
-                    "porting/transport/driver/common/hci_driver_h4.c"
-                    "porting/transport/driver/common/hci_driver_mem.c"
-                    "porting/transport/driver/uart/hci_driver_uart_config.c"
-                )
-            if(CONFIG_BT_LE_UART_HCI_DMA_MODE)
-                list(APPEND srcs
-                    "porting/transport/driver/uart/hci_driver_uart_dma.c"
-                )
-            else()
-                list(APPEND srcs
-                    "porting/transport/driver/uart/hci_driver_uart.c"
-                )
-            endif()
         endif()
-
-        list(APPEND include_dirs
-                porting/include
-                porting/npl/freertos/include
-                porting/transport/include
-        )
     endif()
 
     # Compile TinyCrypt if:
@@ -1082,6 +1016,11 @@ if(CONFIG_BT_ENABLED)
                 list(APPEND include_dirs
                     host/nimble/nimble/nimble/transport/common/hci_h4/include
                 )
+                if(CONFIG_BT_NIMBLE_TRANSPORT_UART)
+                    list(APPEND srcs
+                        "host/nimble/nimble/porting/nimble/src/hal_uart.c"
+                    )
+                endif()
             endif()
 
         if((NOT CONFIG_BT_LE_CONTROLLER_NPL_OS_PORTING_SUPPORT) AND (NOT CONFIG_BT_DUAL_MODE_ARCH))
@@ -1093,12 +1032,6 @@ if(CONFIG_BT_ENABLED)
                     "host/nimble/nimble/porting/nimble/src/os_msys_init.c"
                     "host/nimble/nimble/porting/npl/freertos/src/npl_os_freertos.c"
                     )
-
-            if(CONFIG_BT_CONTROLLER_DISABLED AND CONFIG_BT_NIMBLE_TRANSPORT_UART)
-                list(APPEND srcs
-                    "host/nimble/nimble/porting/nimble/src/hal_uart.c"
-                )
-            endif()
 
             list(APPEND include_dirs
                     porting/include
@@ -1219,6 +1152,12 @@ idf_component_register(SRCS "${srcs}"
                        PRIV_REQUIRES "${bt_priv_requires}"
                        LDFRAGMENTS "${ldscripts}")
 
+target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-implicit-fallthrough -Wno-unused-const-variable)
+
+if(CONFIG_BT_CONTROLLER_ENABLED)
+    register_bt_ctrl_libs()
+endif()
+
 # UART redir wrap flags — needed whenever BLE Log uses UART DMA on port 0,
 # regardless of whether BLE controller is enabled.
 if(DEFINED CONFIG_BLE_LOG_PRPH_UART_DMA_PORT)
@@ -1236,70 +1175,6 @@ if(CONFIG_BLE_COMPRESSED_LOG_ENABLE)
 endif()
 
 if(CONFIG_BT_ENABLED)
-    target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-implicit-fallthrough -Wno-unused-const-variable)
-    if(CONFIG_IDF_TARGET_ESP32)
-        add_prebuilt_library(bt_btdm_app "${CMAKE_CURRENT_LIST_DIR}/controller/lib_esp32/esp32/libbtdm_app.a")
-        target_link_libraries(${COMPONENT_LIB} PRIVATE bt_btdm_app)
-        target_link_options(${COMPONENT_LIB} INTERFACE "SHELL:-u ld_include_hli_vectors_bt")
-    elseif(CONFIG_IDF_TARGET_ESP32C3)
-        if(CONFIG_BT_CTRL_RUN_IN_FLASH_ONLY)
-            set(lib_name "btdm_app_flash")
-        else()
-            set(lib_name "btdm_app")
-        endif()
-        add_prebuilt_library(bt_btdm_app
-                             "${CMAKE_CURRENT_LIST_DIR}/controller/lib_esp32c3_family/esp32c3/lib${lib_name}.a")
-        target_link_libraries(${COMPONENT_LIB} PRIVATE bt_btdm_app)
-    elseif(CONFIG_IDF_TARGET_ESP32S3)
-        if(CONFIG_BT_CTRL_RUN_IN_FLASH_ONLY)
-            set(lib_name "btdm_app_flash")
-        else()
-            set(lib_name "btdm_app")
-        endif()
-        add_prebuilt_library(bt_btdm_app
-                             "${CMAKE_CURRENT_LIST_DIR}/controller/lib_esp32c3_family/esp32s3/lib${lib_name}.a")
-        target_link_libraries(${COMPONENT_LIB} PRIVATE bt_btdm_app)
-    elseif(CONFIG_BT_CONTROLLER_ENABLED)
-        if(CONFIG_BT_LE_CONTROLLER_LOG_WRAP_PANIC_HANDLER_ENABLE)
-            target_link_options(${COMPONENT_LIB} INTERFACE "-Wl,--wrap=esp_panic_handler")
-        endif()
-        if(CONFIG_BT_DUAL_MODE_ARCH)
-            if(CONFIG_BT_CTRL_BLE_ENABLE)
-                add_prebuilt_library(libble_app "controller/lib_${target_name}/${target_name}-bt-lib/libble_app.a"
-                REQUIRES esp_phy)
-                target_link_libraries(${COMPONENT_LIB} PRIVATE libble_app)
-            endif()
-            if(CONFIG_BT_CTRL_BREDR_ENABLE)
-                add_prebuilt_library(libbredr_app "controller/lib_${target_name}/${target_name}-bt-lib/libbredr_app.a")
-                target_link_libraries(${COMPONENT_LIB} PRIVATE libbredr_app)
-            endif()
-            add_prebuilt_library(libbtdm_common
-              "controller/lib_${target_name}/${target_name}-bt-lib/libbtdm_common.a")
-            target_link_libraries(${COMPONENT_LIB} PRIVATE libbtdm_common)
-        else()
-            if(CONFIG_IDF_TARGET_ESP32C6)
-                add_prebuilt_library(libble_app
-                    "${CMAKE_CURRENT_LIST_DIR}/controller/lib_esp32c6/esp32c6-bt-lib/esp32c6/libble_app.a"
-                    REQUIRES esp_phy)
-            elseif(CONFIG_IDF_TARGET_ESP32C61)
-                add_prebuilt_library(libble_app
-                    "${CMAKE_CURRENT_LIST_DIR}/controller/lib_esp32c6/esp32c6-bt-lib/esp32c61/libble_app.a"
-                    REQUIRES esp_phy)
-            else()
-                if(CONFIG_BT_CTRL_RUN_IN_FLASH_ONLY AND CONFIG_IDF_TARGET_ESP32C2)
-                    add_prebuilt_library(libble_app
-                        "controller/lib_${target_name}/${target_name}-bt-lib/libble_app_flash.a"
-                        REQUIRES esp_phy)
-                else()
-                    add_prebuilt_library(libble_app
-                        "controller/lib_${target_name}/${target_name}-bt-lib/libble_app.a"
-                        REQUIRES esp_phy)
-                endif()
-            endif()
-            target_link_libraries(${COMPONENT_LIB} PRIVATE libble_app)
-        endif()
-    endif()
-
     set_source_files_properties(
         "host/bluedroid/bta/gatt/bta_gattc_act.c"
         "host/bluedroid/bta/gatt/bta_gattc_cache.c"
