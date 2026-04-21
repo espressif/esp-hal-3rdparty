@@ -15,8 +15,8 @@
 #include <assert.h>
 
 #include "sdkconfig.h"
-#include "esp_rom_multi_heap.h"
-#include "esp_rom_tlsf.h"
+#include "rom_patch_tlsf.h"
+#include "rom_patch_multi_heap.h"
 
 // Hook to force the linker to include this file
 void esp_rom_include_multi_heap_patch(void)

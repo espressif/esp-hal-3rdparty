@@ -27,7 +27,7 @@
  * fill and check memory region with given patterns in the heap
  * components.
  */
-#include "esp_rom_tlsf.h"
+#include "rom_patch_tlsf.h"
 #endif
 
 #ifdef MULTI_HEAP_POISONING

@@ -8,14 +8,14 @@
 #pragma once
 
 #include <stddef.h>
-#include "esp_rom_tlsf.h"
+#include "rom_patch_tlsf.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * @brief TLSF ROM vtable stub table for esp32c61.
+ * @brief TLSF ROM vtable stub table for esp32h2.
  *
  * This struct mirrors the TLSF function-pointer vtable stored in ROM.
  * Its layout MUST exactly match the ROM vtable for the target chip.
@@ -38,6 +38,10 @@ struct heap_tlsf_stub_table_t {
     size_t (*tlsf_size)(tlsf_t tlsf);
     size_t (*tlsf_align_size)(void);
     size_t (*tlsf_block_size_min)(void);
+    /* NOTE: The ROM signature is tlsf_block_size_max(control_t *control), but
+     * control_t is an internal TLSF type not exposed in any public header.
+     * Since tlsf_t is typedef'd as void* (same as control_t), the ABI is
+     * identical and we use tlsf_t here to keep this header self-contained. */
     size_t (*tlsf_block_size_max)(tlsf_t tlsf);
     size_t (*tlsf_pool_overhead)(void);
     size_t (*tlsf_alloc_overhead)(void);
@@ -46,6 +50,8 @@ struct heap_tlsf_stub_table_t {
 
     int (*tlsf_check)(tlsf_t tlsf);
     int (*tlsf_check_pool)(pool_t pool);
+
+    void *(*tlsf_malloc_addr)(tlsf_t tlsf, size_t size, void *address);
 };
 
 #ifdef __cplusplus
