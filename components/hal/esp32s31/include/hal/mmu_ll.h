@@ -34,6 +34,7 @@ extern "C" {
  *
  * @return linear address
  */
+__attribute__((always_inline))
 static inline uint32_t mmu_ll_vaddr_to_laddr(uint32_t vaddr)
 {
     return vaddr & SOC_MMU_LINEAR_ADDR_MASK;
