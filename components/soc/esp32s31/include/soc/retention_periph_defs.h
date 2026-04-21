@@ -61,10 +61,9 @@ typedef enum periph_retention_module {
     SLEEP_RETENTION_MODULE_MCPWM1       = 36,
     SLEEP_RETENTION_MODULE_MCPWM2       = 37,
     SLEEP_RETENTION_MODULE_MCPWM3       = 38,
-    SLEEP_RETENTION_MODULE_PCNT0        = 39,
-    SLEEP_RETENTION_MODULE_PCNT1        = 40,
-    SLEEP_RETENTION_MODULE_SDM0         = 41,
-    SLEEP_RETENTION_MODULE_JPEG         = 42,
+    SLEEP_RETENTION_MODULE_SDM0         = 39,
+    SLEEP_RETENTION_MODULE_LCDCAM       = 40,
+    SLEEP_RETENTION_MODULE_JPEG         = 41,
 
     /* Modem module, which includes WiFi, BLE and 802.15.4 */
     SLEEP_RETENTION_MODULE_WIFI_MAC     = 43,
