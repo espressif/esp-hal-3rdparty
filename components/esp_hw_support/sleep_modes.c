@@ -1101,6 +1101,7 @@ static esp_err_t SLEEP_FN_ATTR esp_sleep_start(uint32_t sleep_flags, uint32_t cl
 #if CONFIG_ULP_COPROC_TYPE_LP_CORE
     if (s_config.wakeup_triggers & (RTC_LP_CORE_TRIG_EN | RTC_LP_CORE_TRAP_TRIG_EN)) {
         pmu_ll_hp_clear_sw_intr_status(&PMU);
+        pmu_ll_hp_clear_lp_cpu_exc_intr_status(&PMU);
     }
 #endif
 #endif // CONFIG_ULP_COPROC_ENABLED
