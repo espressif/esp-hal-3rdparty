@@ -8,10 +8,13 @@ config BT_ALARM_MAX_NUM
 
 choice BT_SMP_CRYPTO_STACK
     prompt "SMP cryptographic stack"
-    depends on (BT_BLE_SMP_ENABLE || BT_SMP_ENABLE || BT_NIMBLE_SECURITY_ENABLE || BT_LE_SECURITY_ENABLE)
+    depends on (BT_BLE_SMP_ENABLE || BT_SMP_ENABLE || BT_NIMBLE_SECURITY_ENABLE || BT_LE_SECURITY_ENABLE || \
+        BT_CTRL_BREDR_ENABLE)
     default BT_SMP_CRYPTO_STACK_TINYCRYPT
     help
         Select the cryptographic library to use for SMP operations (AES, AES-CMAC, ECDH P-256).
+        With BR/EDR controller enabled, mbedTLS also enables SHA-256 (for the BR/EDR port)
+        and ECDH for P-192 on the controller port.
 
     config BT_SMP_CRYPTO_STACK_TINYCRYPT
         bool "TinyCrypt"
@@ -22,6 +25,8 @@ choice BT_SMP_CRYPTO_STACK
             This is the default option.
 
     config BT_SMP_CRYPTO_STACK_MBEDTLS
+        # BT Classic requires ECC P-192, which is removed in mbedtls 4.1.0
+        depends on !BT_CTRL_BREDR_ENABLE
         bool "mbedTLS"
         select MBEDTLS_AES_C
         select MBEDTLS_CMAC_C

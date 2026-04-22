@@ -542,6 +542,41 @@ void x_side_default(uECC_word_t *result,
 	uECC_vli_modAdd(result, result, curve->b, curve->p, num_words);
 }
 
+#if uECC_SUPPORTS_secp192r1
+uECC_Curve uECC_secp192r1(void)
+{
+    return &curve_secp192r1;
+}
+
+void vli_mmod_fast_secp192r1(unsigned int *result, unsigned int *product)
+{
+    unsigned int tmp[NUM_ECC_WORDS_SECP192R1];
+    int carry;
+
+    uECC_vli_set(result, product, NUM_ECC_WORDS_SECP192R1);
+
+    uECC_vli_set(tmp, &product[6], NUM_ECC_WORDS_SECP192R1);
+    carry = uECC_vli_add(result, result, tmp, NUM_ECC_WORDS_SECP192R1);
+
+    tmp[0] = tmp[1] = 0;
+    tmp[2] = product[6];
+    tmp[3] = product[7];
+    tmp[4] = product[8];
+    tmp[5] = product[9];
+    carry += uECC_vli_add(result, result, tmp, NUM_ECC_WORDS_SECP192R1);
+
+    tmp[0] = tmp[2] = product[10];
+    tmp[1] = tmp[3] = product[11];
+    tmp[4] = tmp[5] = 0;
+    carry += uECC_vli_add(result, result, tmp, NUM_ECC_WORDS_SECP192R1);
+
+    while (carry || uECC_vli_cmp_unsafe(curve_secp192r1.p, result, NUM_ECC_WORDS_SECP192R1) != 1) {
+        carry -= uECC_vli_sub(result, result, curve_secp192r1.p, NUM_ECC_WORDS_SECP192R1);
+    }
+}
+#endif /* uECC_SUPPORTS_secp192r1 */
+
+
 uECC_Curve uECC_secp256r1(void)
 {
 	return &curve_secp256r1;
@@ -766,8 +801,12 @@ void EccPoint_mult(uECC_word_t * result, const uECC_word_t * point,
 #if SOC_ECC_SUPPORTED && !SOC_ESP_NIMBLE_CONTROLLER
     wordcount_t num_words = curve->num_words;
 
-    /* Only p256r1 is supported currently. */
-    assert (curve == uECC_secp256r1());
+    /* Only p256r1 and p192r1 are supported currently. */
+    assert(curve == uECC_secp256r1()
+#if uECC_SUPPORTS_secp192r1
+           || curve == uECC_secp192r1()
+#endif /* #if uECC_SUPPORTS_secp192r1 */
+           );
 
     esp_tinycrypt_calc_ecc_mult((const uint8_t *)&point[0], (const uint8_t *)&point[num_words],
                                 (uint8_t *)scalar, (uint8_t *)&result[0], (uint8_t *)&result[num_words],
@@ -936,8 +975,11 @@ int uECC_valid_point(const uECC_word_t *point, uECC_Curve curve)
 	}
 
 #if SOC_ECC_SUPPORTED && !SOC_ESP_NIMBLE_CONTROLLER
-    /* Only p256r1 is supported currently. */
-    if (curve != uECC_secp256r1()) {
+    if (curve != uECC_secp256r1()
+#if uECC_SUPPORTS_secp192r1
+        && curve != uECC_secp192r1()
+#endif /* uECC_SUPPORTS_secp192r1 */
+    ) {
         return -5;
     }
 
@@ -964,14 +1006,16 @@ int uECC_valid_point(const uECC_word_t *point, uECC_Curve curve)
 int uECC_valid_public_key(const uint8_t *public_key, uECC_Curve curve)
 {
 	uECC_word_t _public[NUM_ECC_WORDS * 2];
+	wordcount_t num_point_words = curve->num_words * 2;
 
+	uECC_vli_clear(_public, NUM_ECC_WORDS * 2);
 	uECC_vli_bytesToNative(_public, public_key, curve->num_bytes);
 	uECC_vli_bytesToNative(
 	_public + curve->num_words,
 	public_key + curve->num_bytes,
 	curve->num_bytes);
 
-	if (uECC_vli_cmp_unsafe(_public, curve->G, NUM_ECC_WORDS * 2) == 0) {
+	if (uECC_vli_cmp_unsafe(_public, curve->G, num_point_words) == 0) {
 		return -4;
 	}
 
@@ -984,6 +1028,8 @@ int uECC_compute_public_key(const uint8_t *private_key, uint8_t *public_key,
 	uECC_word_t _private[NUM_ECC_WORDS];
 	uECC_word_t _public[NUM_ECC_WORDS * 2];
 
+	uECC_vli_clear(_private, NUM_ECC_WORDS);
+	uECC_vli_clear(_public, NUM_ECC_WORDS * 2);
 	uECC_vli_bytesToNative(
 	_private,
 	private_key,

@@ -7,17 +7,17 @@ list(APPEND porting_btdm_srcs ${BTDM_COMMON_SRCS})
 list(APPEND porting_btdm_include_dirs "${CMAKE_CURRENT_SOURCE_DIR}/controller/btdm_common/include")
 
 # ble
-if(CONFIG_BTDM_CTRL_MODE_BLE_ONLY OR CONFIG_BTDM_CTRL_MODE_BTDM)
+if(CONFIG_BT_CTRL_BLE_ENABLE)
+    list(APPEND porting_btdm_include_dirs "${CMAKE_CURRENT_SOURCE_DIR}/controller/ble/include")
     file(GLOB_RECURSE BLE_SRCS "controller/ble/src/*.c")
     list(APPEND porting_btdm_srcs ${BLE_SRCS})
-    list(APPEND porting_btdm_include_dirs "${CMAKE_CURRENT_SOURCE_DIR}/controller/ble/include")
 endif()
 
 # bredr
-if(CONFIG_BTDM_CTRL_MODE_BR_EDR_ONLY OR CONFIG_BTDM_CTRL_MODE_BTDM)
+if(CONFIG_BT_CTRL_BREDR_ENABLE)
+    list(APPEND porting_btdm_include_dirs "${CMAKE_CURRENT_SOURCE_DIR}/controller/bredr/include")
     file(GLOB_RECURSE BREDR_SRCS "controller/bredr/src/*.c")
     list(APPEND porting_btdm_srcs ${BREDR_SRCS})
-    list(APPEND porting_btdm_include_dirs "${CMAKE_CURRENT_SOURCE_DIR}/controller/bredr/include")
 endif()
 
 # transport

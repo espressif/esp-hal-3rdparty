@@ -4522,7 +4522,7 @@ static void bta_dm_set_eir (char *local_name)
     if (p_bta_dm_eir_cfg->bta_dm_eir_included_tx_power) {
         if (free_eir_length >= 3) {
             int min_power_level, max_power_level;
-#if (BT_CONTROLLER_INCLUDED == TRUE)
+#if (BR_EDR_GET_EIR_TX_PWR_LEVEL == TRUE)
             if (esp_bredr_tx_power_get((esp_power_level_t *)&min_power_level, (esp_power_level_t *)&max_power_level) == ESP_OK) {
 #else
             {
