@@ -64,7 +64,7 @@
 #define SOC_LEDC_SUPPORTED              1
 // #define SOC_ISP_SUPPORTED               1      // TODO: [ESP32S31] IDF-14769
 #define SOC_I2C_SUPPORTED               1
-#define SOC_SYSTIMER_SUPPORTED          1         // TODO: [ESP32S31] IDF-14693
+#define SOC_SYSTIMER_SUPPORTED          1
 #define SOC_AES_SUPPORTED               1
 #define SOC_MPI_SUPPORTED               1
 #define SOC_SHA_SUPPORTED               1
