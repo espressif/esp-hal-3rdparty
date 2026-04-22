@@ -102,10 +102,11 @@ if(CONFIG_BT_ENABLED)
             list(APPEND srcs "controller/${target_name}/ble.c")
             list(APPEND srcs "controller/esp32c2/dummy.c")
             set(ldscripts "linker_esp32c2.lf")
+        elseif(CONFIG_BT_DUAL_MODE_ARCH)
+            list(APPEND srcs "controller/${target_name}/bt.c")
+            list(APPEND ldscripts "linker_esp_btdm_controller.lf")
         else()
-            if(NOT CONFIG_BT_DUAL_MODE_ARCH)
-                list(APPEND srcs "controller/${target_name}/ble.c")
-            endif()
+            list(APPEND srcs "controller/${target_name}/ble.c")
             list(APPEND ldscripts "linker_esp_ble_controller.lf")
         endif()
 
@@ -1264,31 +1265,40 @@ if(CONFIG_BT_ENABLED)
         if(CONFIG_BT_LE_CONTROLLER_LOG_WRAP_PANIC_HANDLER_ENABLE)
             target_link_options(${COMPONENT_LIB} INTERFACE "-Wl,--wrap=esp_panic_handler")
         endif()
-        if(CONFIG_IDF_TARGET_ESP32C6)
-            add_prebuilt_library(libble_app
-                "${CMAKE_CURRENT_LIST_DIR}/controller/lib_esp32c6/esp32c6-bt-lib/esp32c6/libble_app.a"
+        if(CONFIG_BT_DUAL_MODE_ARCH)
+            if(CONFIG_BT_CTRL_BLE_ENABLE)
+                add_prebuilt_library(libble_app "controller/lib_${target_name}/${target_name}-bt-lib/libble_app.a"
                 REQUIRES esp_phy)
-        elseif(CONFIG_IDF_TARGET_ESP32C61)
-            add_prebuilt_library(libble_app
-                "${CMAKE_CURRENT_LIST_DIR}/controller/lib_esp32c6/esp32c6-bt-lib/esp32c61/libble_app.a"
-                REQUIRES esp_phy)
+                target_link_libraries(${COMPONENT_LIB} PRIVATE libble_app)
+            endif()
+            if(CONFIG_BT_CTRL_BREDR_ENABLE)
+                add_prebuilt_library(libbredr_app "controller/lib_${target_name}/${target_name}-bt-lib/libbredr_app.a")
+                target_link_libraries(${COMPONENT_LIB} PRIVATE libbredr_app)
+            endif()
+            add_prebuilt_library(libbtdm_common
+              "controller/lib_${target_name}/${target_name}-bt-lib/libbtdm_common.a")
+            target_link_libraries(${COMPONENT_LIB} PRIVATE libbtdm_common)
         else()
-            if(CONFIG_BT_CTRL_RUN_IN_FLASH_ONLY AND CONFIG_IDF_TARGET_ESP32C2)
+            if(CONFIG_IDF_TARGET_ESP32C6)
                 add_prebuilt_library(libble_app
-                    "controller/lib_${target_name}/${target_name}-bt-lib/libble_app_flash.a"
+                    "${CMAKE_CURRENT_LIST_DIR}/controller/lib_esp32c6/esp32c6-bt-lib/esp32c6/libble_app.a"
+                    REQUIRES esp_phy)
+            elseif(CONFIG_IDF_TARGET_ESP32C61)
+                add_prebuilt_library(libble_app
+                    "${CMAKE_CURRENT_LIST_DIR}/controller/lib_esp32c6/esp32c6-bt-lib/esp32c61/libble_app.a"
                     REQUIRES esp_phy)
             else()
-                add_prebuilt_library(libble_app
-                    "controller/lib_${target_name}/${target_name}-bt-lib/libble_app.a"
-                    REQUIRES esp_phy)
+                if(CONFIG_BT_CTRL_RUN_IN_FLASH_ONLY AND CONFIG_IDF_TARGET_ESP32C2)
+                    add_prebuilt_library(libble_app
+                        "controller/lib_${target_name}/${target_name}-bt-lib/libble_app_flash.a"
+                        REQUIRES esp_phy)
+                else()
+                    add_prebuilt_library(libble_app
+                        "controller/lib_${target_name}/${target_name}-bt-lib/libble_app.a"
+                        REQUIRES esp_phy)
+                endif()
             endif()
-        endif()
-        target_link_libraries(${COMPONENT_LIB} PRIVATE libble_app)
-
-        if(CONFIG_BT_DUAL_MODE_ARCH)
-            add_prebuilt_library(libbtdm_common
-                "controller/lib_${target_name}/${target_name}-bt-lib/libbtdm_common.a")
-            target_link_libraries(${COMPONENT_LIB} PRIVATE libbtdm_common)
+            target_link_libraries(${COMPONENT_LIB} PRIVATE libble_app)
         endif()
     endif()
 

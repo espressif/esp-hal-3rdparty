@@ -28,6 +28,9 @@
 #include "esp_hci_internal.h"
 #include "common/hci_driver_h4.h"
 #include "common/hci_driver_util.h"
+#if UC_BT_CTRL_BLE_IS_ENABLE
+#include "ble_mbuf.h"
+#endif
 
 #ifndef min
 #define min(a, b) ((a) < (b) ? (a) : (b))
@@ -151,7 +154,9 @@ hci_h4_sm_w4_header(struct hci_h4_sm *h4sm, struct hci_h4_input_buffer *ib)
             memcpy(h4sm->pkt->data, h4sm->hdr, h4sm->len);
             break;
         }
+#endif // UC_BT_CTRL_BR_EDR_IS_ENABLE
         return -1;
+#if UC_BT_CTRL_BR_EDR_IS_ENABLE
     case HCI_H4_SYNC:
         conn_handle = btdm_get_le16(&h4sm->hdr[0]) & HCI_INTERNAL_CONN_MASK;
         h4sm->exp_len = h4sm->hdr[2] + 3;
@@ -256,8 +261,8 @@ hci_h4_sm_w4_payload(struct hci_h4_sm *h4sm,
                 return -1;
             }
         }
-        break;
 #endif // UC_BT_CTRL_BLE_IS_ENABLE
+        break;
     default:
         return -2;
     }
@@ -361,32 +366,31 @@ hci_h4_sm_free_buf(struct hci_h4_sm *h4sm)
             break;
 #endif  // (!CONFIG_BT_CONTROLLER_ENABLED)
         case HCI_H4_ACL:
-#if UC_BT_CTRL_BR_EDR_IS_ENABLE
             uint16_t conn_handle = btdm_get_le16(&h4sm->hdr[0]) & HCI_INTERNAL_CONN_MASK;
             if (HCI_INTERNAL_CONN_IS_BLE(conn_handle)) {
+#if UC_BT_CTRL_BLE_IS_ENABLE
                 if (h4sm->om) {
                     h4sm->frees->acl(h4sm->om);
                     h4sm->om = NULL;
                 }
+#endif
             } else {
+#if UC_BT_CTRL_BR_EDR_IS_ENABLE
                 if (h4sm->pkt) {
                     h4sm->frees->bredr_acl(h4sm->pkt);
                     h4sm->pkt = NULL;
                 }
-            }
-#else
-            if (h4sm->om) {
-                h4sm->frees->acl(h4sm->om);
-                h4sm->om = NULL;
-            }
 #endif
+            }
             break;
+#if UC_BT_CTRL_BLE_IS_ENABLE
         case HCI_H4_ISO:
             if (h4sm->buf) {
                 h4sm->frees->iso(h4sm->buf);
                 h4sm->buf = NULL;
             }
             break;
+#endif // #if UC_BT_CTRL_BLE_IS_ENABLE
 #if UC_BT_CTRL_BR_EDR_IS_ENABLE
         case HCI_H4_SYNC:
             if (h4sm->pkt) {
