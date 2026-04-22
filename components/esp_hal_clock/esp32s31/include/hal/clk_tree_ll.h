@@ -16,6 +16,8 @@
 #include "soc/lp_clkrst_struct.h"
 #include "soc/hp_alive_sys_reg.h"
 #include "soc/hp_alive_sys_struct.h"
+#include "hal/regi2c_ctrl.h"
+#include "soc/regi2c_apll.h"
 #include "soc/pmu_reg.h"
 #include "hal/clkout_channel.h"
 #include "hal/assert.h"
@@ -463,7 +465,12 @@ static inline __attribute__((always_inline)) bool clk_ll_mpll_calibration_is_don
  */
 static inline __attribute__((always_inline)) void clk_ll_apll_get_config(uint32_t *o_div, uint32_t *sdm0, uint32_t *sdm1, uint32_t *sdm2)
 {
-    // TODO: IDF-14771, IDF-14750
+    uint32_t apll_sdm = HAL_FORCE_READ_U32_REG_FIELD(LP_CLKRST.apll_sdm, apll_sdm);
+
+    *o_div = HAL_FORCE_READ_U32_REG_FIELD(LP_CLKRST.apll_div, apll_out_div);
+    *sdm0 = apll_sdm & 0xFF;
+    *sdm1 = (apll_sdm >> 8) & 0xFF;
+    *sdm2 = (apll_sdm >> 16) & 0x3F;
 }
 
 /**
@@ -476,7 +483,8 @@ static inline __attribute__((always_inline)) void clk_ll_apll_get_config(uint32_
  */
 static inline __attribute__((always_inline)) void clk_ll_apll_set_config(uint32_t o_div, uint32_t sdm0, uint32_t sdm1, uint32_t sdm2)
 {
-    // TODO: IDF-14771, IDF-14750
+    HAL_FORCE_MODIFY_U32_REG_FIELD(LP_CLKRST.apll_div, apll_out_div, o_div);
+    HAL_FORCE_MODIFY_U32_REG_FIELD(LP_CLKRST.apll_sdm, apll_sdm, (sdm2 << 16) | (sdm1 << 8) | sdm0);
 }
 
 /**
@@ -484,7 +492,9 @@ static inline __attribute__((always_inline)) void clk_ll_apll_set_config(uint32_
  */
 static inline __attribute__((always_inline)) void clk_ll_apll_set_calibration(void)
 {
-    // TODO: IDF-14771, IDF-14750
+    REGI2C_WRITE(I2C_APLL, I2C_APLL_IR_CAL_DELAY, CLK_LL_APLL_CAL_DELAY_1);
+    REGI2C_WRITE(I2C_APLL, I2C_APLL_IR_CAL_DELAY, CLK_LL_APLL_CAL_DELAY_2);
+    REGI2C_WRITE(I2C_APLL, I2C_APLL_IR_CAL_DELAY, CLK_LL_APLL_CAL_DELAY_3);
 }
 
 /**
@@ -494,8 +504,7 @@ static inline __attribute__((always_inline)) void clk_ll_apll_set_calibration(vo
  */
 static inline __attribute__((always_inline)) bool clk_ll_apll_calibration_is_done(void)
 {
-    // TODO: IDF-14771, IDF-14750
-    return 0;
+    return REG_GET_BIT(HP_SYS_CLKRST_ANA_PLL_CTRL0_REG, HP_SYS_CLKRST_REG_PLLA_CAL_END);
 }
 
 /**
