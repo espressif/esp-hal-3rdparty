@@ -26,6 +26,9 @@
 #include "soc/pmu_reg.h"
 #include "hal/regi2c_ctrl_ll.h"
 #include "hal/modem_lpcon_ll.h"
+#include "soc/reset_reasons.h"
+#include "hal/assist_debug_ll.h"
+#include "esp_rom_sys.h"
 
 ESP_LOG_ATTR_TAG(TAG, "boot.esp32s31");
 
@@ -42,6 +45,44 @@ static inline void bootloader_hardware_init(void)
     regi2c_ctrl_ll_master_force_enable_clock(true); // TODO: IDF-14678 Remove this?
     regi2c_ctrl_ll_master_configure_clock();
 #endif
+}
+
+void bootloader_enable_cpu_reset_info(void)
+{
+    assist_debug_ll_enable_bus_clock(0, true);
+    assist_debug_ll_enable_pc_recording(0, true);
+    assist_debug_ll_lockup_monitor_enable(0, true);
+    assist_debug_ll_lockup_reset_enable(0);
+#if !CONFIG_ESP_SYSTEM_SINGLE_CORE_MODE
+    assist_debug_ll_enable_bus_clock(1, true);
+    assist_debug_ll_enable_pc_recording(1, true);
+    assist_debug_ll_lockup_monitor_enable(1, true);
+    assist_debug_ll_lockup_reset_enable(1);
+#endif
+}
+
+void bootloader_dump_wdt_reset_info(int cpu)
+{
+    (void) cpu;
+    // saved PC was already printed by the ROM bootloader.
+    // nothing to do here.
+}
+
+bool bootloader_check_if_wdt_reset(int cpu, soc_reset_reason_t reset_reason)
+{
+    if (cpu == 0 && (reset_reason == RESET_REASON_CORE_MWDT0 || reset_reason == RESET_REASON_CORE_MWDT1 ||
+                     reset_reason == RESET_REASON_CORE_RWDT || reset_reason == RESET_REASON_CPU_MWDT ||
+                     reset_reason == RESET_REASON_CPU_RWDT || reset_reason == RESET_REASON_SYS_RWDT)) {
+        ESP_LOGW(TAG, "PRO CPU has been reset by WDT.");
+        return true;
+    }
+    if (cpu == 1 && (reset_reason == RESET_REASON_CORE_MWDT0 || reset_reason == RESET_REASON_CORE_MWDT1 ||
+                     reset_reason == RESET_REASON_CORE_RWDT || reset_reason == RESET_REASON_CPU_MWDT ||
+                     reset_reason == RESET_REASON_CPU_RWDT || reset_reason == RESET_REASON_SYS_RWDT)) {
+        ESP_LOGW(TAG, "APP CPU has been reset by WDT.");
+        return true;
+    }
+    return false;
 }
 
 #if SOC_RTC_WDT_SUPPORTED
@@ -112,10 +153,8 @@ esp_err_t bootloader_init(void)
     }
 #endif // !CONFIG_APP_BUILD_TYPE_RAM
 
-#if SOC_RTC_WDT_SUPPORTED
-    // check whether a WDT reset happened
-    // bootloader_check_wdt_reset();     // TODO: IDF-14678
-#endif
+    // check reset reason and dump diagnostic info
+    bootloader_check_reset();
 #if SOC_RTC_WDT_SUPPORTED || SOC_WDT_SUPPORTED
     // config WDT
     bootloader_config_wdt();
