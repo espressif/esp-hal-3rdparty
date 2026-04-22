@@ -39,6 +39,10 @@ menu "CAP Options"
     rsource "Kconfig/Kconfig.cap.in"
 endmenu
 
+menu "TBS Options"
+    rsource "Kconfig/Kconfig.tbs.in"
+endmenu
+
 menu "CCP Options"
     rsource "Kconfig/Kconfig.ccp.in"
 endmenu
@@ -71,16 +75,12 @@ menu "PACS Options"
     rsource "Kconfig/Kconfig.pacs.in"
 endmenu
 
-menu "TBS Options"
-    rsource "Kconfig/Kconfig.tbs.in"
+menu "VOCS Options"
+    rsource "Kconfig/Kconfig.vocs.in"
 endmenu
 
 menu "VCP Options"
     rsource "Kconfig/Kconfig.vcp.in"
-endmenu
-
-menu "VOCS Options"
-    rsource "Kconfig/Kconfig.vocs.in"
 endmenu
 
 menu "TMAP Options"
