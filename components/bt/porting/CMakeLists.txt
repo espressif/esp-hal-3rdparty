@@ -1,7 +1,10 @@
-set(porting_srcs "")
-set(porting_include_dirs "")
-set(porting_priv_include_dirs "")
+set(porting_srcs "" PARENT_SCOPE)
+set(porting_include_dirs "" PARENT_SCOPE)
+set(porting_priv_include_dirs "" PARENT_SCOPE)
 
+if(NOT CONFIG_BT_CONTROLLER_ENABLED)
+    return()
+endif()
 
 list(APPEND porting_priv_include_dirs
     ${CMAKE_CURRENT_SOURCE_DIR}/mem/
