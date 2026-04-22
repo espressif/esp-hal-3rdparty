@@ -1282,6 +1282,8 @@ typedef struct {
     volatile i2s_date_reg_t date;
 } i2s_dev_t;
 
+extern i2s_dev_t I2S0;
+extern i2s_dev_t I2S1;
 
 #ifndef __cplusplus
 _Static_assert(sizeof(i2s_dev_t) == 0x100, "Invalid size of i2s_dev_t structure");

@@ -23,6 +23,7 @@
 #include "hal/hal_utils.h"
 
 #define I2S_LL_GET(_attr)       I2S_LL_ ## _attr
+#define I2S_LL_SUPPORT(_feat)   I2S_LL_SUPPORT_ ## _feat
 #define I2S_LL_INST_NUM         1
 
 #ifdef __cplusplus
@@ -251,9 +252,9 @@ static inline void i2s_ll_tx_clk_set_src(i2s_dev_t *hw, i2s_clock_src_t src)
     case I2S_CLK_SRC_PLL_96M:
         PCR.i2s_tx_clkm_conf.i2s_tx_clkm_sel = 1;
         break;
-    // case I2S_CLK_SRC_PLL_64M:
-    //     PCR.i2s_tx_clkm_conf.i2s_tx_clkm_sel = 2;
-    //     break;
+    case I2S_CLK_SRC_XTAL_X2:
+        PCR.i2s_tx_clkm_conf.i2s_tx_clkm_sel = 2;
+        break;
     case I2S_CLK_SRC_EXTERNAL:
         PCR.i2s_tx_clkm_conf.i2s_tx_clkm_sel = 3;
         break;
@@ -279,9 +280,9 @@ static inline void i2s_ll_rx_clk_set_src(i2s_dev_t *hw, i2s_clock_src_t src)
     case I2S_CLK_SRC_PLL_96M:
         PCR.i2s_rx_clkm_conf.i2s_rx_clkm_sel = 1;
         break;
-    // case I2S_CLK_SRC_PLL_64M:
-    //     PCR.i2s_rx_clkm_conf.i2s_rx_clkm_sel = 2;
-    //     break;
+    case I2S_CLK_SRC_XTAL_X2:
+        PCR.i2s_rx_clkm_conf.i2s_rx_clkm_sel = 2;
+        break;
     case I2S_CLK_SRC_EXTERNAL:
         PCR.i2s_rx_clkm_conf.i2s_rx_clkm_sel = 3;
         break;

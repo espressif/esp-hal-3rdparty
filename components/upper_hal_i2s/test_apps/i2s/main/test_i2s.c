@@ -931,7 +931,7 @@ static void i2s_test_common_sample_rate(i2s_chan_handle_t rx_chan, i2s_std_clk_c
     // 196000 Hz sample rate doesn't support on PLL_96M target
     case_cnt = 15;
 #endif
-#if I2S_LL_SUPPORT_XTAL
+#if I2S_LL_SUPPORT(XTAL)
     // Can't support a very high sample rate while using XTAL as clock source
     if (clk_cfg->clk_src == I2S_CLK_SRC_XTAL) {
         case_cnt = 10;
@@ -982,7 +982,7 @@ TEST_CASE("I2S_default_PLL_clock_test", "[i2s]")
     std_cfg.clk_cfg.clk_src = I2S_LL_DEFAULT_CLK_SRC;
 #endif
     i2s_test_common_sample_rate(rx_handle, &std_cfg.clk_cfg);
-#if I2S_LL_SUPPORT_XTAL
+#if I2S_LL_SUPPORT(XTAL)
     std_cfg.clk_cfg.clk_src = I2S_CLK_SRC_XTAL;
     i2s_test_common_sample_rate(rx_handle, &std_cfg.clk_cfg);
 #endif
@@ -1046,6 +1046,9 @@ TEST_CASE("I2S_package_lost_test", "[i2s]")
         .slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_32BIT, I2S_SLOT_MODE_STEREO),
         .gpio_cfg = I2S_TEST_MASTER_DEFAULT_PIN,
     };
+#if CONFIG_IDF_TARGET_ESP32S31  // esp32s31 doesn't support PLL as clock source, use APLL instead
+    std_cfg.clk_cfg.clk_src = I2S_CLK_SRC_APLL;
+#endif
 
     TEST_ESP_OK(i2s_new_channel(&chan_cfg, NULL, &rx_handle));
     TEST_ESP_OK(i2s_channel_init_std_mode(rx_handle, &std_cfg));

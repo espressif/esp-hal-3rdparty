@@ -486,7 +486,7 @@ typedef enum {
 typedef enum {
     I2S_CLK_SRC_DEFAULT = SOC_MOD_CLK_PLL_F96M,                 /*!< Select PLL_F96M as the default source clock */
     I2S_CLK_SRC_PLL_96M = SOC_MOD_CLK_PLL_F96M,                 /*!< Select PLL_F96M as the source clock */
-    I2S_CLK_SRC_PLL_64M = SOC_MOD_CLK_XTAL_X2_F64M,             /*!< Select XTAL_X2_F64M as the source clock */
+    I2S_CLK_SRC_XTAL_X2 = SOC_MOD_CLK_XTAL_X2_F64M,             /*!< Select XTAL_X2_F64M as the source clock */
     I2S_CLK_SRC_XTAL = SOC_MOD_CLK_XTAL,                        /*!< Select XTAL as the source clock */
     I2S_CLK_SRC_EXTERNAL = -1,                                  /*!< Select external clock as source clock */
 } soc_periph_i2s_clk_src_t;
