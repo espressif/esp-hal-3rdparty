@@ -71,6 +71,10 @@ config ESP_ROM_HAS_VERSION
     bool
     default y
 
+config ESP_ROM_HAS_OUTPUT_PUTC_FUNC
+    bool
+    default y
+
 config ESP_ROM_MULTI_HEAP_WALK_PATCH
     bool
     default y
