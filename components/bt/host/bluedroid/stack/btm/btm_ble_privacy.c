@@ -1201,6 +1201,10 @@ void btm_ble_resolving_list_cleanup(void)
 #if (CONTROLLER_RPA_LIST_ENABLE == TRUE)
 void btm_ble_add_default_entry_to_resolving_list(void)
 {
+    const controller_t *controller = controller_get_interface();
+    if (!controller->supports_ble()) {
+        return;
+    }
     /*
      * Add local IRK entry with 00:00:00:00:00:00 address. This entry will
      * be used to generate RPA for non-directed advertising if own_addr_type

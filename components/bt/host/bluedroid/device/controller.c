@@ -234,7 +234,10 @@ static void start_up(void)
 #if (BLE_INCLUDED == TRUE)
 #if (CLASSIC_BT_INCLUDED)
     controller_param.ble_supported = controller_param.last_features_classic_page_index >= 1 && HCI_LE_HOST_SUPPORTED(controller_param.features_classic[1].as_array);
-#else
+    if (!controller_param.ble_supported) {
+        LOG_ERROR("Controller does not support BLE, please disable host BLE");
+    }
+    #else
     controller_param.ble_supported = true;
 #endif
     if (controller_param.ble_supported) {
@@ -508,7 +511,9 @@ static uint16_t get_acl_packet_size_ble(void)
 static uint16_t get_ble_suggested_default_data_length(void)
 {
     assert(controller_param.readable);
-    assert(controller_param.ble_supported);
+    if (!controller_param.ble_supported) {
+        return 0;
+    }
     return controller_param.ble_suggested_default_data_length;
 }
 

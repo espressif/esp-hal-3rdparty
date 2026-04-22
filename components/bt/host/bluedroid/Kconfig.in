@@ -272,7 +272,7 @@ config BT_GOEPC_ENABLED
 
 config BT_BLE_ENABLED
     bool "Bluetooth Low Energy"
-    depends on BT_BLUEDROID_ENABLED
+    depends on BT_BLUEDROID_ENABLED && (!BTDM_CTRL_MODE_BR_EDR_ONLY)
     default y
     help
         This enables Bluetooth Low Energy
