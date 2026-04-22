@@ -458,6 +458,7 @@
 #define SOC_LP_CORE_SUPPORT_ETM                     (1) /*!< LP Core supports ETM wakeup */
 #define SOC_LP_CORE_CONFIGURABLE_BOOT_ADDR          (1) /*!< LP Core has no LP ROM; HP must write the reset_vector address (LP_RAM_BASE+0x80) to LP_SYS.lp_core_boot_addr before triggering LP wake */
 //#define SOC_LP_CORE_SUPPORT_I2C                     (1) /*!< LP Core supports I2C */ TODO IDF-14635
+#define SOC_LP_CORE_HW_AUTO_CLRWAKEUPCAUSE          (1) /*!< LP core requests sleep, PMU clears both HP and LP wakeup causes */
 
 /*-------------------------- LP_TIMER CAPS ----------------------------------*/
 #define SOC_LP_TIMER_BIT_WIDTH_LO           32 // Bit width of lp_timer low part

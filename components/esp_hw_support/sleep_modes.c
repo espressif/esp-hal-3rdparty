@@ -81,6 +81,9 @@
 #endif
 #include "hal/temperature_sensor_hal.h"
 #include "hal/mspi_ll.h"
+#if SOC_LP_CORE_HW_AUTO_CLRWAKEUPCAUSE
+#include "hal/lp_aon_hal.h"
+#endif
 
 #include "sdkconfig.h"
 #include "esp_rom_serial_output.h"
@@ -1098,6 +1101,7 @@ static esp_err_t SLEEP_FN_ATTR esp_sleep_start(uint32_t sleep_flags, uint32_t cl
 #if CONFIG_ULP_COPROC_TYPE_LP_CORE
     if (s_config.wakeup_triggers & (RTC_LP_CORE_TRIG_EN | RTC_LP_CORE_TRAP_TRIG_EN)) {
         pmu_ll_hp_clear_sw_intr_status(&PMU);
+        pmu_ll_hp_clear_lp_cpu_exc_intr_status(&PMU);
     }
 #endif
 #endif // CONFIG_ULP_COPROC_ENABLED
@@ -2531,6 +2535,15 @@ uint32_t esp_sleep_get_wakeup_causes(void)
     uint32_t wakeup_cause_raw = pmu_ll_hp_get_wakeup_cause(&PMU);
 #else
     uint32_t wakeup_cause_raw = rtc_cntl_ll_get_wakeup_cause();
+#endif
+
+#if SOC_LP_CORE_HW_AUTO_CLRWAKEUPCAUSE
+    /* LP store register to read wakeup cause saved by LP core.
+     * Must match the register used in lp_core_utils.c */
+    uint32_t lp_core_wakeup_cause_status0 = lp_aon_hal_load_wakeup_cause();
+    if ((wakeup_cause_raw == 0) && (lp_core_wakeup_cause_status0 != 0)) {
+        wakeup_cause_raw = lp_core_wakeup_cause_status0;
+    }
 #endif
 
     if (wakeup_cause_raw & RTC_TIMER_TRIG_EN) {
