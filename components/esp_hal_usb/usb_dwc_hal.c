@@ -125,9 +125,15 @@ static void set_defaults(usb_dwc_hal_context_t *hal)
     usb_dwc_ll_set_stoppclk(hal->dev, false);
 #endif // SOC_IS(ESP32P4) || SOC_IS(ESP32S31)
     usb_dwc_ll_gahbcfg_set_hbstlen(hal->dev, hbstlen);  //Set AHB burst mode
+
     //GUSBCFG register
-    usb_dwc_ll_gusbcfg_dis_hnp_cap(hal->dev);       //Disable HNP
-    usb_dwc_ll_gusbcfg_dis_srp_cap(hal->dev);       //Disable SRP
+    bool hnp_cap, srp_cap;
+    usb_dwc_ll_ghwcfg_get_hnp_srp_cap(hal->dev, &hnp_cap, &srp_cap);
+
+    // On targets where the USB controller is HNP capable, the data lines pull-downs are controlled by the USB controller.
+    // Enabling HNP capability will also enable the data line pull-downs in deep-sleep mode eliminating leakage current.
+    usb_dwc_ll_gusbcfg_set_hnp_cap(hal->dev, hnp_cap);
+    usb_dwc_ll_gusbcfg_set_srp_cap(hal->dev, false);     //Disable SRP
 
     // If this USB-DWC supports HS PHY, use it
     if (hal->constant_config.hsphy_type != 0) {
