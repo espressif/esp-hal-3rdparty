@@ -310,7 +310,9 @@ TEST_CASE("Test SAE functionality with ECC group", "[wpa3_sae]")
                  (long long) total_us, limit_us);
         ESP_LOGI("SAE Test", "Task stack high watermark(bytes): %u",
                  test_task_stack_high_watermark_bytes());
+#if defined(CONFIG_MBEDTLS_HARDWARE_ECC) || defined(CONFIG_MBEDTLS_HARDWARE_MPI)
         TEST_ASSERT_MESSAGE(total_us <= limit_us, "SAE commit/parse timing regression");
+#endif
 
     }
     ESP_LOGI("SAE Test", "=========== Complete ============");
