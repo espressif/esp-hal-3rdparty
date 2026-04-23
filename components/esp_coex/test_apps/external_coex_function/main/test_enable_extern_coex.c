@@ -39,6 +39,9 @@ TEST_CASE("enable external coex", "[external_coex]")
 #elif CONFIG_IDF_TARGET_ESP32H2
 #define EXTERNAL_COEX_CONF 0x600AD4A0
 #define WDEV_RW_BT_COEX_EN (BIT(9))
+#elif CONFIG_IDF_TARGET_ESP32S31
+#define EXTERNAL_COEX_CONF 0x2010F4A0
+#define WDEV_RW_BT_COEX_EN (BIT(9))
 #endif
 
     esp_extern_coex_work_mode_t mode = EXTERNAL_COEX_LEADER_ROLE;

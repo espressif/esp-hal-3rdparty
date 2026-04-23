@@ -48,6 +48,11 @@
 #define GPIO_EXTERN_ACTIVE_PAD_OUT_IDX          19
 #define GPIO_EXTERN_PRIORITY_PAD_IN_IDX         20
 #define GPIO_EXTERN_PRIORITY_PAD_OUT_IDX        20
+/* Same GPIO matrix indices as EXTERN_* on other targets (used by esp_coex external coexist). */
+#define EXTERN_ACTIVE_I_IDX                     GPIO_EXTERN_ACTIVE_PAD_IN_IDX
+#define EXTERN_ACTIVE_O_IDX                     GPIO_EXTERN_ACTIVE_PAD_OUT_IDX
+#define EXTERN_PRIORITY_I_IDX                   GPIO_EXTERN_PRIORITY_PAD_IN_IDX
+#define EXTERN_PRIORITY_O_IDX                   GPIO_EXTERN_PRIORITY_PAD_OUT_IDX
 #define GPIO_EVENT_MATRIX_IN0_IDX               21
 #define GPIO_TASK_MATRIX_OUT0_IDX               21
 #define GPIO_EVENT_MATRIX_IN1_IDX               22
