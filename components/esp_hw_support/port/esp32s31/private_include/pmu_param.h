@@ -16,12 +16,10 @@
 extern "C" {
 #endif
 
-#define HP_CALI_DBIAS_DEFAULT   24
-#define LP_CALI_DBIAS_DEFAULT   24
+#define HP_CALI_DBIAS_DEFAULT   26
+#define LP_CALI_DBIAS_DEFAULT   26
 #define HP_CALI_DBIAS_SLP_1V1   22
 #define LP_CALI_DBIAS_SLP_1V1   22
-
-#define HP_CALI_ACTIVE_DBIAS_DEFAULT        24 // For HP regulator
 
 // FOR  XTAL FORCE PU IN SLEEP
 #define PMU_PD_CUR_SLEEP_ON    0
