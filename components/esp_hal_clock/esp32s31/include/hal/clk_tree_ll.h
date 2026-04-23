@@ -90,7 +90,8 @@ typedef struct {
  */
 static inline __attribute__((always_inline)) void clk_ll_cpll_enable(void)
 {
-    SET_PERI_REG_MASK(PMU_HP_ACTIVE_HP_CK_POWER_REG, PMU_HP_ACTIVE_XPD_CPLL);
+    SET_PERI_REG_MASK(PMU_IMM_HP_CK_POWER_1_REG, PMU_TIE_HIGH_XPD_CPLL | PMU_TIE_HIGH_XPD_CPLL_I2C);
+    SET_PERI_REG_MASK(PMU_IMM_HP_CK_POWER_1_REG, PMU_TIE_HIGH_GLOBAL_CPLL_ICG);
     SET_PERI_REG_MASK(HP_ALIVE_SYS_HP_CLK_CTRL_REG, HP_ALIVE_SYS_HP_CPLL_300M_CLK_EN);
 }
 
@@ -99,8 +100,29 @@ static inline __attribute__((always_inline)) void clk_ll_cpll_enable(void)
  */
 static inline __attribute__((always_inline)) void clk_ll_cpll_disable(void)
 {
+    SET_PERI_REG_MASK(PMU_IMM_HP_CK_POWER_1_REG, PMU_TIE_LOW_GLOBAL_CPLL_ICG) ;
+    SET_PERI_REG_MASK(PMU_IMM_HP_CK_POWER_1_REG, PMU_TIE_LOW_XPD_CPLL | PMU_TIE_LOW_XPD_CPLL_I2C);
     CLEAR_PERI_REG_MASK(HP_ALIVE_SYS_HP_CLK_CTRL_REG, HP_ALIVE_SYS_HP_CPLL_300M_CLK_EN);
-    CLEAR_PERI_REG_MASK(PMU_HP_ACTIVE_HP_CK_POWER_REG, PMU_HP_ACTIVE_XPD_CPLL);
+}
+
+/**
+ * @brief Power up BBPLL circuit
+ */
+static inline __attribute__((always_inline)) void clk_ll_bbpll_enable(void)
+{
+    SET_PERI_REG_MASK(PMU_IMM_HP_CK_POWER_1_REG, PMU_TIE_HIGH_XPD_BBPLL | PMU_TIE_HIGH_XPD_BBPLL_I2C);
+    SET_PERI_REG_MASK(PMU_IMM_HP_CK_POWER_1_REG, PMU_TIE_HIGH_GLOBAL_BBPLL_ICG);
+    SET_PERI_REG_MASK(HP_ALIVE_SYS_HP_CLK_CTRL_REG, HP_ALIVE_SYS_HP_SPLL_480M_CLK_EN);
+}
+
+/**
+ * @brief Power down BBPLL circuit
+ */
+static inline __attribute__((always_inline)) void clk_ll_bbpll_disable(void)
+{
+    SET_PERI_REG_MASK(PMU_IMM_HP_CK_POWER_1_REG, PMU_TIE_LOW_GLOBAL_BBPLL_ICG) ;
+    SET_PERI_REG_MASK(PMU_IMM_HP_CK_POWER_1_REG, PMU_TIE_LOW_XPD_BBPLL | PMU_TIE_LOW_XPD_BBPLL_I2C);
+    CLEAR_PERI_REG_MASK(HP_ALIVE_SYS_HP_CLK_CTRL_REG, HP_ALIVE_SYS_HP_SPLL_480M_CLK_EN);
 }
 
 /**
@@ -108,7 +130,8 @@ static inline __attribute__((always_inline)) void clk_ll_cpll_disable(void)
  */
 static inline __attribute__((always_inline)) void clk_ll_apll_enable(void)
 {
-    SET_PERI_REG_MASK(PMU_HP_ACTIVE_HP_CK_POWER_REG, PMU_HP_ACTIVE_XPD_APLL);
+    SET_PERI_REG_MASK(PMU_IMM_HP_CK_POWER_1_REG, PMU_TIE_HIGH_XPD_APLL | PMU_TIE_HIGH_XPD_APLL_I2C);
+    SET_PERI_REG_MASK(PMU_IMM_HP_CK_POWER_1_REG, PMU_TIE_HIGH_GLOBAL_APLL_ICG);
     SET_PERI_REG_MASK(HP_ALIVE_SYS_HP_CLK_CTRL_REG, HP_ALIVE_SYS_HP_AUDIO_PLL_CLK_EN);
 }
 
@@ -117,8 +140,9 @@ static inline __attribute__((always_inline)) void clk_ll_apll_enable(void)
  */
 static inline __attribute__((always_inline)) void clk_ll_apll_disable(void)
 {
+    SET_PERI_REG_MASK(PMU_IMM_HP_CK_POWER_1_REG, PMU_TIE_LOW_GLOBAL_APLL_ICG) ;
+    SET_PERI_REG_MASK(PMU_IMM_HP_CK_POWER_1_REG, PMU_TIE_LOW_XPD_APLL | PMU_TIE_LOW_XPD_APLL_I2C);
     CLEAR_PERI_REG_MASK(HP_ALIVE_SYS_HP_CLK_CTRL_REG, HP_ALIVE_SYS_HP_AUDIO_PLL_CLK_EN);
-    CLEAR_PERI_REG_MASK(PMU_HP_ACTIVE_HP_CK_POWER_REG, PMU_HP_ACTIVE_XPD_APLL);
 }
 
 /**
@@ -126,8 +150,8 @@ static inline __attribute__((always_inline)) void clk_ll_apll_disable(void)
  */
 static inline __attribute__((always_inline)) void clk_ll_mpll_enable(void)
 {
-    REG_SET_BIT(PMU_PSRAM_CFG_REG, PMU_PSRAM_XPD);
-    SET_PERI_REG_MASK(PMU_HP_ACTIVE_HP_CK_POWER_REG, PMU_HP_ACTIVE_XPD_MPLL);
+    SET_PERI_REG_MASK(PMU_IMM_HP_CK_POWER_1_REG, PMU_TIE_HIGH_GLOBAL_MPLL_ICG) ;
+    SET_PERI_REG_MASK(PMU_IMM_HP_CK_POWER_1_REG, PMU_TIE_HIGH_XPD_MPLL | PMU_TIE_HIGH_XPD_MPLL_I2C);
     SET_PERI_REG_MASK(HP_ALIVE_SYS_HP_CLK_CTRL_REG, HP_ALIVE_SYS_HP_MPLL_500M_CLK_EN);
 }
 
@@ -136,9 +160,9 @@ static inline __attribute__((always_inline)) void clk_ll_mpll_enable(void)
  */
 static inline __attribute__((always_inline)) void clk_ll_mpll_disable(void)
 {
-    REG_CLR_BIT(PMU_PSRAM_CFG_REG, PMU_PSRAM_XPD);
+    SET_PERI_REG_MASK(PMU_IMM_HP_CK_POWER_1_REG, PMU_TIE_LOW_GLOBAL_MPLL_ICG) ;
+    SET_PERI_REG_MASK(PMU_IMM_HP_CK_POWER_1_REG, PMU_TIE_LOW_XPD_MPLL | PMU_TIE_LOW_XPD_MPLL_I2C);
     CLEAR_PERI_REG_MASK(HP_ALIVE_SYS_HP_CLK_CTRL_REG, HP_ALIVE_SYS_HP_MPLL_500M_CLK_EN);
-    CLEAR_PERI_REG_MASK(PMU_HP_ACTIVE_HP_CK_POWER_REG, PMU_HP_ACTIVE_XPD_MPLL);
 }
 
 /**
