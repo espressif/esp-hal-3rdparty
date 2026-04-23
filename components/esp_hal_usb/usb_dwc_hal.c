@@ -147,6 +147,13 @@ static void set_defaults(usb_dwc_hal_context_t *hal)
     usb_dwc_ll_gahbcfg_en_global_intr(hal->dev);        //Enable interrupt signal
     //Enable host mode
     usb_dwc_ll_gusbcfg_force_host_mode(hal->dev);
+
+#if SOC_IS(ESP32P4)
+    if (hnp_cap && hal->constant_config.hsphy_type != 0 && !ESP_CHIP_REV_ABOVE(efuse_hal_chip_revision(), 300)) {
+        // ESP32-P4 HW rev < 3.0, HS DWC + UTMI: no GPIO-matrix OTG sense for this instance; when HNPCap is enabled, anchor the A-host session
+        usb_dwc_ll_gotgctl_anchor_internal_utmi_a_host(hal->dev, true);
+    }
+#endif // SOC_IS(ESP32P4)
 }
 
 void usb_dwc_hal_init(usb_dwc_hal_context_t *hal, int port_id)
