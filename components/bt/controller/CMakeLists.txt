@@ -1,14 +1,17 @@
 # Function to register the libraries for the BT controller
 function(register_bt_ctrl_libs)
-    if(NOT CONFIG_BT_CONTROLLER_ENABLED)
-        return()
-    endif()
-
+    # TODO: The coex will use controller library even if CONFIG_BT_CONTROLLER_ENABLED=n which is not correct.
     if(CONFIG_IDF_TARGET_ESP32)
         add_prebuilt_library(bt_btdm_app "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/lib_esp32/esp32/libbtdm_app.a")
         target_link_libraries(${COMPONENT_LIB} PRIVATE bt_btdm_app)
         target_link_options(${COMPONENT_LIB} INTERFACE "SHELL:-u ld_include_hli_vectors_bt")
-    elseif(CONFIG_IDF_TARGET_ESP32C3)
+    endif()
+
+    if(NOT CONFIG_BT_CONTROLLER_ENABLED)
+        return()
+    endif()
+
+    if(CONFIG_IDF_TARGET_ESP32C3)
         if(CONFIG_BT_CTRL_RUN_IN_FLASH_ONLY)
             set(lib_name "btdm_app_flash")
         else()
@@ -26,7 +29,7 @@ function(register_bt_ctrl_libs)
         add_prebuilt_library(bt_btdm_app
                                 "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/lib_esp32c3_family/esp32s3/lib${lib_name}.a")
         target_link_libraries(${COMPONENT_LIB} PRIVATE bt_btdm_app)
-    else()
+    elseif(NOT CONFIG_IDF_TARGET_ESP32)
         set(lib_path "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/lib_${TARGET_SRC_NAME}/${TARGET_SRC_NAME}-bt-lib")
         # BLE controller library
         if(NOT CONFIG_BT_DUAL_MODE_ARCH OR CONFIG_BT_CTRL_BLE_ENABLE)

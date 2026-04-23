@@ -210,7 +210,6 @@ list(APPEND nimble_host_include_dirs
     ${CMAKE_CURRENT_LIST_DIR}/nimble/porting/nimble/include
     ${CMAKE_CURRENT_LIST_DIR}/port/include
     ${CMAKE_CURRENT_LIST_DIR}/nimble/nimble/transport/include
-    ${CMAKE_CURRENT_LIST_DIR}/nimble/nimble/include
 )
 
 if(CONFIG_BT_CONTROLLER_DISABLED)

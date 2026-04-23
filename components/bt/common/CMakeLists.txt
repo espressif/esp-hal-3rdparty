@@ -3,7 +3,7 @@ function(replace_log_compression_srcs)
         return()
     endif()
 
-    set(CODE_BASE_PATH "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/..")
+    get_filename_component(CODE_BASE_PATH "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/.." ABSOLUTE)
     # When log compression is enabled, selected logs are replaced
     # by auto-generated macros that emit pre-encoded data.
     # This eliminates the original format strings, reducing firmware size and
