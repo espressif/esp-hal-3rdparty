@@ -1183,6 +1183,14 @@ config SOC_BLE_SUPPORTED
     bool
     default y
 
+config SOC_BLE_ISO_SUPPORTED
+    bool
+    default y
+
+config SOC_BLE_AUDIO_SUPPORTED
+    bool
+    default y
+
 config SOC_ESP_NIMBLE_CONTROLLER
     bool
     default y

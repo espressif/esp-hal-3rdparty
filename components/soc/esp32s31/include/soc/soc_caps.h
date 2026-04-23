@@ -494,6 +494,8 @@
 #define SOC_BT_CLASSIC_SUPPORTED                    (1)     /*!< Support Bluetooth Classic hardware */
 #define SOC_BLE_SUPPORTED                           (1)     /*!< Support Bluetooth Low Energy hardware */
 // #define SOC_BLE_MESH_SUPPORTED                      (1)     /*!< Support BLE MESH */
+#define SOC_BLE_ISO_SUPPORTED                       (1)     /*!< Support BLE ISO */
+#define SOC_BLE_AUDIO_SUPPORTED                     (1)     /*!< Support BLE Audio */
 #define SOC_ESP_NIMBLE_CONTROLLER                   (1)     /*!< Support BLE EMBEDDED controller V1 */
 #define SOC_BLE_50_SUPPORTED                        (1)     /*!< Support Bluetooth 5.0 */
 #define SOC_BLE_DEVICE_PRIVACY_SUPPORTED            (1)     /*!< Support BLE device privacy mode */
@@ -504,7 +506,6 @@
 #define SOC_BLE_CTE_SUPPORTED                       (1)     /*!< Support Bluetooth LE Constant Tone Extension (CTE) */
 #define SOC_BLE_SUBRATE_SUPPORTED                   (1)     /*!< Support Bluetooth LE Connection Subrating */
 #define SOC_BLE_PERIODIC_ADV_WITH_RESPONSE          (1)     /*!< Support Bluetooth LE Periodic Advertising with Response (PAwR) */
-// #define SOC_BLE_ISO_SUPPORTED                       (1)     /*!< Support Bluetooth ISO */
 
 /*-------------------------- I2S CAPS ----------------------------------------*/
 #define SOC_I2S_NUM                          (2U)

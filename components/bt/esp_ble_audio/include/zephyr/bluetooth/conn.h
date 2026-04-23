@@ -422,7 +422,7 @@ int bt_conn_cb_unregister(struct bt_conn_cb *cb);
  *  @param _name Name of callback structure.
  */
 #define BT_CONN_CB_DEFINE(_name)                    \
-    static const STRUCT_SECTION_ITERABLE(bt_conn_cb,        \
+    static STRUCT_SECTION_ITERABLE(bt_conn_cb,        \
                         _CONCAT(bt_conn_cb_,    \
                             _name))
 
