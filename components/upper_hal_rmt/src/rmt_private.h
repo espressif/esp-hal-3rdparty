@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2022-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2022-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -93,6 +93,19 @@ extern "C" {
 #define ALIGN_DOWN(num, align)  ((num) & ~((align) - 1))
 
 #define RMT_USE_RETENTION_LINK  (SOC_RMT_SUPPORT_SLEEP_RETENTION && CONFIG_PM_POWER_DOWN_PERIPHERAL_IN_LIGHT_SLEEP)
+
+#if SOC_RMT_SUPPORT_SLEEP_RETENTION
+typedef struct {
+    periph_retention_module_t module;
+    const regdma_entries_config_t *regdma_entry_array;
+    uint32_t array_size;
+} rmt_retention_desc_t;
+
+// TODO: implement the retention link on the channel level, this can:
+// - save memory when not all RMT channels are used
+// - specify different retention dependency, e.g. only RMT channel x is capable to use DMA, we only want to add the DMA dependency for that channel
+extern const rmt_retention_desc_t rmt_retention_infos[RMT_LL_GET(INST_NUM)];
+#endif // SOC_RMT_SUPPORT_SLEEP_RETENTION
 
 ///!< Logging settings
 #define TAG "rmt"
