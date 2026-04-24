@@ -67,11 +67,11 @@ static esp_err_t ppa_engine_acquire(const ppa_engine_config_t *config, ppa_engin
     size_t alignment = MAX(DMA2D_LL_DESC_ALIGNMENT, data_cache_line_size);
 
     _lock_acquire(&s_platform.mutex);
-    if (s_platform.dma_desc_mem_size == 0) {
+    if (s_platform.srm_engine_ref_count + s_platform.blend_engine_ref_count == 0) {
+        // Initialize the platform level alignment requirements
         s_platform.dma_desc_mem_size = PPA_ALIGN_UP(sizeof(dma2d_descriptor_align8_t), alignment);
-    }
-    if (s_platform.buf_alignment_size == 0) {
-        esp_cache_get_alignment(MALLOC_CAP_SPIRAM | MALLOC_CAP_DMA, &s_platform.buf_alignment_size);
+        esp_cache_get_alignment(MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA, &s_platform.int_mem_align);
+        esp_cache_get_alignment(MALLOC_CAP_SPIRAM | MALLOC_CAP_DMA, &s_platform.ext_mem_align);
     }
 
     if (config->engine == PPA_ENGINE_TYPE_SRM) {
@@ -540,10 +540,11 @@ esp_err_t ppa_set_rgb2gray_formula(uint8_t r_weight, uint8_t g_weight, uint8_t b
 bool ppa_check_buffer_alignment(ppa_client_handle_t ppa_client, const void *pic_blk_config, bool is_input, uint32_t block_width)
 {
     // 1. check with cache line size alignment (output buffer only)
-    uint32_t buf_alignment_size = (uint32_t)ppa_client->engine->platform->buf_alignment_size;
     if (!is_input) {
         ppa_out_pic_blk_config_t *out_pic_blk_config = (ppa_out_pic_blk_config_t *)pic_blk_config;
-        if (((uint32_t)out_pic_blk_config->buffer & (buf_alignment_size - 1)) != 0 || (out_pic_blk_config->buffer_size & (buf_alignment_size - 1)) != 0) {
+        size_t alignment = esp_ptr_external_ram(out_pic_blk_config->buffer) ? ppa_client->engine->platform->ext_mem_align : ppa_client->engine->platform->int_mem_align;
+        // if cache line size alignment is 0, means no msync is needed, so no check is needed
+        if (alignment > 0 && (((uint32_t)out_pic_blk_config->buffer & (alignment - 1)) != 0 || (out_pic_blk_config->buffer_size & (alignment - 1)) != 0)) {
             ESP_LOGE(TAG, "out.buffer addr or out.buffer_size not aligned to cache line size");
             return false;
         }
