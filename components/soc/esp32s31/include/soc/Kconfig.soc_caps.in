@@ -223,6 +223,10 @@ config SOC_BITSCRAMBLER_SUPPORTED
     bool
     default y
 
+config SOC_SIMD_INSTRUCTION_SUPPORTED
+    bool
+    default y
+
 config SOC_CORDIC_SUPPORTED
     bool
     default y
