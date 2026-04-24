@@ -38,6 +38,16 @@
 #include "esp_private/sleep_retention.h"
 #include "esp_efuse.h"
 
+#if CI_TEST_SW_RETENTION
+#define GDMA_RETENTION_ENTRY    REGDMA_SW_TRIGGER_ENTRY
+#else
+#if SOC_PHY_SUPPORTED
+#define GDMA_RETENTION_ENTRY    (ENTRY(0) | ENTRY(2))
+#else
+#define GDMA_RETENTION_ENTRY    (ENTRY(0))
+#endif
+#endif
+
 #if CONFIG_GDMA_OBJ_DRAM_SAFE
 #define GDMA_MEM_ALLOC_CAPS    (MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)
 #else
@@ -100,8 +110,19 @@ struct gdma_rx_channel_t {
     gdma_rx_event_callbacks_t cbs;      // RX event callbacks
 };
 
+#if SOC_GDMA_SUPPORT_SLEEP_RETENTION && SOC_PAU_SUPPORTED
+typedef struct {
+    const regdma_entries_config_t *link_list;
+    uint32_t link_num;
+    const periph_retention_module_t module_id;
+} gdma_retention_desc_t;
+
+extern const gdma_retention_desc_t gdma_retention_infos[GDMA_LL_GET(INST_NUM)][GDMA_LL_GET(PAIRS_PER_INST)];
+
 void gdma_acquire_sleep_retention(gdma_pair_t* pair);
 void gdma_release_sleep_retention(gdma_pair_t* pair);
+
+#endif // SOC_GDMA_SUPPORT_SLEEP_RETENTION && SOC_PAU_SUPPORTED
 
 #ifdef __cplusplus
 }

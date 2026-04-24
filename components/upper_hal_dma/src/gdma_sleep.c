@@ -19,9 +19,9 @@ static esp_err_t sleep_gdma_channel_retention_init(void *arg)
     int group_id = pair->group->group_id;
     int pair_id = pair->pair_id;
 
-    sleep_retention_module_t module = gdma_chx_regs_retention[group_id][pair_id].module_id;
-    esp_err_t err = sleep_retention_entries_create(gdma_chx_regs_retention[group_id][pair_id].link_list,
-                                                   gdma_chx_regs_retention[group_id][pair_id].link_num,
+    sleep_retention_module_t module = gdma_retention_infos[group_id][pair_id].module_id;
+    esp_err_t err = sleep_retention_entries_create(gdma_retention_infos[group_id][pair_id].link_list,
+                                                   gdma_retention_infos[group_id][pair_id].link_num,
                                                    REGDMA_LINK_PRI_GDMA, module);
     if (err == ESP_OK) {
         ESP_LOGD(TAG, "retention link created for pair (%d, %d)", group_id, pair_id);
@@ -39,7 +39,7 @@ void gdma_acquire_sleep_retention(gdma_pair_t* pair)
         .cbs = { .create = { .handle = sleep_gdma_channel_retention_init, .arg = pair } },
         .depends = RETENTION_MODULE_BITMAP_INIT(CLOCK_SYSTEM)
     };
-    sleep_retention_module_t module = gdma_chx_regs_retention[group_id][pair_id].module_id;
+    sleep_retention_module_t module = gdma_retention_infos[group_id][pair_id].module_id;
 
     _lock_acquire(&gdma_sleep_retention_lock);
     // First time acquiring this pair, initialize the module
@@ -63,7 +63,7 @@ void gdma_release_sleep_retention(gdma_pair_t* pair)
 {
     int group_id = pair->group->group_id;
     int pair_id = pair->pair_id;
-    sleep_retention_module_t module = gdma_chx_regs_retention[group_id][pair_id].module_id;
+    sleep_retention_module_t module = gdma_retention_infos[group_id][pair_id].module_id;
 
     _lock_acquire(&gdma_sleep_retention_lock);
     pair_ref_counts[group_id][pair_id]--;
