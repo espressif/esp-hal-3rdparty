@@ -13,18 +13,16 @@ from typing import IO
 from typing import Any
 from typing import cast
 
-from idf_build_apps.constants import PREVIEW_TARGETS
-from idf_build_apps.constants import SUPPORTED_TARGETS
-from pycparser import c_ast
-from pycparser import c_parser
-from pycparser import preprocess_file
-
 script_dir = os.path.dirname(os.path.abspath(__file__))
 current_dir = os.path.abspath(os.getcwd())
 if script_dir != current_dir:
     print(f'Error: This script must be run from its own directory: {script_dir}')
     print(f'Current working directory is: {current_dir}')
     sys.exit(1)
+
+idf_path = os.getenv('IDF_PATH')
+if idf_path is None:
+    idf_path = os.path.realpath(os.path.join(script_dir, '..', '..', '..', '..'))
 
 Param = namedtuple('Param', ['ptr', 'array', 'qual', 'type', 'name'])
 
@@ -38,61 +36,63 @@ wifi_configs = []
 FunctionPrototypes = dict[str, tuple[str, list[Any]]]
 
 
-class FunctionVisitor(c_ast.NodeVisitor):
-    def __init__(self, header: str, prefixes: str | list[str] | tuple[str, ...]) -> None:
-        self.function_prototypes: FunctionPrototypes = {}
-        self.ptr = 0
-        self.array = 0
-        self.content = open(header).read()
-        self.prefixes = prefixes if isinstance(prefixes, list | tuple) else [prefixes]
-
-    def get_type(self, node: Any, suffix: str = 'param') -> tuple[str, str, Any]:
-        if suffix == 'param':
-            self.ptr = 0
-            self.array = 0
-
-        if isinstance(node.type, c_ast.TypeDecl):
-            typename = node.type.declname
-            quals = ''
-            if node.type.quals:
-                quals = ' '.join(node.type.quals)
-            if node.type.type.names:
-                c_type = ' '.join(node.type.type.names)
-                return quals, c_type, typename
-        if isinstance(node.type, c_ast.PtrDecl):
-            quals, c_type, name = self.get_type(node.type, 'ptr')
-            self.ptr += 1
-            return quals, c_type, name
-
-        if isinstance(node.type, c_ast.ArrayDecl):
-            quals, c_type, name = self.get_type(node.type, 'array')
-            self.array = int(node.type.dim.value)
-            return quals, c_type, name
-        return '', '', None
-
-    def visit_FuncDecl(self, node: c_ast.FuncDecl) -> None:
-        if isinstance(node.type, c_ast.TypeDecl):
-            func_name = node.type.declname
-            if (
-                any(func_name.startswith(prefix) for prefix in self.prefixes)
-                and not func_name.endswith('_t')
-                and func_name in self.content
-            ):
-                if func_name in DEPRECATED_API:
-                    return
-                ret = node.type.type.names[0]
-                args = []
-                for param in node.args.params:
-                    quals, c_type, name = self.get_type(param)
-                    param = Param(ptr=self.ptr, array=self.array, qual=quals, type=c_type, name=name)
-                    args.append(param)
-                self.function_prototypes[func_name] = (ret, args)
-
-
 # Parse the header file and extract function prototypes
 def extract_function_prototypes(
     header_code: str, header: str, prefixes: str | list[str] | tuple[str, ...]
 ) -> FunctionPrototypes:
+    from pycparser import c_ast
+    from pycparser import c_parser
+
+    class FunctionVisitor(c_ast.NodeVisitor):
+        def __init__(self, header: str, prefixes: str | list[str] | tuple[str, ...]) -> None:
+            self.function_prototypes: FunctionPrototypes = {}
+            self.ptr = 0
+            self.array = 0
+            self.content = open(header).read()
+            self.prefixes = prefixes if isinstance(prefixes, list | tuple) else [prefixes]
+
+        def get_type(self, node: Any, suffix: str = 'param') -> tuple[str, str, Any]:
+            if suffix == 'param':
+                self.ptr = 0
+                self.array = 0
+
+            if isinstance(node.type, c_ast.TypeDecl):
+                typename = node.type.declname
+                quals = ''
+                if node.type.quals:
+                    quals = ' '.join(node.type.quals)
+                if node.type.type.names:
+                    c_type = ' '.join(node.type.type.names)
+                    return quals, c_type, typename
+            if isinstance(node.type, c_ast.PtrDecl):
+                quals, c_type, name = self.get_type(node.type, 'ptr')
+                self.ptr += 1
+                return quals, c_type, name
+
+            if isinstance(node.type, c_ast.ArrayDecl):
+                quals, c_type, name = self.get_type(node.type, 'array')
+                self.array = int(node.type.dim.value)
+                return quals, c_type, name
+            return '', '', None
+
+        def visit_FuncDecl(self, node: c_ast.FuncDecl) -> None:
+            if isinstance(node.type, c_ast.TypeDecl):
+                func_name = node.type.declname
+                if (
+                    any(func_name.startswith(prefix) for prefix in self.prefixes)
+                    and not func_name.endswith('_t')
+                    and func_name in self.content
+                ):
+                    if func_name in DEPRECATED_API:
+                        return
+                    ret = node.type.type.names[0]
+                    args = []
+                    for param in node.args.params:
+                        quals, c_type, name = self.get_type(param)
+                        param = Param(ptr=self.ptr, array=self.array, qual=quals, type=c_type, name=name)
+                        args.append(param)
+                    self.function_prototypes[func_name] = (ret, args)
+
     parser = c_parser.CParser()  # Set debug parameter to False
     ast = parser.parse(header_code)
     visitor = FunctionVisitor(header, prefixes)
@@ -114,34 +114,91 @@ def exec_cmd(what: list[str], out_file: IO[str] | None = None) -> tuple[int, str
     return rc, output, err, ' '.join(what)
 
 
+_cached_include_dir_flags: list[str] | None = None
+
+
+def _handle_missing_tool(msg: str) -> None:
+    YELLOW = '\033[33m'
+    RESET = '\033[0m'
+    full_msg = (
+        f'{msg}. WiFi-remote API generation check could not be performed.\n'
+        'If you have modified WiFi or Supplicant headers, the corresponding '
+        'wifi-remote files may need to be updated.\n'
+        'Please set up your ESP-IDF environment (run export.sh) and run this script manually:\n'
+        f'cd {os.path.relpath(script_dir, idf_path)} && python3 {os.path.basename(__file__)}\n'
+        'Then commit the resulting changes.'
+    )
+    print(f'{YELLOW}SKIPPED: {full_msg}{RESET}')
+    sys.exit(0)
+
+
+try:
+    import idf_build_apps  # noqa: F401
+    import pycparser  # noqa: F401
+except ImportError:
+    _handle_missing_tool('ESP-IDF environment not found (missing python dependencies)')
+
+
 def preprocess(idf_path: str, header: str) -> str:
+    global _cached_include_dir_flags
     project_dir = os.path.join(idf_path, 'examples', 'wifi', 'getting_started', 'station')
     build_dir = os.path.join(project_dir, 'build')
 
-    # Clean up build artifacts
-    if os.path.exists(build_dir):
-        shutil.rmtree(build_dir)
-    sdkconfig = os.path.join(project_dir, 'sdkconfig')
-    if os.path.exists(sdkconfig):
-        os.remove(sdkconfig)
+    if _cached_include_dir_flags is None:
+        # Clean up build artifacts ONLY on the first run to ensure a fresh state if needed,
+        # but idf.py reconfigure is usually good at incremental updates.
+        # To be safe and fast, we only clean if we don't have a build dir yet.
+        if not os.path.exists(build_dir):
+            sdkconfig = os.path.join(project_dir, 'sdkconfig')
+            if os.path.exists(sdkconfig):
+                os.remove(sdkconfig)
 
-    subprocess.check_call(['idf.py', '-B', build_dir, 'reconfigure'], cwd=project_dir)
-    build_commands_json = os.path.join(build_dir, 'compile_commands.json')
-    with open(build_commands_json, encoding='utf-8') as f:
-        build_command = json.load(f)[0]['command'].split()
-    include_dir_flags = []
-    include_dirs = []
-    # process compilation flags (includes and defines)
-    for item in build_command:
-        if item.startswith('-I'):
-            include_dir_flags.append(item)
-            if 'components' in item:
-                include_dirs.append(item[2:])  # Removing the leading "-I"
-        if item.startswith('-D'):
-            include_dir_flags.append(
-                item.replace('\\', '')
-            )  # removes escaped quotes, eg: -DMBEDTLS_CONFIG_FILE=\\\"mbedtls/esp_config.h\\\"
-    include_dir_flags.append('-I' + os.path.join(build_dir, 'config'))
+        idf_py = shutil.which('idf.py')
+        if idf_py is None:
+            idf_py_path = os.path.join(idf_path, 'tools', 'idf.py')
+            if os.path.exists(idf_py_path):
+                idf_py = f'{sys.executable} {idf_py_path}'
+            else:
+                _handle_missing_tool('ESP-IDF environment not found')
+
+        assert idf_py is not None
+        try:
+            if isinstance(idf_py, str) and idf_py.startswith(sys.executable):
+                subprocess.run(
+                    idf_py.split() + ['-B', build_dir, 'reconfigure'],
+                    cwd=project_dir,
+                    check=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+            else:
+                subprocess.run(
+                    [idf_py, '-B', build_dir, 'reconfigure'],
+                    cwd=project_dir,
+                    check=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            _handle_missing_tool('ESP-IDF environment not found')
+
+        build_commands_json = os.path.join(build_dir, 'compile_commands.json')
+        if not os.path.exists(build_commands_json):
+            _handle_missing_tool('ESP-IDF environment not found')
+
+        with open(build_commands_json, encoding='utf-8') as f:
+            build_command = json.load(f)[0]['command'].split()
+        _cached_include_dir_flags = []
+        # process compilation flags (includes and defines)
+        for item in build_command:
+            if item.startswith('-I'):
+                _cached_include_dir_flags.append(item)
+            if item.startswith('-D'):
+                _cached_include_dir_flags.append(
+                    item.replace('\\', '')
+                )  # removes escaped quotes, eg: -DMBEDTLS_CONFIG_FILE=\\\"mbedtls/esp_config.h\\\"
+        _cached_include_dir_flags.append('-I' + os.path.join(build_dir, 'config'))
+
     temp_file = 'esp_wifi_preprocessed.h'
     with open(temp_file, 'w') as f:
         f.write('#define asm\n')
@@ -149,12 +206,18 @@ def preprocess(idf_path: str, header: str) -> str:
         f.write('#define __asm__\n')
         f.write('#define __volatile__\n')
     with open(temp_file, 'a') as f:
+        gcc_cmd = 'xtensa-esp32-elf-gcc'
+        if shutil.which(gcc_cmd) is None:
+            _handle_missing_tool(f'{gcc_cmd} not found')
+
         rc, out, err, cmd = exec_cmd(
-            ['xtensa-esp32-elf-gcc', '-w', '-P', '-include', 'ignore_extensions.h', '-E', header] + include_dir_flags, f
+            [gcc_cmd, '-w', '-P', '-include', 'ignore_extensions.h', '-E', header] + _cached_include_dir_flags, f
         )
         if rc != 0:
             print(f'command {cmd} failed!')
             print(err)
+    from pycparser import preprocess_file
+
     preprocessed_code = preprocess_file(temp_file)
     return cast(str, preprocessed_code)
 
@@ -205,6 +268,9 @@ def get_vars(parameters: list[Any]) -> tuple[str, str]:
 
 
 def generate_kconfig_wifi_caps(idf_path: str, component_path: str) -> list[str]:
+    from idf_build_apps.constants import PREVIEW_TARGETS
+    from idf_build_apps.constants import SUPPORTED_TARGETS
+
     kconfig = os.path.join(component_path, 'Kconfig.soc_wifi_caps.in')
     slave_select = os.path.join(component_path, 'Kconfig.slave_select.in')
 
@@ -642,9 +708,6 @@ making changes you might need to modify 'copyright_header.h' in the script direc
     parser.add_argument('--base-dir', help='Base directory to compare generated files against')
     args = parser.parse_args()
 
-    idf_path = os.getenv('IDF_PATH')
-    if idf_path is None:
-        raise RuntimeError("Environment variable 'IDF_PATH' wasn't set.")
     header = os.path.join(idf_path, 'components', 'esp_wifi', 'include', 'esp_wifi.h')
     eap_header = os.path.join(idf_path, 'components', 'wpa_supplicant', 'esp_supplicant', 'include', 'esp_eap_client.h')
     function_prototypes = extract_function_prototypes(preprocess(idf_path, header), header, ['esp_wifi_'])
@@ -661,11 +724,24 @@ making changes you might need to modify 'copyright_header.h' in the script direc
     files_to_check += generate_wifi_native(idf_path, component_path)
     files_to_check += generate_kconfig(idf_path, component_path)
 
+    modified_files = []
     for f in files_to_check:
-        print(f)
+        if os.path.exists(f):
+            # Check if file is modified relative to index
+            rc, _, _, _ = exec_cmd(['git', 'diff', '--exit-code', f])
+            if rc != 0:
+                modified_files.append(f)
+
+    if modified_files:
+        print('WiFi-remote API files were updated:')
+        for f in modified_files:
+            print(f'  modified: {os.path.relpath(f, idf_path)}')
+        print('\nPlease stage these changes and try committing again.')
 
     if args.skip_check or args.base_dir is None:
-        exit(0)
+        if modified_files:
+            sys.exit(1)
+        sys.exit(0)
 
     failures = compare_files(args.base_dir, component_path, files_to_check)
 
