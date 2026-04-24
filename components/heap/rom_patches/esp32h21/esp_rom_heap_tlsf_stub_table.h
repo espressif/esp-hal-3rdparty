@@ -8,7 +8,7 @@
 #pragma once
 
 #include <stddef.h>
-#include "esp_rom_tlsf.h"
+#include "rom_patch_tlsf.h"
 
 #ifdef __cplusplus
 extern "C" {

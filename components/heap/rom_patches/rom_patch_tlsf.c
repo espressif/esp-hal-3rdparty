@@ -19,8 +19,7 @@
 #include <assert.h>
 
 #include "esp_rom_caps.h"
-#include "esp_rom_tlsf.h"
-#include "esp_rom_sys.h"
+#include "rom_patch_tlsf.h"
 
 #include "tlsf_block_functions.h"
 #include "tlsf_control_functions.h"

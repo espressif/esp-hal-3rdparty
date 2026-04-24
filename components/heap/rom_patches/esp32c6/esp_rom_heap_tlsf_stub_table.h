@@ -8,14 +8,14 @@
 #pragma once
 
 #include <stddef.h>
-#include "esp_rom_tlsf.h"
+#include "rom_patch_tlsf.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * @brief TLSF ROM vtable stub table for esp32c2.
+ * @brief TLSF ROM vtable stub table for esp32c6.
  *
  * This struct mirrors the TLSF function-pointer vtable stored in ROM.
  * Its layout MUST exactly match the ROM vtable for the target chip.
