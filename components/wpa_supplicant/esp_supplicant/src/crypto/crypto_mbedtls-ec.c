@@ -630,7 +630,7 @@ static u32 p256_fast_words_add_carry(u32 *z, const u32 *x, const u32 *y)
 
 static void p256_fast_words_add_mod(u32 *z, const u32 *x, const u32 *y)
 {
-    u32 reduced[P256_WORDS];
+    u32 reduced[P256_WORDS] = {0};
     u32 carry = p256_fast_words_add_carry(z, x, y);
     u32 borrow = p256_words_sub_borrow(reduced, z, p256_p_le);
     u32 use_sub = carry | (1U - borrow);
@@ -640,7 +640,7 @@ static void p256_fast_words_add_mod(u32 *z, const u32 *x, const u32 *y)
 
 static void p256_fast_words_sub_mod(u32 *z, const u32 *x, const u32 *y)
 {
-    u32 tmp[P256_WORDS];
+    u32 tmp[P256_WORDS] = {0};
 
     if (p256_words_sub_borrow(z, x, y) != 0) {
         (void) p256_fast_words_add_carry(tmp, z, p256_p_le);
@@ -663,7 +663,7 @@ static void p256_words_rshift1_with_carry(u32 *z, u32 carry)
 static void p256_fast_half_mod(u32 *z)
 {
     if (z[0] & 1U) {
-        u32 tmp[P256_WORDS];
+        u32 tmp[P256_WORDS] = {0};
         u32 carry = p256_fast_words_add_carry(tmp, z, p256_p_le);
 
         p256_words_rshift1_with_carry(tmp, carry);
@@ -676,7 +676,7 @@ static void p256_fast_half_mod(u32 *z)
 
 static int p256_fast_inv_std(u32 out[P256_WORDS], const u32 in[P256_WORDS])
 {
-    u32 u[P256_WORDS], v[P256_WORDS], r[P256_WORDS], s[P256_WORDS];
+    u32 u[P256_WORDS] = {0}, v[P256_WORDS] = {0}, r[P256_WORDS] = {0}, s[P256_WORDS] = {0};
 
     if (p256_words_is_zero(in)) {
         return -1;
@@ -783,7 +783,7 @@ static void p256_fast_dbl(u32 out[P256_WORDS], const u32 in[P256_WORDS])
 
 static void p256_fast_triple(u32 out[P256_WORDS], const u32 in[P256_WORDS])
 {
-    u32 tmp[P256_WORDS];
+    u32 tmp[P256_WORDS] = {0};
 
     p256_fast_dbl(tmp, in);
     p256_fast_words_add_mod(out, tmp, in);
@@ -791,7 +791,7 @@ static void p256_fast_triple(u32 out[P256_WORDS], const u32 in[P256_WORDS])
 
 static void p256_fast_eight(u32 out[P256_WORDS], const u32 in[P256_WORDS])
 {
-    u32 tmp[P256_WORDS];
+    u32 tmp[P256_WORDS] = {0};
 
     p256_fast_dbl(tmp, in);
     p256_fast_dbl(tmp, tmp);
@@ -833,10 +833,10 @@ static void p256_fast_point_from_affine(p256_fast_jac_point *p,
 
 static void p256_fast_point_double(p256_fast_jac_point *r)
 {
-    u32 z2[P256_WORDS], y2[P256_WORDS], y4[P256_WORDS];
-    u32 s[P256_WORDS], m[P256_WORDS], x3[P256_WORDS];
-    u32 y3[P256_WORDS], z3[P256_WORDS], tmp1[P256_WORDS];
-    u32 tmp2[P256_WORDS];
+    u32 z2[P256_WORDS] = {0}, y2[P256_WORDS] = {0}, y4[P256_WORDS] = {0};
+    u32 s[P256_WORDS] = {0}, m[P256_WORDS] = {0}, x3[P256_WORDS] = {0};
+    u32 y3[P256_WORDS] = {0}, z3[P256_WORDS] = {0}, tmp1[P256_WORDS] = {0};
+    u32 tmp2[P256_WORDS] = {0};
 
     if (p256_words_is_zero(r->Z) || p256_words_is_zero(r->Y)) {
         p256_fast_point_set_zero(r);
@@ -878,11 +878,11 @@ static void p256_fast_point_add_mixed(p256_fast_jac_point *r,
                                       const u32 qy[P256_WORDS],
                                       const u32 one_mont[P256_WORDS])
 {
-    u32 z1z1[P256_WORDS], z1z1z1[P256_WORDS];
-    u32 u2[P256_WORDS], s2[P256_WORDS], h[P256_WORDS];
-    u32 rr[P256_WORDS], hh[P256_WORDS], hhh[P256_WORDS];
-    u32 v[P256_WORDS], x3[P256_WORDS], y3[P256_WORDS];
-    u32 z3[P256_WORDS], tmp[P256_WORDS], y1[P256_WORDS];
+    u32 z1z1[P256_WORDS] = {0}, z1z1z1[P256_WORDS] = {0};
+    u32 u2[P256_WORDS] = {0}, s2[P256_WORDS] = {0}, h[P256_WORDS] = {0};
+    u32 rr[P256_WORDS] = {0}, hh[P256_WORDS] = {0}, hhh[P256_WORDS] = {0};
+    u32 v[P256_WORDS] = {0}, x3[P256_WORDS] = {0}, y3[P256_WORDS] = {0};
+    u32 z3[P256_WORDS] = {0}, tmp[P256_WORDS] = {0}, y1[P256_WORDS] = {0};
 
     if (p256_words_is_zero(r->Z)) {
         p256_fast_point_from_affine(r, qx, qy, one_mont);
@@ -932,8 +932,8 @@ static int p256_fast_point_normalize(const mbedtls_ecp_group *grp,
                                      const p256_fast_jac_point *p,
                                      mbedtls_ecp_point *res)
 {
-    u32 z_std[P256_WORDS], inv_std[P256_WORDS], inv_mont[P256_WORDS];
-    u32 x_std[P256_WORDS], y_std[P256_WORDS], tmp[P256_WORDS];
+    u32 z_std[P256_WORDS] = {0}, inv_std[P256_WORDS] = {0}, inv_mont[P256_WORDS] = {0};
+    u32 x_std[P256_WORDS] = {0}, y_std[P256_WORDS] = {0}, tmp[P256_WORDS] = {0};
     int ret = MBEDTLS_ERR_ECP_BAD_INPUT_DATA;
 
     if (p256_words_is_zero(p->Z)) {
@@ -966,10 +966,10 @@ static int p256_fast_points_batch_to_affine_mont(
     const p256_fast_jac_point *points, size_t num,
     u32(*xs)[P256_WORDS], u32(*ys)[P256_WORDS])
 {
-    u32 prefix[P256_WINDOW_BATCH_COUNT][P256_WORDS];
-    u32 prod_std[P256_WORDS], inv_std[P256_WORDS];
-    u32 running_inv[P256_WORDS], inv_z[P256_WORDS];
-    u32 tmp[P256_WORDS];
+    u32 prefix[P256_WINDOW_BATCH_COUNT][P256_WORDS] = {{0}};
+    u32 prod_std[P256_WORDS] = {0}, inv_std[P256_WORDS] = {0};
+    u32 running_inv[P256_WORDS] = {0}, inv_z[P256_WORDS] = {0};
+    u32 tmp[P256_WORDS] = {0};
     size_t i;
 
     if (!points || !xs || !ys) {
@@ -1028,8 +1028,8 @@ static int crypto_ec_point_mul_p256_window4_core(const mbedtls_ecp_group *grp,
                                                  bool validate_inputs)
 {
     struct p256_window4_scratch *scratch = NULL;
-    u32 scalar[P256_WORDS], x_std[P256_WORDS], y_std[P256_WORDS];
-    u32 x_mont[P256_WORDS], y_mont[P256_WORDS], one_mont[P256_WORDS];
+    u32 scalar[P256_WORDS] = {0}, x_std[P256_WORDS] = {0}, y_std[P256_WORDS] = {0};
+    u32 x_mont[P256_WORDS] = {0}, y_mont[P256_WORDS] = {0}, one_mont[P256_WORDS] = {0};
     static const u32 one_std[P256_WORDS] = {1};
     int window;
     int ret = MBEDTLS_ERR_ECP_FEATURE_UNAVAILABLE;
@@ -1151,8 +1151,8 @@ static int crypto_ec_point_mul_p256_generator_comb_fast(const mbedtls_ecp_group 
                                                         bool validate_inputs)
 {
     p256_fast_jac_point r;
-    u32 scalar[P256_WORDS];
-    u32 one_mont[P256_WORDS];
+    u32 scalar[P256_WORDS] = {0};
+    u32 one_mont[P256_WORDS] = {0};
     static const u32 one_std[P256_WORDS] = {1};
     int col;
     int ret = MBEDTLS_ERR_ECP_FEATURE_UNAVAILABLE;
