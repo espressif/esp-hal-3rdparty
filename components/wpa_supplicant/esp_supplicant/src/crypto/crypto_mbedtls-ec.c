@@ -359,7 +359,7 @@ static int crypto_ec_key_ensure_public_key_cached(crypto_ec_key_wrapper_t *wrapp
     status = psa_export_public_key(wrapper->key_id, pub_key_buf,
                                    sizeof(pub_key_buf), &pub_key_len);
     if (status != PSA_SUCCESS) {
-        wpa_printf(MSG_ERROR, "psa_export_public_key failed with %d", status);
+        wpa_printf(MSG_ERROR, "psa_export_public_key failed with %d", (int) status);
         return -1;
     }
 
@@ -1493,12 +1493,12 @@ int crypto_ec_key_compare(struct crypto_ec_key *key1, struct crypto_ec_key *key2
 
     psa_status_t status = psa_export_public_key(wrapper1->key_id, pub1, sizeof(pub1), &key1_len);
     if (status != PSA_SUCCESS) {
-        wpa_printf(MSG_ERROR, "crypto_ec_key_compare: psa_export_public_key failed with %d", status);
+        wpa_printf(MSG_ERROR, "crypto_ec_key_compare: psa_export_public_key failed with %d", (int)status);
         return 0;
     }
     status = psa_export_public_key(wrapper2->key_id, pub2, sizeof(pub2), &key2_len);
     if (status != PSA_SUCCESS) {
-        wpa_printf(MSG_ERROR, "crypto_ec_key_compare: psa_export_public_key failed with %d", status);
+        wpa_printf(MSG_ERROR, "crypto_ec_key_compare: psa_export_public_key failed with %d", (int)status);
         return 0;
     }
 
@@ -1728,7 +1728,7 @@ struct crypto_ec_key * crypto_ec_key_set_pub(const struct crypto_ec_group *group
 
     psa_status_t status = psa_import_key(&key_attributes, key_buf, key_len, &wrapper->key_id);
     if (status != PSA_SUCCESS) {
-        wpa_printf(MSG_ERROR, "Failed to import key, %d", status);
+        wpa_printf(MSG_ERROR, "Failed to import key, %d", (int)status);
         os_free(key_buf);
         os_free(wrapper);
         return NULL;
@@ -1783,7 +1783,7 @@ struct crypto_ec_point *crypto_ec_key_get_public_key(struct crypto_ec_key *key)
     status = psa_export_public_key(wrapper->key_id, pub_key_buf, sizeof(pub_key_buf),
                                    &pub_key_len);
     if (status != PSA_SUCCESS) {
-        wpa_printf(MSG_ERROR, "Failed to export public key: %d", status);
+        wpa_printf(MSG_ERROR, "Failed to export public key: %d", (int)status);
         return NULL;
     }
     if (pub_key_len < 3 || pub_key_buf[0] != 0x04) {
@@ -1951,7 +1951,7 @@ int crypto_ec_key_group(struct crypto_ec_key *key)
 
     psa_status_t status = psa_get_key_attributes(wrapper->key_id, &key_attributes);
     if (status != PSA_SUCCESS) {
-        wpa_printf(MSG_ERROR, "crypto_ec_key_group: psa_get_key_attributes failed: %d", status);
+        wpa_printf(MSG_ERROR, "crypto_ec_key_group: psa_get_key_attributes failed: %d", (int)status);
         psa_reset_key_attributes(&key_attributes);
         return -1;
     }
@@ -2053,13 +2053,13 @@ int crypto_ec_get_publickey_buf(struct crypto_ec_key *key, u8 *key_buf, int len)
 
         status = psa_get_key_attributes(wrapper->key_id, &key_attributes);
         if (status != PSA_SUCCESS) {
-            printf("psa_get_key_attributes failed with %d\n", status);
+            wpa_printf(MSG_ERROR, "psa_get_key_attributes failed with %d", (int) status);
             return -1;
         }
 
         size_t key_bits = psa_get_key_bits(&key_attributes);
         if (key_bits == 0) {
-            printf("psa_get_key_bits failed with %d\n", -1);
+            wpa_printf(MSG_ERROR, "psa_get_key_bits failed with %d", -1);
             return -1;
         }
 
@@ -2094,7 +2094,7 @@ int crypto_ec_get_publickey_buf(struct crypto_ec_key *key, u8 *key_buf, int len)
     size_t key_len = 0;
     status = psa_export_public_key(wrapper->key_id, key_buf, len, &key_len);
     if (status != PSA_SUCCESS) {
-        printf("psa_export_public_key failed with %d\n", status);
+        wpa_printf(MSG_ERROR, "psa_export_public_key failed with %d", (int) status);
         return -1;
     }
 
@@ -2392,7 +2392,7 @@ int crypto_ecdh(struct crypto_ec_key *key_own, struct crypto_ec_key *key_peer,
                                                 secret, secret_buf_size,
                                                 &secret_length);
     if (status != PSA_SUCCESS) {
-        wpa_printf(MSG_ERROR, "psa_raw_key_agreement failed with %d", status);
+        wpa_printf(MSG_ERROR, "psa_raw_key_agreement failed with %d", (int)status);
         return -1;
     }
 
@@ -2411,7 +2411,7 @@ int crypto_ecdh(struct crypto_ec_key *key_own, struct crypto_ec_key *key_peer,
                                                 PSA_EXPORT_PUBLIC_KEY_MAX_SIZE,
                                                 &peer_key_len);
     if (status != PSA_SUCCESS) {
-        wpa_printf(MSG_ERROR, "psa_export_public_key failed with %d", status);
+        wpa_printf(MSG_ERROR, "psa_export_public_key failed with %d", (int)status);
         ret = -1;
         goto fail;
     }
@@ -2423,7 +2423,7 @@ int crypto_ecdh(struct crypto_ec_key *key_own, struct crypto_ec_key *key_peer,
                                    secret_buf_size,
                                    &secret_length);
     if (status != PSA_SUCCESS) {
-        wpa_printf(MSG_ERROR, "psa_raw_key_agreement failed with %d", status);
+        wpa_printf(MSG_ERROR, "psa_raw_key_agreement failed with %d", (int)status);
         ret = -1;
         goto fail;
     }
@@ -2450,7 +2450,7 @@ int crypto_ecdsa_get_sign(unsigned char *hash,
 
     psa_status_t status = psa_sign_hash(wrapper->key_id, PSA_ALG_DETERMINISTIC_ECDSA(PSA_ALG_SHA_256), hash, hash_len, signature, sizeof(signature), &signature_length);
     if (status != PSA_SUCCESS) {
-        printf("psa_sign_hash failed with %d\n", status);
+        wpa_printf(MSG_ERROR, "psa_sign_hash failed with %d", (int) status);
         return -1;
     }
 
@@ -2491,7 +2491,7 @@ int crypto_ec_key_verify_signature_r_s(struct crypto_ec_key *csign,
 
     psa_status_t status = psa_verify_hash(wrapper->key_id, PSA_ALG_DETERMINISTIC_ECDSA(PSA_ALG_SHA_256), hash, hlen, sig, r_len + s_len);
     if (status != PSA_SUCCESS) {
-        printf("psa_verify_hash failed with %d\n", status);
+        wpa_printf(MSG_ERROR, "psa_verify_hash failed with %d", (int) status);
         os_free(sig);
         return -1;
     }
@@ -2513,7 +2513,7 @@ void crypto_ec_key_debug_print(struct crypto_ec_key *key, const char *title)
     size_t pub_len = 0;
     psa_status_t status = psa_export_public_key(wrapper->key_id, pub, sizeof(pub), &pub_len);
     if (status != PSA_SUCCESS) {
-        wpa_printf(MSG_ERROR, "crypto_ec_key_debug_print: psa_export_public_key failed with %d", status);
+        wpa_printf(MSG_ERROR, "crypto_ec_key_debug_print: psa_export_public_key failed with %d", (int)status);
         return;
     }
 
@@ -2523,7 +2523,7 @@ void crypto_ec_key_debug_print(struct crypto_ec_key *key, const char *title)
     psa_key_attributes_t key_attributes = PSA_KEY_ATTRIBUTES_INIT;
     status = psa_get_key_attributes(wrapper->key_id, &key_attributes);
     if (status != PSA_SUCCESS) {
-        wpa_printf(MSG_ERROR, "crypto_ec_key_debug_print: psa_get_key_attributes failed with %d", status);
+        wpa_printf(MSG_ERROR, "crypto_ec_key_debug_print: psa_get_key_attributes failed with %d", (int)status);
         return;
     }
 
@@ -2622,7 +2622,7 @@ struct crypto_ec_key *crypto_ec_parse_subpub_key(const unsigned char *p, size_t 
     psa_reset_key_attributes(&attributes);
 
     if (status != PSA_SUCCESS) {
-        wpa_printf(MSG_ERROR, "Failed to import key to PSA: %d", status);
+        wpa_printf(MSG_ERROR, "Failed to import key to PSA: %d", (int)status);
         mbedtls_ecp_group_free(&wrapper->group);
         os_free(wrapper);
         return NULL;
@@ -2653,7 +2653,7 @@ int crypto_is_ec_key(struct crypto_ec_key *key)
     psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
     psa_status_t status = psa_get_key_attributes(wrapper->key_id, &attributes);
     if (status != PSA_SUCCESS) {
-        wpa_printf(MSG_DEBUG, "Failed to get key attributes: %d", status);
+        wpa_printf(MSG_DEBUG, "Failed to get key attributes: %d", (int)status);
         return 0;
     }
 
@@ -2776,7 +2776,7 @@ int crypto_pk_write_formatted_pubkey_der(psa_key_id_t key_id, unsigned char *buf
     psa_status_t status = psa_export_public_key(key_id, point_buf, PSA_EXPORT_PUBLIC_KEY_MAX_SIZE, &point_len);
     if (status != PSA_SUCCESS) {
         os_free(point_buf);
-        wpa_printf(MSG_ERROR, "psa_export_public_key failed: %d", status);
+        wpa_printf(MSG_ERROR, "psa_export_public_key failed: %d", (int)status);
         return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
     }
 
@@ -3120,7 +3120,7 @@ struct wpabuf * crypto_ecdh_set_peerkey(struct crypto_ecdh *ecdh, int inc_y,
     os_free(peer_key_buf);
 
     if (status != PSA_SUCCESS) {
-        wpa_printf(MSG_ERROR, "psa_raw_key_agreement failed with PSA error 0x%x", status);
+        wpa_printf(MSG_ERROR, "psa_raw_key_agreement failed with PSA error 0x%x", (int)status);
         os_free(secret);
         return NULL;
     }
@@ -3246,7 +3246,7 @@ int crypto_ec_key_verify_signature(struct crypto_ec_key *key, const u8 *data,
     psa_key_attributes_t key_attributes = PSA_KEY_ATTRIBUTES_INIT;
     psa_status_t status = psa_get_key_attributes(wrapper->key_id, &key_attributes);
     if (status != PSA_SUCCESS) {
-        wpa_printf(MSG_ERROR, "crypto_ec_key_verify_signature: psa_get_key_attributes failed: %d", status);
+        wpa_printf(MSG_ERROR, "crypto_ec_key_verify_signature: psa_get_key_attributes failed: %d", (int)status);
         psa_reset_key_attributes(&key_attributes);
         return -1;
     }
@@ -3299,7 +3299,7 @@ int crypto_ec_key_verify_signature(struct crypto_ec_key *key, const u8 *data,
     status = psa_verify_hash(wrapper->key_id, verify_alg,
                              data, len, sig_to_verify, sig_len_to_verify);
     if (status != PSA_SUCCESS) {
-        wpa_printf(MSG_ERROR, "crypto_ec_key_verify_signature: psa_verify_hash failed: %d", status);
+        wpa_printf(MSG_ERROR, "crypto_ec_key_verify_signature: psa_verify_hash failed: %d", (int)status);
         return -1;
     }
 
