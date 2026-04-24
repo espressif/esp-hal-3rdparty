@@ -6,9 +6,15 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stddef.h>
 #include "esp_eth_phy.h"
 #include "sdkconfig.h"
 #include "eth_phy_802_3_regs.h"
+
+#ifndef __containerof
+#define __containerof(ptr, type, member) \
+    ((type *)((char *)(ptr) - offsetof(type, member)))
+#endif
 
 #ifdef __cplusplus
 extern "C" {

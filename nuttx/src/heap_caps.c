@@ -17,9 +17,11 @@
 #include <nuttx/config.h>
 #include <string.h>
 #include <malloc.h>
+#include <syslog.h>
 
 #include <nuttx/compiler.h>
 #include <nuttx/kmalloc.h>
+#include <nuttx/mm/mm.h>
 
 #include "esp_heap_caps.h"
 #ifdef CONFIG_ESPRESSIF_RETENTION_HEAP
@@ -27,6 +29,42 @@
 #endif
 
 static esp_alloc_failed_hook_t alloc_failed_callback;
+
+/****************************************************************************
+ * Private Helpers
+ ****************************************************************************/
+
+/* Effective alignment to request from the NuttX allocator.
+ *
+ * ESP-IDF allocates DMA-capable memory through heap_caps_* with an
+ * internal knowledge of the target cache line size.  The NuttX
+ * reimplementation just forwards whatever alignment the caller passes to
+ * kmm_memalign(), which is typically 4 bytes for emac_esp_dma.c.  When the
+ * caller asks for MALLOC_CAP_DMA (optionally also _INTERNAL/_8BIT), the
+ * resulting buffer must be cache-line aligned, otherwise esp_cache_msync()
+ * on ESP32-P4 aborts with ESP_ERR_INVALID_ARG and the assertion in
+ * esp_eth_mac_esp_dma.c fires.  Bump the alignment up to the L2 cache line
+ * size for DMA-capable allocations.
+ */
+
+#if defined(CONFIG_CACHE_L2_CACHE_LINE_SIZE)
+#  define ESP_HEAP_CAPS_DMA_ALIGN CONFIG_CACHE_L2_CACHE_LINE_SIZE
+#elif defined(CONFIG_CACHE_L1_CACHE_LINE_SIZE)
+#  define ESP_HEAP_CAPS_DMA_ALIGN CONFIG_CACHE_L1_CACHE_LINE_SIZE
+#else
+#  define ESP_HEAP_CAPS_DMA_ALIGN 4
+#endif
+
+static inline size_t esp_heap_caps_effective_alignment(size_t alignment,
+                                                        uint32_t caps)
+{
+  if ((caps & MALLOC_CAP_DMA) != 0 && alignment < ESP_HEAP_CAPS_DMA_ALIGN)
+    {
+      return ESP_HEAP_CAPS_DMA_ALIGN;
+    }
+
+  return alignment;
+}
 
 /****************************************************************************
  * Private Functions
@@ -112,14 +150,39 @@ void *heap_caps_malloc(size_t size, uint32_t caps)
 
 void heap_caps_free(void *ptr)
 {
+  if (ptr == NULL)
+    {
+      return;
+    }
+
   if (esp_retentionheap_heapmember(ptr))
     {
       esp_retentionheap_free(ptr);
+      return;
     }
-  else
+
+  /* Cross-heap-free instrumentation: in NuttX builds that have a distinct
+   * user heap (flat + CONFIG_MM_KERNEL_HEAP), heap_caps_calloc/malloc() go
+   * to the kernel heap via kmm_malloc().  If a pointer allocated with libc
+   * malloc() (user heap) ends up here, kmm_free() would hit the
+   * mm_heapmember() assertion in mm_free.c.  Detect this up front and
+   * route the free to the correct heap, while loudly warning about it so
+   * we can fix the offending allocation/free pair.
+   */
+
+#ifdef CONFIG_MM_KERNEL_HEAP
+  if (!kmm_heapmember(ptr))
     {
-      kmm_free(ptr);
+      syslog(LOG_ERR,
+             "heap_caps_free: ptr %p not in kernel heap "
+             "(cross-heap free, caller=%p); routing to free()\n",
+             ptr, __builtin_return_address(0));
+      free(ptr);
+      return;
     }
+#endif
+
+  kmm_free(ptr);
 }
 
 /****************************************************************************
@@ -205,6 +268,8 @@ void *heap_caps_aligned_alloc(size_t alignment, size_t size, uint32_t caps)
 {
   FAR void *ptr;
 
+  alignment = esp_heap_caps_effective_alignment(alignment, caps);
+
   if (esp_heap_caps_retention_caps_exact(caps))
     {
       ptr = esp_retentionheap_memalign(alignment, size);
@@ -248,6 +313,8 @@ void *heap_caps_aligned_calloc(size_t alignment, size_t n, size_t size,
 {
   size_t total = n * size;
   FAR void *ptr;
+
+  alignment = esp_heap_caps_effective_alignment(alignment, caps);
 
   if (esp_heap_caps_retention_caps_exact(caps))
     {

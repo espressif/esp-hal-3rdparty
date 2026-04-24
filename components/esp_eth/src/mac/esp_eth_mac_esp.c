@@ -25,9 +25,7 @@
 #include "hal/clk_tree_ll.h"
 #include "esp_private/esp_clk.h"
 #include "esp_private/esp_clk_tree_common.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/semphr.h"
+#include "platform/os.h"
 #include "hal/emac_hal.h"
 #include "soc/soc.h"
 #include "hal/emac_periph.h"
@@ -59,7 +57,7 @@ typedef struct {
     esp_eth_mediator_t *eth;
     emac_hal_context_t hal;
     intr_handle_t intr_hdl;
-    TaskHandle_t rx_task_hdl;
+    esp_os_task_handle_t rx_task_hdl;
     emac_esp_dma_handle_t emac_dma_hndl;
     uint32_t sw_reset_timeout_ms;
     uint32_t frames_remain;
@@ -69,7 +67,7 @@ typedef struct {
     bool flow_ctrl_enabled; // indicates whether the user want to do flow control
     bool do_flow_ctrl;  // indicates whether we need to do software flow control
     bool use_pll;  // Only use (A/M)PLL in EMAC_DATA_INTERFACE_RMII && EMAC_CLK_OUT
-    SemaphoreHandle_t multi_reg_mutex; // lock for multiple register access
+    esp_os_mutex_t multi_reg_mutex; // lock for multiple register access
     int32_t mdc_freq_hz;
 #ifdef CONFIG_PM_ENABLE
     esp_pm_lock_handle_t pm_lock;
@@ -141,12 +139,13 @@ static void emac_free_retention_module(emac_esp32_t *emac)
 
 static esp_err_t emac_esp32_lock_multi_reg(emac_esp32_t *emac)
 {
-    return xSemaphoreTake(emac->multi_reg_mutex, pdMS_TO_TICKS(EMAC_MULTI_REG_MUTEX_TIMEOUT_MS)) == pdTRUE ? ESP_OK : ESP_ERR_TIMEOUT;
+    return esp_os_lock_mutex_timeout(&emac->multi_reg_mutex, EMAC_MULTI_REG_MUTEX_TIMEOUT_MS) == 0 ?
+           ESP_OK : ESP_ERR_TIMEOUT;
 }
 
 static esp_err_t emac_esp32_unlock_multi_reg(emac_esp32_t *emac)
 {
-    return xSemaphoreGive(emac->multi_reg_mutex) == pdTRUE ? ESP_OK : ESP_FAIL;
+    return esp_os_unlock_mutex(&emac->multi_reg_mutex) == 0 ? ESP_OK : ESP_FAIL;
 }
 
 static esp_err_t emac_esp32_set_mediator(esp_eth_mac_t *mac, esp_eth_mediator_t *eth)
@@ -434,7 +433,7 @@ static void emac_esp32_rx_task(void *arg)
     uint8_t *buffer = NULL;
     while (1) {
         // block indefinitely until got notification from underlay event
-        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+        esp_os_task_notify_take(true, portMAX_DELAY);
         do {
             /* set max expected frame len */
             uint32_t frame_len = ETH_MAX_PACKET_SIZE;
@@ -531,7 +530,7 @@ static esp_err_t emac_esp32_init(esp_eth_mac_t *mac)
         if (emac_hal_is_reset_done(&emac->hal)) {
             break;
         }
-        vTaskDelay(pdMS_TO_TICKS(10));
+        esp_os_task_delay_ms(10);
     }
     ESP_GOTO_ON_FALSE(to < emac->sw_reset_timeout_ms / 10, ESP_ERR_TIMEOUT, err, TAG, "reset timeout");
     /* set smi clock */
@@ -646,26 +645,26 @@ IRAM_ATTR void emac_isr_default_handler(void *args)
 
 #if EMAC_LL_CONFIG_ENABLE_INTR_MASK & EMAC_LL_INTR_RECEIVE_ENABLE
     if (intr_stat & EMAC_LL_DMA_RECEIVE_FINISH_INTR) {
-        BaseType_t rx_high_task_woken = pdFALSE;
+        int rx_high_task_woken = 0;
         /* notify receive task */
-        vTaskNotifyGiveFromISR(emac->rx_task_hdl, &rx_high_task_woken);
+        esp_os_task_notify_give_from_isr(emac->rx_task_hdl, &rx_high_task_woken);
         high_task_woken |= (bool)rx_high_task_woken;
     }
 #endif // EMAC_LL_CONFIG_ENABLE_INTR_MASK & EMAC_LL_INTR_RECEIVE_ENABLE
 
     if (high_task_woken) {
-        portYIELD_FROM_ISR();
+        OS_PORT_YIELD_FROM_ISR();
     }
 }
 
 static void emac_esp_free_driver_obj(emac_esp32_t *emac)
 {
     if (emac) {
-        if (emac->rx_task_hdl) {
-            vTaskDelete(emac->rx_task_hdl);
+        if (emac->rx_task_hdl > 0) {
+            esp_os_task_delete(emac->rx_task_hdl);
         }
         if (emac->intr_hdl) {
-            esp_intr_free(emac->intr_hdl);
+            esp_os_intr_free(emac->intr_hdl);
         }
 
         if (emac->use_pll) {
@@ -681,9 +680,7 @@ static void emac_esp_free_driver_obj(emac_esp32_t *emac)
         }
 #endif // CONFIG_IDF_TARGET_ESP32
 
-        if (emac->multi_reg_mutex) {
-            vSemaphoreDelete(emac->multi_reg_mutex);
-        }
+        esp_os_delete_mutex(&emac->multi_reg_mutex);
 
 #ifdef CONFIG_PM_ENABLE
         if (emac->pm_lock) {
@@ -699,7 +696,7 @@ static void emac_esp_free_driver_obj(emac_esp32_t *emac)
 
         emac_esp_del_dma(emac->emac_dma_hndl);
 
-        free(emac);
+        heap_caps_free(emac);
     }
 }
 
@@ -710,7 +707,7 @@ static esp_err_t emac_esp_alloc_driver_obj(const eth_mac_config_t *config, emac_
     if (config->flags & ETH_MAC_FLAG_WORK_WITH_CACHE_DISABLE) {
         emac = heap_caps_calloc(1, sizeof(emac_esp32_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
     } else {
-        emac = calloc(1, sizeof(emac_esp32_t));
+        emac = heap_caps_calloc(1, sizeof(emac_esp32_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
     }
     ESP_GOTO_ON_FALSE(emac, ESP_ERR_NO_MEM, err, TAG, "no mem for esp emac object");
 
@@ -738,16 +735,17 @@ static esp_err_t emac_esp_alloc_driver_obj(const eth_mac_config_t *config, emac_
 
     ESP_GOTO_ON_ERROR(emac_esp_new_dma(NULL, &emac->emac_dma_hndl), err, TAG, "create EMAC DMA object failed");
 
-    emac->multi_reg_mutex = xSemaphoreCreateMutex();
-    ESP_GOTO_ON_FALSE(emac->multi_reg_mutex, ESP_ERR_NO_MEM, err, TAG, "failed to create multiple register access mutex");
+    esp_os_create_mutex(&emac->multi_reg_mutex);
 
     /* create rx task */
-    BaseType_t core_num = tskNO_AFFINITY;
+    int core_num = -1;
     if (config->flags & ETH_MAC_FLAG_PIN_TO_CORE) {
         core_num = esp_cpu_get_core_id();
     }
-    BaseType_t xReturned = xTaskCreatePinnedToCore(emac_esp32_rx_task, "emac_rx", config->rx_task_stack_size, emac,
-                                                   config->rx_task_prio, &emac->rx_task_hdl, core_num);
+    int xReturned = esp_os_create_task_pinned_to_core(emac_esp32_rx_task, "emac_rx",
+                                                       config->rx_task_stack_size, emac,
+                                                       config->rx_task_prio, &emac->rx_task_hdl,
+                                                       core_num);
     ESP_GOTO_ON_FALSE(xReturned == pdPASS, ESP_FAIL, err, TAG, "create emac_rx task failed");
 
 err:
@@ -963,11 +961,9 @@ esp_eth_mac_t *esp_eth_mac_new_esp32(const eth_esp32_emac_config_t *esp32_config
     if (config->flags & ETH_MAC_FLAG_WORK_WITH_CACHE_DISABLE) {
         isr_flags |= ESP_INTR_FLAG_IRAM;
     }
-    ret_code = esp_intr_alloc(ETS_ETH_MAC_INTR_SOURCE, isr_flags,
-                              emac_isr_default_handler, &emac->hal, &(emac->intr_hdl));
+    ret_code = esp_os_intr_alloc(ETS_ETH_MAC_INTR_SOURCE, isr_flags,
+                                 emac_isr_default_handler, &emac->hal, &(emac->intr_hdl));
     ESP_GOTO_ON_FALSE(ret_code == ESP_OK, NULL, err, TAG, "alloc emac interrupt failed");
-    ret_code = esp_intr_enable(emac->intr_hdl);
-    ESP_GOTO_ON_FALSE(ret_code == ESP_OK, NULL, err, TAG, "enable interrupt failed");
 
     /* init GPIO used by SMI interface */
     ret_code = emac_esp_gpio_init_smi(&esp32_config->smi_gpio);

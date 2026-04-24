@@ -419,11 +419,15 @@ esp_err_t esp_os_intr_alloc(int source, int flags,
  * Name: esp_os_intr_alloc_intrstatus
  *
  * Description:
- *   Allocate an interrupt handler with interrupt status register.
+ *   Allocate an interrupt handler with interrupt status register.  Mirrors
+ *   the semantics of ESP-IDF's esp_intr_alloc_intrstatus(): the interrupt
+ *   is enabled before returning, unless ESP_INTR_FLAG_INTRDISABLED is set
+ *   in flags, in which case the caller is expected to enable it later via
+ *   esp_intr_enable()/up_enable_irq().
  *
  * Input Parameters:
  *   source         - Interrupt source.
- *   flags          - Interrupt flags.
+ *   flags          - Interrupt flags (ESP_INTR_FLAG_*).
  *   intrstatusreg  - Interrupt status register.
  *   intrstatusmask - Interrupt status mask.
  *   handler        - Interrupt handler function.
@@ -443,7 +447,6 @@ esp_err_t esp_os_intr_alloc_intrstatus(int source, int flags,
                                         FAR intr_handle_t *ret_handle)
 {
   FAR struct intr_adapter_to_nuttx *isr_adapter_args;
-  int ret;
   int irq = ESP_SOURCE2IRQ(source);
   int cpuint;
 
@@ -476,7 +479,15 @@ esp_err_t esp_os_intr_alloc_intrstatus(int source, int flags,
       return ESP_ERR_NOT_FOUND;
     }
 
-  up_enable_irq(irq);
+  /* Honour ESP_INTR_FLAG_INTRDISABLED: return with the interrupt disabled
+   * so the caller can enable it explicitly once its ISR context is fully
+   * initialised (matches ESP-IDF's esp_intr_alloc() behaviour).
+   */
+
+  if ((flags & ESP_INTR_FLAG_INTRDISABLED) == 0)
+    {
+      up_enable_irq(irq);
+    }
 
   return ESP_OK;
 }
@@ -747,6 +758,102 @@ void esp_os_lock_recursive_mutex(FAR esp_os_recursive_mutex_t *mutex)
 void esp_os_unlock_recursive_mutex(FAR esp_os_recursive_mutex_t *mutex)
 {
   nxrmutex_unlock(mutex);
+}
+
+/****************************************************************************
+ * Name: esp_os_delete_recursive_mutex
+ *
+ * Description:
+ *   Destroy a recursive mutex previously initialized with
+ *   esp_os_create_recursive_mutex().
+ *
+ * Input Parameters:
+ *   mutex - Pointer to the recursive mutex to destroy.
+ *
+ ****************************************************************************/
+
+void esp_os_delete_recursive_mutex(FAR esp_os_recursive_mutex_t *mutex)
+{
+  nxrmutex_destroy(mutex);
+}
+
+/****************************************************************************
+ * Name: esp_os_create_mutex
+ *
+ * Description:
+ *   Initialize a non-recursive mutex.
+ *
+ * Input Parameters:
+ *   mutex - Pointer to the mutex to initialize.
+ *
+ ****************************************************************************/
+
+void esp_os_create_mutex(FAR esp_os_mutex_t *mutex)
+{
+  nxmutex_init(mutex);
+}
+
+/****************************************************************************
+ * Name: esp_os_lock_mutex_timeout
+ *
+ * Description:
+ *   Attempt to lock a non-recursive mutex, blocking up to timeout_ms
+ *   milliseconds.  A timeout_ms value of UINT32_MAX blocks indefinitely.
+ *
+ * Input Parameters:
+ *   mutex      - Pointer to the mutex to lock.
+ *   timeout_ms - Maximum time (in milliseconds) to wait for the mutex.
+ *
+ * Returned Value:
+ *   0 on success, -ETIMEDOUT if the mutex could not be acquired before
+ *   the timeout expired, or a negated errno value on other failures.
+ *
+ ****************************************************************************/
+
+int esp_os_lock_mutex_timeout(FAR esp_os_mutex_t *mutex, uint32_t timeout_ms)
+{
+  if (timeout_ms == UINT32_MAX)
+    {
+      return nxmutex_lock(mutex);
+    }
+
+  return nxmutex_timedlock(mutex, timeout_ms);
+}
+
+/****************************************************************************
+ * Name: esp_os_unlock_mutex
+ *
+ * Description:
+ *   Unlock a non-recursive mutex.
+ *
+ * Input Parameters:
+ *   mutex - Pointer to the mutex to unlock.
+ *
+ * Returned Value:
+ *   0 on success, or a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+int esp_os_unlock_mutex(FAR esp_os_mutex_t *mutex)
+{
+  return nxmutex_unlock(mutex);
+}
+
+/****************************************************************************
+ * Name: esp_os_delete_mutex
+ *
+ * Description:
+ *   Destroy a non-recursive mutex previously initialized with
+ *   esp_os_create_mutex().
+ *
+ * Input Parameters:
+ *   mutex - Pointer to the mutex to destroy.
+ *
+ ****************************************************************************/
+
+void esp_os_delete_mutex(FAR esp_os_mutex_t *mutex)
+{
+  nxmutex_destroy(mutex);
 }
 
 /****************************************************************************

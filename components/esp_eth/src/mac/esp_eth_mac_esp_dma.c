@@ -484,12 +484,12 @@ esp_err_t emac_esp_del_dma(emac_esp_dma_handle_t emac_esp_dma)
 {
     if (emac_esp_dma) {
         for (int i = 0; i < CONFIG_ETH_DMA_TX_BUFFER_NUM; i++) {
-            free(emac_esp_dma->tx_buf[i]);
+            heap_caps_free(emac_esp_dma->tx_buf[i]);
         }
         for (int i = 0; i < CONFIG_ETH_DMA_RX_BUFFER_NUM; i++) {
-            free(emac_esp_dma->rx_buf[i]);
+            heap_caps_free(emac_esp_dma->rx_buf[i]);
         }
-        free(emac_esp_dma->descriptors);
+        heap_caps_free(emac_esp_dma->descriptors);
         free(emac_esp_dma);
     }
     return ESP_OK;

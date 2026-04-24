@@ -12,8 +12,7 @@
 #include "esp_event.h"
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+#include "platform/os.h"
 
 #if CONFIG_ETH_TRANSMIT_MUTEX
 /**
@@ -55,7 +54,7 @@ typedef struct {
     void *priv;
     _Atomic esp_eth_fsm_t fsm;
 #if CONFIG_ETH_TRANSMIT_MUTEX
-    SemaphoreHandle_t transmit_mutex;
+    esp_os_mutex_t transmit_mutex;
 #endif // CONFIG_ETH_TRANSMIT_MUTEX
     esp_err_t (*stack_input)(esp_eth_handle_t eth_handle, uint8_t *buffer, uint32_t length, void *priv);
     esp_err_t (*stack_input_info)(esp_eth_handle_t eth_handle, uint8_t *buffer, uint32_t length, void *priv, void *info);
@@ -218,8 +217,7 @@ esp_err_t esp_eth_driver_install(const esp_eth_config_t *config, esp_eth_handle_
     };
     ESP_GOTO_ON_ERROR(esp_timer_create(&check_link_timer_args, &eth_driver->check_link_timer), err, TAG, "create link timer failed");
 #if CONFIG_ETH_TRANSMIT_MUTEX
-    eth_driver->transmit_mutex = xSemaphoreCreateMutex();
-    ESP_GOTO_ON_FALSE(eth_driver->transmit_mutex, ESP_ERR_NO_MEM, err, TAG, "Failed to create transmit mutex");
+    esp_os_create_mutex(&eth_driver->transmit_mutex);
 #endif // CONFIG_ETH_TRANSMIT_MUTEX
     atomic_init(&eth_driver->ref_count, 1);
     atomic_init(&eth_driver->fsm, ESP_ETH_FSM_STOP);
@@ -263,10 +261,10 @@ err:
         }
 #if CONFIG_ETH_TRANSMIT_MUTEX
         if (eth_driver->transmit_mutex) {
-            vSemaphoreDelete(eth_driver->transmit_mutex);
+            esp_os_delete_mutex(&eth_driver->transmit_mutex);
         }
 #endif // CONFIG_ETH_TRANSMIT_MUTEX
-        free(eth_driver);
+        heap_caps_free(eth_driver);
     }
     return ret;
 }
@@ -288,11 +286,11 @@ esp_err_t esp_eth_driver_uninstall(esp_eth_handle_t hdl)
     esp_eth_phy_t *phy = eth_driver->phy;
     ESP_GOTO_ON_ERROR(esp_timer_delete(eth_driver->check_link_timer), err, TAG, "delete link timer failed");
 #if CONFIG_ETH_TRANSMIT_MUTEX
-    vSemaphoreDelete(eth_driver->transmit_mutex);
+    esp_os_delete_mutex(&eth_driver->transmit_mutex);
 #endif // CONFIG_ETH_TRANSMIT_MUTEX
     ESP_GOTO_ON_ERROR(phy->deinit(phy), err, TAG, "deinit phy failed");
     ESP_GOTO_ON_ERROR(mac->deinit(mac), err, TAG, "deinit mac failed");
-    free(eth_driver);
+    heap_caps_free(eth_driver);
 err:
     return ret;
 }
@@ -391,13 +389,13 @@ esp_err_t esp_eth_transmit(esp_eth_handle_t hdl, void *buf, size_t length)
     esp_eth_mac_t *mac = eth_driver->mac;
 
 #if CONFIG_ETH_TRANSMIT_MUTEX
-    if (xSemaphoreTake(eth_driver->transmit_mutex, pdMS_TO_TICKS(ESP_ETH_TX_TIMEOUT_MS)) == pdFALSE) {
+    if (esp_os_lock_mutex_timeout(&eth_driver->transmit_mutex, ESP_ETH_TX_TIMEOUT_MS) != 0) {
         return ESP_ERR_TIMEOUT;
     }
 #endif // CONFIG_ETH_TRANSMIT_MUTEX
     ret = mac->transmit(mac, buf, length);
 #if CONFIG_ETH_TRANSMIT_MUTEX
-    xSemaphoreGive(eth_driver->transmit_mutex);
+    esp_os_unlock_mutex(&eth_driver->transmit_mutex);
 #endif // CONFIG_ETH_TRANSMIT_MUTEX
 err:
     return ret;
@@ -417,14 +415,14 @@ esp_err_t esp_eth_transmit_ctrl_vargs(esp_eth_handle_t hdl, void *ctrl, uint32_t
     va_list args;
     esp_eth_mac_t *mac = eth_driver->mac;
 #if CONFIG_ETH_TRANSMIT_MUTEX
-    if (xSemaphoreTake(eth_driver->transmit_mutex, pdMS_TO_TICKS(ESP_ETH_TX_TIMEOUT_MS)) == pdFALSE) {
+    if (esp_os_lock_mutex_timeout(&eth_driver->transmit_mutex, ESP_ETH_TX_TIMEOUT_MS) != 0) {
         return ESP_ERR_TIMEOUT;
     }
 #endif // CONFIG_ETH_TRANSMIT_MUTEX
     va_start(args, argc);
     ret = mac->transmit_ctrl_vargs(mac, ctrl, argc, args);
 #if CONFIG_ETH_TRANSMIT_MUTEX
-    xSemaphoreGive(eth_driver->transmit_mutex);
+    esp_os_unlock_mutex(&eth_driver->transmit_mutex);
 #endif // CONFIG_ETH_TRANSMIT_MUTEX
     va_end(args);
 err:

@@ -10,8 +10,7 @@
 #include "esp_check.h"
 #include "esp_eth.h"
 #include "esp_private/gpio.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+#include "platform/os.h"
 #include "driver/gpio.h"
 #include "soc/io_mux_reg.h"
 #include "esp_rom_sys.h"
@@ -140,7 +139,7 @@ esp_err_t esp_eth_phy_802_3_reset(phy_802_3_t *phy_802_3)
     /* wait for reset complete */
     uint32_t to = 0;
     for (to = 0; to < phy_802_3->reset_timeout_ms / 10; to++) {
-        vTaskDelay(pdMS_TO_TICKS(10));
+        esp_os_task_delay_ms(10);
         ESP_GOTO_ON_ERROR(eth->phy_reg_read(eth, phy_802_3->addr, ETH_PHY_BMCR_REG_ADDR, &(bmcr.val)), err, TAG, "read BMCR failed");
         if (!bmcr.reset) {
             break;
@@ -173,7 +172,7 @@ esp_err_t esp_eth_phy_802_3_autonego_ctrl(phy_802_3_t *phy_802_3, eth_phy_autone
         bmsr_reg_t bmsr;
         uint32_t to = 0;
         for (to = 0; to < phy_802_3->autonego_timeout_ms / 100; to++) {
-            vTaskDelay(pdMS_TO_TICKS(100));
+            esp_os_task_delay_ms(100);
             ESP_GOTO_ON_ERROR(eth->phy_reg_read(eth, phy_802_3->addr, ETH_PHY_BMSR_REG_ADDR, &(bmsr.val)), err, TAG, "read BMSR failed");
             if (bmsr.auto_nego_complete) {
                 break;
@@ -296,7 +295,7 @@ esp_err_t esp_eth_phy_802_3_pwrctl(phy_802_3_t *phy_802_3, bool enable)
         /* wait for power up complete */
         uint32_t to = 0;
         for (to = 0; to < phy_802_3->reset_timeout_ms / 10; to++) {
-            vTaskDelay(pdMS_TO_TICKS(10));
+            esp_os_task_delay_ms(10);
             ESP_GOTO_ON_ERROR(eth->phy_reg_read(eth, phy_802_3->addr, ETH_PHY_BMCR_REG_ADDR, &(bmcr.val)), err, TAG, "read BMCR failed");
             if (bmcr.power_down == 0) {
                 break;
@@ -445,11 +444,11 @@ esp_err_t esp_eth_phy_802_3_reset_hw(phy_802_3_t *phy_802_3)
         if (phy_802_3->hw_reset_assert_time_us < 10000) {
             esp_rom_delay_us(phy_802_3->hw_reset_assert_time_us);
         } else {
-            vTaskDelay(pdMS_TO_TICKS(phy_802_3->hw_reset_assert_time_us/1000));
+            esp_os_task_delay_ms(phy_802_3->hw_reset_assert_time_us / 1000);
         }
         gpio_set_level(phy_802_3->reset_gpio_num, 1);
         if (phy_802_3->post_hw_reset_delay_ms > 0) {
-            vTaskDelay(pdMS_TO_TICKS(phy_802_3->post_hw_reset_delay_ms));
+            esp_os_task_delay_ms(phy_802_3->post_hw_reset_delay_ms);
         }
         return ESP_OK;
     }
