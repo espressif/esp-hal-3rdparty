@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Unlicense OR CC0-1.0
  */
@@ -60,6 +60,13 @@ static const uint8_t k1_ds_encrypt[] = {
 #endif /* SOC_KEY_MANAGER_DS_KEY_DEPLOY */
 
 static const char *TAG = "key_mgr_test";
+
+#define SKIP_IF_KEY_MGR_NOT_SUPPORTED()                                                   \
+    do {                                                                                  \
+        if (!key_mgr_ll_is_supported()) {                                                 \
+            TEST_IGNORE_MESSAGE("Key Manager not supported on this chip");                \
+        }                                                                                 \
+    } while (0)
 
 #define ENCRYPTED_DATA_SIZE 128
 static const uint8_t plaintext_data[ENCRYPTED_DATA_SIZE] = {
@@ -147,6 +154,8 @@ static esp_err_t test_xts_aes_key(bool verify)
 
 TEST_CASE("Key Manager AES mode: XTS-AES-128 key deployment", "[hw_crypto] [key_mgr]")
 {
+    SKIP_IF_KEY_MGR_NOT_SUPPORTED();
+
     esp_key_mgr_aes_key_config_t *key_config = calloc(1, sizeof(esp_key_mgr_aes_key_config_t));
     TEST_ASSERT_NOT_NULL(key_config);
 
@@ -171,6 +180,8 @@ TEST_CASE("Key Manager AES mode: XTS-AES-128 key deployment", "[hw_crypto] [key_
 
 TEST_CASE("Key Manager ECDH0 mode: XTS-AES-128 key deployment", "[hw_crypto] [key_mgr]")
 {
+    SKIP_IF_KEY_MGR_NOT_SUPPORTED();
+
     esp_key_mgr_ecdh0_key_config_t *key_config = calloc(1, sizeof(esp_key_mgr_ecdh0_key_config_t));
     TEST_ASSERT_NOT_NULL(key_config);
 
@@ -196,6 +207,8 @@ TEST_CASE("Key Manager ECDH0 mode: XTS-AES-128 key deployment", "[hw_crypto] [ke
 
 TEST_CASE("Key Manager Random mode: XTS-AES-128 key deployment", "[hw_crypto] [key_mgr]")
 {
+    SKIP_IF_KEY_MGR_NOT_SUPPORTED();
+
     esp_key_mgr_random_key_config_t *key_config = calloc(1, sizeof(esp_key_mgr_random_key_config_t));
     TEST_ASSERT_NOT_NULL(key_config);
 
@@ -218,6 +231,8 @@ TEST_CASE("Key Manager Random mode: XTS-AES-128 key deployment", "[hw_crypto] [k
 #if SOC_KEY_MANAGER_ECDSA_KEY_DEPLOY
 TEST_CASE("Key Manager random mode: ECDSA key deployment", "[hw_crypto] [key_mgr]")
 {
+    SKIP_IF_KEY_MGR_NOT_SUPPORTED();
+
     esp_key_mgr_random_key_config_t *key_config = calloc(1, sizeof(esp_key_mgr_random_key_config_t));
     TEST_ASSERT_NOT_NULL(key_config);
 
@@ -249,6 +264,8 @@ static esp_err_t test_hmac_key(bool verify)
 
 TEST_CASE("Key Manager AES mode: HMAC key deployment", "[hw_crypto] [key_mgr]")
 {
+    SKIP_IF_KEY_MGR_NOT_SUPPORTED();
+
     esp_key_mgr_aes_key_config_t *key_config = calloc(1, sizeof(esp_key_mgr_aes_key_config_t));
     TEST_ASSERT_NOT_NULL(key_config);
 
@@ -272,6 +289,8 @@ TEST_CASE("Key Manager AES mode: HMAC key deployment", "[hw_crypto] [key_mgr]")
 
 TEST_CASE("Key Manager ECDH0 mode: HMAC key deployment", "[hw_crypto] [key_mgr]")
 {
+    SKIP_IF_KEY_MGR_NOT_SUPPORTED();
+
     esp_key_mgr_ecdh0_key_config_t *key_config = calloc(1, sizeof(esp_key_mgr_ecdh0_key_config_t));
     TEST_ASSERT_NOT_NULL(key_config);
 
@@ -296,6 +315,8 @@ TEST_CASE("Key Manager ECDH0 mode: HMAC key deployment", "[hw_crypto] [key_mgr]"
 
 TEST_CASE("Key Manager random mode: HMAC key deployment", "[hw_crypto] [key_mgr]")
 {
+    SKIP_IF_KEY_MGR_NOT_SUPPORTED();
+
     esp_key_mgr_random_key_config_t *key_config = calloc(1, sizeof(esp_key_mgr_random_key_config_t));
     TEST_ASSERT_NOT_NULL(key_config);
 
@@ -344,6 +365,8 @@ static esp_err_t test_ds_key(void)
 
 TEST_CASE("Key Manager AES mode: DS key deployment", "[hw_crypto] [key_mgr]")
 {
+    SKIP_IF_KEY_MGR_NOT_SUPPORTED();
+
     esp_key_mgr_aes_key_config_t *key_config = calloc(1, sizeof(esp_key_mgr_aes_key_config_t));
     TEST_ASSERT_NOT_NULL(key_config);
 
@@ -367,6 +390,8 @@ TEST_CASE("Key Manager AES mode: DS key deployment", "[hw_crypto] [key_mgr]")
 
 TEST_CASE("Key Manager ECDH0 mode: DS key deployment", "[hw_crypto] [key_mgr]")
 {
+    SKIP_IF_KEY_MGR_NOT_SUPPORTED();
+
     esp_key_mgr_ecdh0_key_config_t *key_config = calloc(1, sizeof(esp_key_mgr_ecdh0_key_config_t));
     TEST_ASSERT_NOT_NULL(key_config);
 
@@ -391,6 +416,8 @@ TEST_CASE("Key Manager ECDH0 mode: DS key deployment", "[hw_crypto] [key_mgr]")
 
 TEST_CASE("Key Manager random mode: DS key deployment", "[hw_crypto] [key_mgr]")
 {
+    SKIP_IF_KEY_MGR_NOT_SUPPORTED();
+
     esp_key_mgr_random_key_config_t *key_config = calloc(1, sizeof(esp_key_mgr_random_key_config_t));
     TEST_ASSERT_NOT_NULL(key_config);
 
