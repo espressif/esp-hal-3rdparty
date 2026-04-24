@@ -1091,6 +1091,10 @@ config SOC_PM_PAU_REGDMA_LINK_IDX_WIFIMAC
     int
     default 4
 
+config SOC_PM_PAU_REGDMA_MODEM_WIFIMAC_WORKAROUND
+    bool
+    default y
+
 config SOC_PM_MODEM_RETENTION_BY_REGDMA
     bool
     default y
