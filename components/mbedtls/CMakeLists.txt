@@ -26,7 +26,7 @@ if(NOT ${IDF_TARGET} STREQUAL "linux")
     endif()
 endif()
 
-set(mbedtls_srcs "")
+set(mbedtls_srcs "port/esp_mem.c")
 set(mbedtls_include_dirs
     "port/include"
     "mbedtls/include"
@@ -55,14 +55,8 @@ idf_component_register(SRCS "${mbedtls_srcs}"
 # Add MBEDTLS_MAJOR_VERSION definition to the component library
 target_compile_definitions(${COMPONENT_LIB} INTERFACE MBEDTLS_MAJOR_VERSION=4)
 
-# Determine the type of mbedtls component library
-if(mbedtls_srcs STREQUAL "")
-    # For no sources in component library we must use "INTERFACE"
-    set(linkage_type INTERFACE)
-else()
-    set(linkage_type PUBLIC)
-endif()
-
+# Set the type of mbedtls component library
+set(linkage_type PUBLIC)
 
 if(CONFIG_MBEDTLS_CERTIFICATE_BUNDLE)
     set(bundle_name "x509_crt_bundle")
@@ -343,14 +337,6 @@ endif()
 if(NOT ${IDF_TARGET} STREQUAL "linux")
     target_sources(tfpsacrypto PRIVATE "${COMPONENT_DIR}/port/esp_hardware.c")
 endif()
-# esp_mem.c defines esp_mbedtls_mem_calloc/free, which platform.c (inside the
-# 'builtin' archive) calls via MBEDTLS_PLATFORM_STD_CALLOC/FREE. Compiling
-# esp_mem.c directly into 'builtin' ensures the symbols are in the same archive
-# as their caller, avoiding any link-order dependency on a separate archive.
-# port/include (for esp_mem.h) and the IDF global includes (sdkconfig.h,
-# esp_attr.h, esp_heap_caps.h) are both available here via directory-level
-# include_directories set up by idf_component_register before add_subdirectory.
-target_sources(builtin PRIVATE "${COMPONENT_DIR}/port/esp_mem.c")
 
 if(CONFIG_SOC_AES_SUPPORTED)
     target_include_directories(tfpsacrypto PRIVATE "${COMPONENT_DIR}/port/aes/include")
