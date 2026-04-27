@@ -133,7 +133,6 @@ def _handle_missing_tool(msg: str) -> None:
 
 
 try:
-    import idf_build_apps  # noqa: F401
     import pycparser  # noqa: F401
 except ImportError:
     _handle_missing_tool('ESP-IDF environment not found (missing python dependencies)')
@@ -268,8 +267,9 @@ def get_vars(parameters: list[Any]) -> tuple[str, str]:
 
 
 def generate_kconfig_wifi_caps(idf_path: str, component_path: str) -> list[str]:
-    from idf_build_apps.constants import PREVIEW_TARGETS
-    from idf_build_apps.constants import SUPPORTED_TARGETS
+    sys.path.append(os.path.join(idf_path, 'tools'))
+    from idf_py_actions.constants import PREVIEW_TARGETS
+    from idf_py_actions.constants import SUPPORTED_TARGETS
 
     kconfig = os.path.join(component_path, 'Kconfig.soc_wifi_caps.in')
     slave_select = os.path.join(component_path, 'Kconfig.slave_select.in')
