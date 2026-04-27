@@ -34,13 +34,13 @@
 #define SOC_LP_AHB_GDMA_SUPPORTED       1
 #define SOC_DMA2D_SUPPORTED             1
 #define SOC_GPTIMER_SUPPORTED           1
-// #define SOC_PCNT_SUPPORTED              1      // TODO: [ESP32S31] IDF-14699
 #define SOC_LCDCAM_SUPPORTED            1
 // #define SOC_LCDCAM_CAM_SUPPORTED        1      // TODO: [ESP32S31] IDF-14722
 #define SOC_LCDCAM_I80_LCD_SUPPORTED    1
 #define SOC_LCDCAM_RGB_LCD_SUPPORTED    1
 #define SOC_LCD_I80_SUPPORTED           1
 #define SOC_LCD_RGB_SUPPORTED           1
+#define SOC_PCNT_SUPPORTED              1
 #define SOC_MCPWM_SUPPORTED             1
 #define SOC_TWAI_SUPPORTED              1
 #define SOC_TWAI_FD_SUPPORTED           1
@@ -259,6 +259,11 @@
 #define SOC_I2C_SLAVE_CAN_GET_STRETCH_CAUSE     (1)
 
 #define SOC_I2C_SUPPORT_SLEEP_RETENTION         (1)
+
+/*-------------------------- PCNT CAPS ---------------------------------------*/
+#define SOC_PCNT_SUPPORT_RUNTIME_THRES_UPDATE 1
+#define SOC_PCNT_SUPPORT_CLEAR_SIGNAL         1
+#define SOC_PCNT_SUPPORT_STEP_NOTIFY          1
 
 /*-------------------------- MMU CAPS ----------------------------------------*/
 #define SOC_MMU_PAGE_SIZE_CONFIGURABLE        (1)

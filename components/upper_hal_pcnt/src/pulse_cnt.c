@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2021-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2021-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -164,32 +164,31 @@ static esp_err_t pcnt_unit_install_interrupt(pcnt_unit_t *unit)
     return esp_intr_alloc_info(&intr_info, &unit->intr);
 }
 
-static esp_err_t pcnt_register_to_group(pcnt_unit_t *unit)
+static esp_err_t pcnt_register_to_group(pcnt_unit_t *unit, int requested_group)
 {
-    pcnt_group_t *group = NULL;
+    int group_id = requested_group;
+
+    pcnt_group_t *group = pcnt_acquire_group_handle(group_id);
+    ESP_RETURN_ON_FALSE(group, ESP_ERR_NO_MEM, TAG, "no mem for group (%d)", group_id);
+
     int unit_id = -1;
-    for (int i = 0; i < PCNT_LL_GET(INST_NUM); i++) {
-        group = pcnt_acquire_group_handle(i);
-        ESP_RETURN_ON_FALSE(group, ESP_ERR_NO_MEM, TAG, "no mem for group (%d)", i);
-        // loop to search free unit in the group
-        portENTER_CRITICAL(&group->spinlock);
-        for (int j = 0; j < PCNT_LL_GET(UNITS_PER_INST); j++) {
-            if (!group->units[j]) {
-                unit_id = j;
-                group->units[j] = unit;
-                break;
-            }
-        }
-        portEXIT_CRITICAL(&group->spinlock);
-        if (unit_id < 0) {
-            pcnt_release_group_handle(group);
-        } else {
-            unit->group = group;
-            unit->unit_id = unit_id;
+    portENTER_CRITICAL(&group->spinlock);
+    for (int j = 0; j < PCNT_LL_GET(UNITS_PER_INST); j++) {
+        if (!group->units[j]) {
+            unit_id = j;
+            group->units[j] = unit;
             break;
         }
     }
-    ESP_RETURN_ON_FALSE(unit_id != -1, ESP_ERR_NOT_FOUND, TAG, "no free unit");
+    portEXIT_CRITICAL(&group->spinlock);
+
+    if (unit_id < 0) {
+        // No free unit in the requested instance; release the reference we just took
+        pcnt_release_group_handle(group);
+        ESP_RETURN_ON_FALSE(false, ESP_ERR_NOT_FOUND, TAG, "no free unit in group (%d)", group_id);
+    }
+    unit->group = group;
+    unit->unit_id = unit_id;
     return ESP_OK;
 }
 
@@ -237,10 +236,12 @@ esp_err_t pcnt_new_unit(const pcnt_unit_config_t *config, pcnt_unit_handle_t *re
         ESP_LOGW(TAG, "can't overflow at high limit: %d due to hardware limitation", config->high_limit);
     }
 #endif
+    ESP_GOTO_ON_FALSE(config->group_id >= 0 && config->group_id < PCNT_LL_GET(INST_NUM),
+                      ESP_ERR_INVALID_ARG, err, TAG, "invalid group_id %d", config->group_id);
     unit = heap_caps_calloc(1, sizeof(pcnt_unit_t), PCNT_MEM_ALLOC_CAPS);
     ESP_GOTO_ON_FALSE(unit, ESP_ERR_NO_MEM, err, TAG, "no mem for unit");
     // register unit to the group (because one group can have several units)
-    ESP_GOTO_ON_ERROR(pcnt_register_to_group(unit), err, TAG, "register unit failed");
+    ESP_GOTO_ON_ERROR(pcnt_register_to_group(unit, config->group_id), err, TAG, "register unit failed");
     pcnt_group_t *group = unit->group;
     int group_id = group->group_id;
     int unit_id = unit->unit_id;

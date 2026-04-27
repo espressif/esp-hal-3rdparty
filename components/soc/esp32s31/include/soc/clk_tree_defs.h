@@ -152,6 +152,7 @@ typedef enum {
     SOC_MOD_CLK_RC_FAST,                       /*!< RC_FAST_CLK comes from the internal 20MHz rc oscillator, passing a clock gating to the peripherals */
     SOC_MOD_CLK_XTAL,                          /*!< XTAL_CLK comes from the external 40MHz crystal */
     SOC_MOD_CLK_APLL,                          /*!< Audio PLL is sourced from PLL, and its frequency is configurable through APLL configuration registers */
+    SOC_MOD_CLK_APB,                           /*!< APB_CLK is highly dependent on the CPU_CLK source */
     // For LP peripherals
     SOC_MOD_CLK_XTAL_D2,                       /*!< XTAL_D2_CLK comes from the external 40MHz crystal, passing a div of 2 to the LP peripherals */
     SOC_MOD_CLK_LP_DYN_FAST,                   /*!< LP_DYN_FAST can be derived from RTC_SLOW_CLK or RTC_FAST_CLK depending on the chip’s power mode:
@@ -464,7 +465,7 @@ typedef enum {
 /**
  * @brief Array initializer for all supported clock sources of MCPWM Carrier
  */
-#define SOC_MCPWM_CARRIER_CLKS {SOC_MOD_CLK_XTAL, SOC_MOD_CLK_PLL_F20M, SOC_MOD_CLK_PLL_F160M}
+#define SOC_MCPWM_CARRIER_CLKS {SOC_MOD_CLK_XTAL, SOC_MOD_CLK_RC_FAST, SOC_MOD_CLK_PLL_F160M}
 
 /**
  * @brief Type of MCPWM carrier clock source
@@ -646,6 +647,21 @@ typedef enum {
     CORDIC_CLK_SRC_RC_FAST = SOC_MOD_CLK_RC_FAST,
     CORDIC_CLK_SRC_DEFAULT = SOC_MOD_CLK_PLL_F160M,
 } soc_periph_cordic_clk_src_t;
+
+//////////////////////////////////////////////////PCNT//////////////////////////////////////////////////////////////////
+
+/**
+ * @brief Array initializer for all supported clock sources of PCNT
+ */
+#define SOC_PCNT_CLKS {SOC_MOD_CLK_APB}
+
+/**
+ * @brief Type of PCNT clock source
+ */
+typedef enum {
+    PCNT_CLK_SRC_APB = SOC_MOD_CLK_APB,           /*!< Select APB as the source clock */
+    PCNT_CLK_SRC_DEFAULT = SOC_MOD_CLK_APB,       /*!< Select APB as the default choice */
+} soc_periph_pcnt_clk_src_t;
 
 #ifdef __cplusplus
 }
