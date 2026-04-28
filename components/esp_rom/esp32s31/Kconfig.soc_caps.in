@@ -67,6 +67,10 @@ config ESP_ROM_WDT_INIT_PATCH
     bool
     default y
 
+config ESP_ROM_WDT_CONFIG_STAGE_PATCH
+    bool
+    default y
+
 config ESP_ROM_HAS_NEWLIB
     bool
     default y
