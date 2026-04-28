@@ -1287,7 +1287,7 @@ config SOC_I2S_SUPPORTS_APLL
     bool
     default y
 
-config SOC_I2S_SUPPORTS_RTC_FAST
+config SOC_I2S_SUPPORTS_RC_FAST
     bool
     default y
 

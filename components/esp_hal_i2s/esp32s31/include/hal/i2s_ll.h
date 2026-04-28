@@ -345,7 +345,7 @@ static inline void i2s_ll_tx_clk_set_src(i2s_dev_t *hw, i2s_clock_src_t src)
         case I2S_CLK_SRC_APLL:
             HP_SYS_CLKRST.i2s0_tx_ctrl0.reg_i2s0_tx_clk_src_sel = 1;
             return;
-        case I2S_CLK_SRC_RTC_FAST:
+        case I2S_CLK_SRC_RC_FAST:
             HP_SYS_CLKRST.i2s0_tx_ctrl0.reg_i2s0_tx_clk_src_sel = 2;
             return;
         case I2S_CLK_SRC_EXTERNAL:
@@ -363,7 +363,7 @@ static inline void i2s_ll_tx_clk_set_src(i2s_dev_t *hw, i2s_clock_src_t src)
         case I2S_CLK_SRC_APLL:
             HP_SYS_CLKRST.i2s1_tx_ctrl0.reg_i2s1_tx_clk_src_sel = 1;
             return;
-        case I2S_CLK_SRC_RTC_FAST:
+        case I2S_CLK_SRC_RC_FAST:
             HP_SYS_CLKRST.i2s1_tx_ctrl0.reg_i2s1_tx_clk_src_sel = 2;
             return;
         case I2S_CLK_SRC_EXTERNAL:
@@ -396,7 +396,7 @@ static inline void i2s_ll_rx_clk_set_src(i2s_dev_t *hw, i2s_clock_src_t src)
         case I2S_CLK_SRC_APLL:
             HP_SYS_CLKRST.i2s0_rx_ctrl0.reg_i2s0_rx_clk_src_sel = 1;
             return;
-        case I2S_CLK_SRC_RTC_FAST:
+        case I2S_CLK_SRC_RC_FAST:
             HP_SYS_CLKRST.i2s0_rx_ctrl0.reg_i2s0_rx_clk_src_sel = 2;
             return;
         case I2S_CLK_SRC_EXTERNAL:
@@ -414,7 +414,7 @@ static inline void i2s_ll_rx_clk_set_src(i2s_dev_t *hw, i2s_clock_src_t src)
         case I2S_CLK_SRC_APLL:
             HP_SYS_CLKRST.i2s1_rx_ctrl0.reg_i2s1_rx_clk_src_sel = 1;
             return;
-        case I2S_CLK_SRC_RTC_FAST:
+        case I2S_CLK_SRC_RC_FAST:
             HP_SYS_CLKRST.i2s1_rx_ctrl0.reg_i2s1_rx_clk_src_sel = 2;
             return;
         case I2S_CLK_SRC_EXTERNAL:
@@ -454,7 +454,7 @@ static inline i2s_clock_src_t i2s_ll_tx_clk_get_src(i2s_dev_t *hw)
     case 1:
         return (i2s_clock_src_t)I2S_CLK_SRC_APLL;
     case 2:
-        return (i2s_clock_src_t)I2S_CLK_SRC_RTC_FAST;
+        return (i2s_clock_src_t)I2S_CLK_SRC_RC_FAST;
     case 3:
         return (i2s_clock_src_t)I2S_CLK_SRC_EXTERNAL;
     default:
@@ -487,7 +487,7 @@ static inline i2s_clock_src_t i2s_ll_rx_clk_get_src(i2s_dev_t *hw)
     case 1:
         return (i2s_clock_src_t)I2S_CLK_SRC_APLL;
     case 2:
-        return (i2s_clock_src_t)I2S_CLK_SRC_RTC_FAST;
+        return (i2s_clock_src_t)I2S_CLK_SRC_RC_FAST;
     case 3:
         return (i2s_clock_src_t)I2S_CLK_SRC_EXTERNAL;
     default:

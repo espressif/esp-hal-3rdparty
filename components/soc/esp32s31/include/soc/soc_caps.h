@@ -525,7 +525,7 @@
 #define SOC_I2S_HW_VERSION_2                 (1)
 #define SOC_I2S_SUPPORTS_ETM                  (1)
 #define SOC_I2S_SUPPORTS_APLL                 (1)
-#define SOC_I2S_SUPPORTS_RTC_FAST             (1)     // Support RTC_FAST as I2S clock source
+#define SOC_I2S_SUPPORTS_RC_FAST             (1)     // Support RC_FAST as I2S clock source
 #define SOC_I2S_SUPPORTS_EXTERNAL             (1)     // Support External clock source
 #define SOC_I2S_SUPPORTS_PCM                  (1)
 #define SOC_I2S_SUPPORTS_PDM                  (1)
