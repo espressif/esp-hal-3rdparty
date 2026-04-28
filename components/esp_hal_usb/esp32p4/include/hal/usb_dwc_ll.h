@@ -1108,6 +1108,24 @@ FORCE_INLINE_ATTR void usb_dwc_ll_enable_bvalid_override(usb_dwc_dev_t *hw, bool
     hw->gotgctl_reg.bvalidoven = override;
 }
 
+/**
+ * @brief Software-anchor OTG session comparators for internal UTMI HS host (ESP32-P4).
+ *
+ * The HS USB-DWC instance does not expose ID / VBUSVALID / AVALID through the GPIO matrix
+ * (see `usb_dwc_periph.c`: `otg_signals` is NULL for controller 0). The FS controller uses
+ * constant matrix inputs in `usb_phy_otg_set_mode()` instead;
+ * When GUSBCFG.HNPCap is set, the OTG session logic still runs; floating or
+ * weak internal sense can make the host port unstable. This mirrors the FS host strap values:
+ * VBUS valid and A-session valid asserted
+ */
+FORCE_INLINE_ATTR void usb_dwc_ll_gotgctl_anchor_internal_utmi_a_host(usb_dwc_dev_t *hw, bool set_hst_set_hnp_en)
+{
+    hw->gotgctl_reg.vbvalidoven = 1;
+    hw->gotgctl_reg.vbvalidovval = 1;
+    hw->gotgctl_reg.avalidoven = 1;
+    hw->gotgctl_reg.avalidovval = 1;
+}
+
 // ---------------------------- Power and Clock Gating Register --------------------------------
 FORCE_INLINE_ATTR void usb_dwc_ll_set_stoppclk(usb_dwc_dev_t *hw, bool stop)
 {
