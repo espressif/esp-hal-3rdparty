@@ -1,0 +1,46 @@
+# Exact path
+LICENSE
+
+# Globs equivalent to your --path / --path-glob options
+components/bootloader
+components/bootloader_support
+components/bt
+components/efuse
+components/esp_adc
+components/esp_blockdev
+components/esp_app_format
+components/esp_coex
+components/esp_common
+components/esp_eth
+components/esp_event
+components/esp_hw_support
+components/esp_libc
+components/esp_mm
+components/esp_phy
+components/esp_pm
+components/esp_psram
+components/esp_rom
+components/esp_security
+components/esp_system
+components/esp_timer
+components/esp_wifi
+components/hal
+components/heap
+components/ieee802154
+components/log
+components/mbedtls
+components/partition_table
+components/riscv
+components/soc
+components/spi_flash
+components/ulp
+components/wpa_supplicant
+components/xtensa
+glob:components/esp_hal_*
+
+# Keep all esp_driver_* paths
+glob:components/esp_driver_*
+
+# Rename components/esp_driver_* -> components/upper_hal_*
+# Capture the suffix after esp_driver_ and reuse it.
+regex:^components/esp_driver_(.*)$==>components/upper_hal_\1

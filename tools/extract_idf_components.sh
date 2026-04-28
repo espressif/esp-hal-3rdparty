@@ -158,7 +158,7 @@ MSG_CALLBACK="
 # The components to be extracted are defined in the tools/<sync_branch_name>.txt file. Please note
 # that the file name is the sync branch name with '/' replaced with '_'.
 
-extract_components "master" "sync/master.b" --message-callback "${MSG_CALLBACK}"
+extract_components "master" "sync/master.c" --message-callback "${MSG_CALLBACK}"
 
 # Add new one here if you have new requirement
 
@@ -175,6 +175,8 @@ else
 fi
 
 ############## Deprecated Syncs ###################
+
+# extract_components "master" "sync/master.b" --message-callback "${MSG_CALLBACK}"
 
 # ARG=$(cat << EOF
 #       ${LIC_ARG} $(get_arg_by_components \

@@ -22,9 +22,9 @@ Where:
 
 ### Active Branches
 
-- [`sync/master.b`](../../tree/sync/master.b):
+- [`sync/master.c`](../../tree/sync/master.c):
     - Based on ESP-IDF `master` branch
-    - Includes components defined at [`tools/sync_master.b`](../../tree/sync/master.b/tools/sync_master.b.txt)
+    - Includes components defined at [`tools/sync_master.c`](../../tree/main/tools/sync_master.c.txt)
 
 ### Deprecated Branches
 
@@ -87,8 +87,8 @@ Where:
 
 ### Active Branches
 
-- [`release/master.b`](../../tree/release/master.b):
-    - Based on [`sync/master.b`](../../tree/sync/master.b) branch
+- [`release/master.c`](../../tree/release/master.c):
+    - Based on [`sync/master.c`](../../tree/sync/master.c) branch
     - Currently used by NuttX, referenced by commit SHA
 
 ### Deprecated Branches
@@ -108,6 +108,9 @@ Where:
 - [`release/master.a`](../../tree/release/master.a):
     - Based on [`sync/master.a`](../../tree/sync/master.a) branch
     - Deprecated: referenced by commit SHA
+- [`release/master.b`](../../tree/release/master.b):
+    - Based on [`sync/master.b`](../../tree/sync/master.b) branch
+    - Currently used by NuttX, referenced by commit SHA
 
 ## General Restrictions
 
