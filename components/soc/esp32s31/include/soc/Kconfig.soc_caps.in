@@ -183,6 +183,10 @@ config SOC_LP_I2C_SUPPORTED
     bool
     default y
 
+config SOC_LP_SPI_SUPPORTED
+    bool
+    default y
+
 config SOC_SPIRAM_SUPPORTED
     bool
     default y

@@ -512,9 +512,6 @@
 #define SOC_SPI_SUPPORT_SLAVE_HD_VER2       1
 #define SOC_SPI_SUPPORT_OCT                 1
 
-/*-------------------------- LP SPI CAPS ----------------------------------------*/
-#define SOC_LP_SPI_MAXIMUM_BUFFER_SIZE     64
-
 /*-------------------------- SPIRAM CAPS ----------------------------------------*/
 #define SOC_SPIRAM_XIP_SUPPORTED        1
 
