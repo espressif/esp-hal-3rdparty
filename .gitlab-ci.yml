@@ -1,3 +1,35 @@
+spec:
+  inputs:
+    ci-board-filter:
+      description: "Space separated list of boards to test. Example: \"esp32s3-lcd-ev\" or \"esp32s3-lcd-ev esp32-devkitc\" for multiple boards."
+      default: all
+    ci-incubator-nuttx-branch:
+      description: "Branch (or tag) of idf/apache/incubator-nuttx to run the triggered pipeline on."
+      default: master
+    ci-esp-apps-test-filter:
+      description: "Filter for esp-nuttx-apps tests. Use 'all' to run all tests, space-separated names for specific tests (e.g., 'spi adc'), or leave empty to skip."
+      default: "all"
+    ci-defconfig-filter:
+      description: "Filter for defconfigs on main CI only. Keep empty to run all defconfigs or add space-separated names for specific defconfigs (e.g., 'nsh timer')."
+      default: ""
+    ci-skip-qemu-tests:
+      description: "Set to true to skip the QEMU test stage."
+      default: false
+      type: boolean
+    ci-skip-hw-tests:
+      description: "Set to true to skip the hardware test stage."
+      default: false
+      type: boolean
+    ci-skip-smoke-test:
+      description: "Set to true to skip the smoke test stage."
+      default: false
+      type: boolean
+    ci-verbose:
+      description: "Set the verbose mode to build the firmware."
+      default: false
+      type: boolean
+---
+
 workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
@@ -6,10 +38,18 @@ workflow:
 stages:
   - Trigger
 
-test_nuttx:
+trigger_nuttx_pipeline:
   stage: Trigger
   trigger:
     project: idf/apache/incubator-nuttx
+    branch: $[[ inputs.ci-incubator-nuttx-branch ]]
     strategy: depend
   variables:
-    PARENT_ESP_HAL_3RDPARTY_VERSION: ${CI_COMMIT_SHA}
+    CI_ESP_HAL_3RDPARTY_VERSION: ${CI_COMMIT_REF_NAME}
+    CI_BOARD_FILTER: $[[ inputs.ci-board-filter ]]
+    CI_ESP_APPS_TEST_FILTER: $[[ inputs.ci-esp-apps-test-filter ]]
+    CI_DEFCONFIG_FILTER: $[[ inputs.ci-defconfig-filter ]]
+    CI_SKIP_QEMU_TESTS: $[[ inputs.ci-skip-qemu-tests ]]
+    CI_SKIP_HW_TESTS: $[[ inputs.ci-skip-hw-tests ]]
+    CI_SKIP_SMOKE_TEST: $[[ inputs.ci-skip-smoke-test ]]
+    CI_VERBOSE: $[[ inputs.ci-verbose ]]
