@@ -539,3 +539,6 @@
 #define SOC_I2S_SUPPORTS_TDM                  (1)
 #define SOC_I2S_PDM_MAX_TX_LINES              (2)     // On I2S0
 #define SOC_I2S_PDM_MAX_RX_LINES              (4)     // On I2S0
+
+/*---------------------------------- ASRC CAPS ----------------------------------*/
+#define SOC_ASRC_SUPPORTED (1)
