@@ -6,10 +6,7 @@ menu "Bootloader config"
 
     config BOOTLOADER_OFFSET_IN_FLASH
         hex
-        default 0x1000 if IDF_TARGET_ESP32 || IDF_TARGET_ESP32S2
-        # the first 2 sectors are reserved for the key manager with AES-XTS (flash encryption) purpose
-        default 0x2000 if IDF_TARGET_ESP32P4 || IDF_TARGET_ESP32C5 || IDF_TARGET_ESP32H4 || IDF_TARGET_ESP32S31
-        default 0x0
+        default ESP_ROM_BOOTLOADER_OFFSET_FLASH
         help
             Offset address that 2nd bootloader will be flashed to.
             The value is determined by the ROM bootloader.
