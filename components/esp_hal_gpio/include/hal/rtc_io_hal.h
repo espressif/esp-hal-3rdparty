@@ -203,23 +203,23 @@ void rtcio_hal_iomux_output(int rtcio_num, int func);
 
 #if SOC_LP_GPIO_MATRIX_SUPPORTED
 /**
- * Select RTC GPIO input to a signal
+ * @brief Set pad input to a LP peripheral signal through the LP GPIO matrix
  *
  * @param rtcio_num The index of rtcio. 0 ~ SOC_RTCIO_PIN_COUNT.
  * @param signal_idx LP peripheral signal index.
  * @param inv True to invert input signal; False then no invert.
  */
-#define rtcio_hal_matrix_in(rtcio_num, signal_idx, inv) rtcio_ll_matrix_in(rtcio_num, signal_idx, inv)
+void rtcio_hal_matrix_in(int rtcio_num, uint32_t signal_idx, bool inv);
 
 /**
- * Select signal output to a RTC GPIO
+ * @brief Set LP peripheral output to an RTC IO pad through the LP GPIO matrix
  *
  * @param rtcio_num The index of rtcio. 0 ~ SOC_RTCIO_PIN_COUNT.
  * @param signal_idx LP peripheral signal index.
  * @param out_inv True to invert output signal; False then no invert.
  * @param oen_inv True to invert output enable signal; False then no invert.
  */
-#define rtcio_hal_matrix_out(rtcio_num, signal_idx, out_inv, oen_inv) rtcio_ll_matrix_out(rtcio_num, signal_idx, out_inv, oen_inv)
+void rtcio_hal_matrix_out(int rtcio_num, uint32_t signal_idx, bool out_inv, bool oen_inv);
 #endif // SOC_LP_GPIO_MATRIX_SUPPORTED
 
 #endif // SOC_RTCIO_INPUT_OUTPUT_SUPPORTED
