@@ -521,11 +521,10 @@
 #define SOC_BLE_PERIODIC_ADV_WITH_RESPONSE          (1)     /*!< Support Bluetooth LE Periodic Advertising with Response (PAwR) */
 
 /*-------------------------- I2S CAPS ----------------------------------------*/
-#define SOC_I2S_NUM                          (2U)
-#define SOC_I2S_HW_VERSION_2                 (1)
+#define SOC_I2S_HW_VERSION_2                  (1)
 #define SOC_I2S_SUPPORTS_ETM                  (1)
 #define SOC_I2S_SUPPORTS_APLL                 (1)
-#define SOC_I2S_SUPPORTS_RC_FAST             (1)     // Support RC_FAST as I2S clock source
+#define SOC_I2S_SUPPORTS_RC_FAST              (1)     // Support RC_FAST as I2S clock source
 #define SOC_I2S_SUPPORTS_EXTERNAL             (1)     // Support External clock source
 #define SOC_I2S_SUPPORTS_PCM                  (1)
 #define SOC_I2S_SUPPORTS_PDM                  (1)
@@ -533,7 +532,7 @@
 #define SOC_I2S_SUPPORTS_PCM2PDM              (1)     // Support to write PCM format but output PDM format data with the help of PCM to PDM filter
 #define SOC_I2S_SUPPORTS_PDM_RX               (1)     // Support to input raw PDM format data
 #define SOC_I2S_SUPPORTS_PDM2PCM              (1)     // Support to input PDM format but read PCM format data with the help of PDM to PCM filter (only on I2S0)
-#define SOC_I2S_SUPPORTS_PDM_RX_HP_FILTER    (1)
+#define SOC_I2S_SUPPORTS_PDM_RX_HP_FILTER     (1)
 #define SOC_I2S_SUPPORTS_TX_SYNC_CNT          (1)     // Support TX synchronization count (ideal_cnt)
 #define SOC_I2S_SUPPORTS_RX_RECOMB            (1)     // Support RX recomb for DMA data format reorganization
 #define SOC_I2S_SUPPORTS_TDM                  (1)
