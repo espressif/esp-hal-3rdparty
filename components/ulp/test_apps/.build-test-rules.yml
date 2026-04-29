@@ -19,6 +19,16 @@ components/ulp/test_apps/lp_core/lp_core_basic_tests:
     - esp_hw_support
 
 
+components/ulp/test_apps/lp_core/lp_core_hp_mem:
+  disable:
+    - if: SOC_LP_CORE_SUPPORTED != 1
+  depends_components:
+    - ulp
+    - esp_hal_uart
+    - esp_hal_pmu
+    - esp_hw_support
+
+
 components/ulp/test_apps/lp_core/lp_core_hp_uart:
   disable:
     - if: SOC_LP_CORE_SUPPORTED != 1

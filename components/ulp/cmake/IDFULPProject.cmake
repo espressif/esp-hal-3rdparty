@@ -70,6 +70,7 @@ function(ulp_apply_default_sources ulp_app_name)
     list(APPEND ULP_PREPRO_ARGS -I${COMPONENT_DIR})
     list(APPEND ULP_PREPRO_ARGS -I${sdkconfig_dir})
     list(APPEND ULP_PREPRO_ARGS -I${IDF_PATH}/components/esp_system/ld)
+    list(APPEND ULP_PREPRO_ARGS -I${IDF_PATH}/components/esp_system/ld/${IDF_TARGET})
 
     target_include_directories(${ulp_app_name} PRIVATE ${COMPONENT_INCLUDES} ${sdkconfig_dir})
 
@@ -262,14 +263,23 @@ function(ulp_add_build_binary_targets ulp_app_name)
                     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
     # Dump the binary for inclusion into the project
-    add_custom_command(OUTPUT ${ulp_app_name}.bin
-                    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${ulp_app_name}> ${ulp_app_name}.bin
-                    DEPENDS ${ulp_app_name}
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+    if(BUILD_LP_CORE AND CONFIG_ULP_COPROC_RUN_FROM_HP_MEM)
+        add_custom_command(OUTPUT ${ulp_app_name}.bin
+                        COMMAND ${PYTHON} -m esptool --chip ${IDF_TARGET} elf2image
+                                --output ${ulp_app_name}.bin $<TARGET_FILE:${ulp_app_name}>
+                        DEPENDS ${ulp_app_name}
+                        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+    else()
+        add_custom_command(OUTPUT ${ulp_app_name}.bin
+                        COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${ulp_app_name}> ${ulp_app_name}.bin
+                        DEPENDS ${ulp_app_name}
+                        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+    endif()
 
     add_custom_command(OUTPUT ${ulp_app_name}.ld ${ulp_app_name}.h
                     COMMAND ${ULP_MAP_GEN} -s ${ulp_app_name}.sym -o ${ulp_app_name}
                             --base ${ULP_BASE_ADDR} --prefix ${ULP_PREFIX}
+                            --target ${IDF_TARGET}
                     DEPENDS ${ulp_app_name}.sym
                     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 

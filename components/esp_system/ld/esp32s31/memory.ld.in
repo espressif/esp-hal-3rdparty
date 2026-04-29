@@ -14,10 +14,14 @@
 
 #include "sdkconfig.h"
 #include "ld.common"
+#include "ld.hp_mem_defs"
 
 #define SRAM_START     0x2F000000
-#define SRAM_END       0x2F07AFC0  /* 2nd stage bootloader iram_loader_seg start address */
-#define SRAM_SIZE      SRAM_END - SRAM_START
+#if CONFIG_ULP_COPROC_RUN_FROM_HP_MEM
+#define SRAM_SIZE      (ULP_HP_MEM_START - SRAM_START)
+#else
+#define SRAM_SIZE      (SRAM_SEG_END - SRAM_START)
+#endif
 
 #define IDROM_SEG_SIZE   (CONFIG_MMU_PAGE_SIZE << 10)
 
@@ -116,3 +120,8 @@ REGION_ALIAS("rtc_reserved_seg", lp_reserved_seg);
 #endif //#if CONFIG_SPIRAM_XIP_FROM_PSRAM
 
 ALIGN_VECTOR_TABLE = 0x40;
+
+#if CONFIG_ULP_COPROC_RUN_FROM_HP_MEM
+_ulp_hp_mem_resv_start = ULP_HP_MEM_START;
+_ulp_hp_mem_resv_end   = ULP_HP_MEM_END;
+#endif
