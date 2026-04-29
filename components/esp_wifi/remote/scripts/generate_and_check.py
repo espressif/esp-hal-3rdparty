@@ -218,6 +218,8 @@ def preprocess(idf_path: str, header: str) -> str:
     from pycparser import preprocess_file
 
     preprocessed_code = preprocess_file(temp_file)
+    if os.path.exists(temp_file):
+        os.remove(temp_file)
     return cast(str, preprocessed_code)
 
 
@@ -705,6 +707,7 @@ making changes you might need to modify 'copyright_header.h' in the script direc
     parser.add_argument(
         '-s', '--skip-check', help='Skip checking the versioned files against the re-generated', action='store_true'
     )
+    parser.add_argument('-k', '--keep-test', help='Keep the generated test directory', action='store_true')
     parser.add_argument('--base-dir', help='Base directory to compare generated files against')
     args = parser.parse_args()
 
@@ -731,6 +734,15 @@ making changes you might need to modify 'copyright_header.h' in the script direc
             rc, _, _, _ = exec_cmd(['git', 'diff', '--exit-code', f])
             if rc != 0:
                 modified_files.append(f)
+
+    # Cleanup test directory if not requested to keep it
+    if not args.keep_test:
+        test_dir = os.path.join(component_path, 'test')
+        if os.path.exists(test_dir):
+            try:
+                shutil.rmtree(test_dir)
+            except Exception as e:
+                print(f'Warning: Failed to clean up test directory {test_dir}: {e}')
 
     if modified_files:
         print('WiFi-remote API files were updated:')
