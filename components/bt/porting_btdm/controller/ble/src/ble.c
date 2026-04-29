@@ -633,13 +633,6 @@ esp_err_t esp_ble_controller_init(esp_bt_controller_config_t *cfg)
         return ret;
     }
 
-#if CONFIG_BT_NIMBLE_ENABLED
-    /* ble_npl_eventq_init() needs to use npl functions in rom and
-     * must be called after esp_ble_controller_init().
-     */
-    ble_npl_eventq_init(nimble_port_get_dflt_eventq());
-#endif // CONFIG_BT_NIMBLE_ENABLE
-
     /* Enable BT-related clocks */
     // modem_clock_module_mac_reset(PERIPH_BT_MODULE);
     // modem_clock_module_enable(PERIPH_BT_MODULE);
@@ -733,10 +726,6 @@ modem_deint:
 #endif // CONFIG_BT_LE_CONTROLLER_LOG_ENABLED
     // modem_clock_deselect_lp_clock_source(PERIPH_BT_MODULE);
     // modem_clock_module_disable(PERIPH_BT_MODULE);
-#if CONFIG_BT_NIMBLE_ENABLED
-    ble_npl_eventq_deinit(nimble_port_get_dflt_eventq());
-#endif // CONFIG_BT_NIMBLE_ENABLED
-
     esp_unregister_ext_funcs();
     return ret;
 }
@@ -762,11 +751,6 @@ esp_err_t esp_ble_controller_deinit(void)
 #if CONFIG_BT_LE_CONTROLLER_LOG_ENABLED
     esp_bt_controller_log_deinit();
 #endif // CONFIG_BT_LE_CONTROLLER_LOG_ENABLED
-
-#if CONFIG_BT_NIMBLE_ENABLED
-    /* De-initialize default event queue */
-    ble_npl_eventq_deinit(nimble_port_get_dflt_eventq());
-#endif // CONFIG_BT_NIMBLE_ENABLED
 
     esp_unregister_ext_funcs();
 
