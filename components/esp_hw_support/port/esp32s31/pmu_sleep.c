@@ -206,7 +206,7 @@ const pmu_sleep_config_t* pmu_sleep_config_default(
             analog_default.hp_sys.analog.pd_cur = PMU_PD_CUR_SLEEP_ON;
             analog_default.hp_sys.analog.bias_sleep = PMU_BIASSLP_SLEEP_ON;
             analog_default.hp_sys.analog.dbg_atten = PMU_DBG_ATTEN_ACTIVE_DEFAULT;
-            analog_default.hp_sys.analog.dbias = HP_CALI_ACTIVE_DBIAS_DEFAULT;
+            analog_default.hp_sys.analog.dbias = HP_CALI_DBIAS_DEFAULT;
 
             // Analog parameters in LP_SLEEP
             analog_default.lp_sys[LP(SLEEP)].analog.pd_cur = PMU_PD_CUR_SLEEP_ON;
@@ -222,7 +222,7 @@ const pmu_sleep_config_t* pmu_sleep_config_default(
         config->analog.hp_sys.analog.pd_cur = PMU_PD_CUR_SLEEP_ON;
         config->analog.hp_sys.analog.bias_sleep = PMU_BIASSLP_SLEEP_ON;
         config->analog.hp_sys.analog.dbg_atten = PMU_DBG_ATTEN_ACTIVE_DEFAULT;
-        config->analog.hp_sys.analog.dbias = HP_CALI_ACTIVE_DBIAS_DEFAULT;
+        config->analog.hp_sys.analog.dbias = HP_CALI_DBIAS_DEFAULT;
     }
 
     config->power = power_default;
