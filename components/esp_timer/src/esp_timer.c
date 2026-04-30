@@ -496,7 +496,7 @@ static bool timer_process_alarm(esp_timer_dispatch_t dispatch_method)
             // It is handled only by ESP_TIMER_TASK (see esp_timer_delete()).
             // All the ESP_TIMER_ISR timers which should be deleted are moved by esp_timer_delete() to the ESP_TIMER_TASK list.
             // We want to free memory of the timer in a task context instead of an isr context.
-            free(it);
+            heap_caps_free(it);
             it = NULL;
         } else {
             it->flags |= FL_CALLBACK_IS_RUNNING;
