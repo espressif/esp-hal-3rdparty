@@ -18,6 +18,7 @@
 #include "bootloader_console.h"
 #include "bootloader_flash_priv.h"
 #include "bootloader_soc.h"
+#include "esp_efuse.h"
 #include "esp_private/bootloader_flash_internal.h"
 #if SOC_RTC_WDT_SUPPORTED
 #include "soc/rtc_wdt_reg.h"

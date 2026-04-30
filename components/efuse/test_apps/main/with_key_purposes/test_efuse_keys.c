@@ -161,7 +161,7 @@ TEST_CASE("Test esp_efuse_write_key for virt mode", "[efuse]")
     int tmp_purpose = 0;
     TEST_ESP_ERR(ESP_ERR_INVALID_ARG, esp_efuse_write_key(EFUSE_BLK3, tmp_purpose,  &rd_key, sizeof(rd_key)));
     TEST_ESP_ERR(ESP_ERR_INVALID_ARG, esp_efuse_write_key(EFUSE_BLK_KEY0, tmp_purpose, &rd_key, 33));
-    TEST_ESP_ERR(ESP_ERR_INVALID_ARG, esp_efuse_write_key(EFUSE_BLK10, tmp_purpose, &rd_key, sizeof(rd_key)));
+    TEST_ESP_ERR(ESP_ERR_INVALID_ARG, esp_efuse_write_key(EFUSE_BLK_SYS_DATA_PART2, tmp_purpose, &rd_key, sizeof(rd_key)));
 
     for (esp_efuse_purpose_t g_purpose = ESP_EFUSE_KEY_PURPOSE_USER; g_purpose < ESP_EFUSE_KEY_PURPOSE_MAX; ++g_purpose) {
         if (g_purpose == ESP_EFUSE_KEY_PURPOSE_USER) {
