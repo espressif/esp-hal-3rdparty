@@ -62,6 +62,9 @@ static void IRAM_ATTR modem_clock_wifi_mac_configure(modem_clock_context_t *ctx,
 static void IRAM_ATTR modem_clock_wifi_bb_configure(modem_clock_context_t *ctx, bool enable)
 {
     if (enable || !(ctx->modem_status & MODEM_STATUS_WIFI_INITED)) {
+        if (enable) {
+            modem_syscon_ll_reset_wifibb(ctx->hal->syscon_dev);
+        }
         modem_syscon_ll_clk_wifibb_configure(ctx->hal->syscon_dev, enable);
     }
 }
