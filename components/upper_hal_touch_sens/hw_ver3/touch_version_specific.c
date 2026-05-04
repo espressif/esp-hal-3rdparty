@@ -11,8 +11,7 @@
 
 #include <inttypes.h>
 #include <string.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
+#include "platform/os.h"
 #include "soc/soc_caps.h"
 #include "soc/clk_tree_defs.h"
 #include "hal/touch_sensor_periph.h"
@@ -36,7 +35,7 @@
 
 static const char *TAG = "touch";
 
-portMUX_TYPE g_touch_spinlock = portMUX_INITIALIZER_UNLOCKED;
+DEFINE_CRIT_SECTION_LOCK(g_touch_spinlock);
 
 /******************************************************************************
  *                       Scope: touch driver private                          *
@@ -128,7 +127,7 @@ void IRAM_ATTR touch_priv_default_intr_handler(void *arg)
     }
 
     if (need_yield) {
-        portYIELD_FROM_ISR();
+        OS_PORT_YIELD_FROM_ISR();
     }
 }
 
@@ -304,7 +303,7 @@ esp_err_t touch_sensor_config_filter(touch_sensor_handle_t sens_handle, const to
     }
 
     esp_err_t ret = ESP_OK;
-    xSemaphoreTakeRecursive(sens_handle->mutex, portMAX_DELAY);
+    esp_os_lock_recursive_mutex(sens_handle->mutex);
     TOUCH_ENTER_CRITICAL(TOUCH_PERIPH_LOCK);
 
     if (filter_cfg) {
@@ -324,7 +323,7 @@ esp_err_t touch_sensor_config_filter(touch_sensor_handle_t sens_handle, const to
     }
 
     TOUCH_EXIT_CRITICAL(TOUCH_PERIPH_LOCK);
-    xSemaphoreGiveRecursive(sens_handle->mutex);
+    esp_os_unlock_recursive_mutex(sens_handle->mutex);
     return ret;
 }
 
@@ -359,7 +358,7 @@ esp_err_t touch_sensor_config_sleep_wakeup(touch_sensor_handle_t sens_handle, co
     touch_hal_config_t *hal_cfg_ptr = NULL;
     esp_sleep_pd_option_t slp_opt = ESP_PD_OPTION_AUTO;
 
-    xSemaphoreTakeRecursive(sens_handle->mutex, portMAX_DELAY);
+    esp_os_lock_recursive_mutex(sens_handle->mutex);
     TOUCH_GOTO_ON_FALSE_FSM(!sens_handle->is_enabled, ESP_ERR_INVALID_STATE, err, TAG, "Please disable the touch sensor first");
 
     if (sleep_cfg) {
@@ -439,7 +438,7 @@ esp_err_t touch_sensor_config_sleep_wakeup(touch_sensor_handle_t sens_handle, co
     TOUCH_EXIT_CRITICAL(TOUCH_PERIPH_LOCK);
 
 err:
-    xSemaphoreGiveRecursive(sens_handle->mutex);
+    esp_os_unlock_recursive_mutex(sens_handle->mutex);
     return ret;
 }
 
@@ -449,7 +448,7 @@ esp_err_t touch_sensor_config_waterproof(touch_sensor_handle_t sens_handle, cons
     TOUCH_NULL_POINTER_CHECK(sens_handle);
 
     esp_err_t ret = ESP_OK;
-    xSemaphoreTakeRecursive(sens_handle->mutex, portMAX_DELAY);
+    esp_os_lock_recursive_mutex(sens_handle->mutex);
     TOUCH_GOTO_ON_FALSE_FSM(!sens_handle->is_enabled, ESP_ERR_INVALID_STATE, err, TAG, "Please disable the touch sensor first");
 
     if (wp_cfg) {
@@ -483,7 +482,7 @@ esp_err_t touch_sensor_config_waterproof(touch_sensor_handle_t sens_handle, cons
         TOUCH_EXIT_CRITICAL(TOUCH_PERIPH_LOCK);
     }
     TOUCH_FSM_ERR_TAG(err)
-    xSemaphoreGiveRecursive(sens_handle->mutex);
+    esp_os_unlock_recursive_mutex(sens_handle->mutex);
     return ret;
 }
 
@@ -492,7 +491,7 @@ esp_err_t touch_sensor_config_proximity_sensing(touch_sensor_handle_t sens_handl
     TOUCH_NULL_POINTER_CHECK(sens_handle);
 
     esp_err_t ret = ESP_OK;
-    xSemaphoreTakeRecursive(sens_handle->mutex, portMAX_DELAY);
+    esp_os_lock_recursive_mutex(sens_handle->mutex);
     TOUCH_GOTO_ON_FALSE_FSM(!sens_handle->is_enabled, ESP_ERR_INVALID_STATE, err, TAG, "Please disable the touch sensor first");
     TOUCH_ENTER_CRITICAL(TOUCH_PERIPH_LOCK);
 
@@ -531,6 +530,6 @@ esp_err_t touch_sensor_config_proximity_sensing(touch_sensor_handle_t sens_handl
     TOUCH_EXIT_CRITICAL(TOUCH_PERIPH_LOCK);
 
     TOUCH_FSM_ERR_TAG(err)
-    xSemaphoreGiveRecursive(sens_handle->mutex);
+    esp_os_unlock_recursive_mutex(sens_handle->mutex);
     return ret;
 }

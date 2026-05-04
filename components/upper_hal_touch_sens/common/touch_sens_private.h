@@ -11,8 +11,8 @@
 
 #pragma once
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
+#include "platform/os.h"
+#include "esp_private/critical_section.h"
 #include "soc/soc_caps.h"
 #include "hal/touch_sens_hal.h"
 #include "driver/touch_sens_types.h"
@@ -63,20 +63,20 @@ extern "C" {
 #define TOUCH_DMA_ALLOC_CAPS      (MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA)
 
 /* RTC peripheral spin lock */
-extern portMUX_TYPE rtc_spinlock;
+DECLARE_EXTERNAL_CRIT_SECTION_LOCK(rtc_spinlock);
 #define TOUCH_RTC_LOCK              (&rtc_spinlock)
 
 #if SOC_TOUCH_SENSOR_VERSION <= 2
 #define TOUCH_PERIPH_LOCK           (&rtc_spinlock)
 #else
-extern portMUX_TYPE g_touch_spinlock;
+DECLARE_EXTERNAL_CRIT_SECTION_LOCK(g_touch_spinlock);
 #define TOUCH_PERIPH_LOCK           (&g_touch_spinlock)
 #endif
 
-#define TOUCH_ENTER_CRITICAL(spinlock)          portENTER_CRITICAL(spinlock)
-#define TOUCH_EXIT_CRITICAL(spinlock)           portEXIT_CRITICAL(spinlock)
-#define TOUCH_ENTER_CRITICAL_SAFE(spinlock)     portENTER_CRITICAL_SAFE(spinlock)
-#define TOUCH_EXIT_CRITICAL_SAFE(spinlock)      portEXIT_CRITICAL_SAFE(spinlock)
+#define TOUCH_ENTER_CRITICAL(spinlock)          esp_os_enter_critical(spinlock)
+#define TOUCH_EXIT_CRITICAL(spinlock)           esp_os_exit_critical(spinlock)
+#define TOUCH_ENTER_CRITICAL_SAFE(spinlock)     esp_os_enter_critical_safe(spinlock)
+#define TOUCH_EXIT_CRITICAL_SAFE(spinlock)      esp_os_exit_critical_safe(spinlock)
 
 /**
  * @brief The touch sensor controller instance structure
@@ -102,7 +102,7 @@ struct touch_sensor_s {
     void                    *user_filter_ctx;           /*!< User context that will pass to the software filter function */
 #endif
 
-    SemaphoreHandle_t       mutex;                      /*!< Mutex lock to ensure thread safety */
+    esp_os_recursive_mutex_t *mutex;                    /*!< Mutex lock to ensure thread safety */
 
     uint8_t                 sample_cfg_num;             /*!< The number of sample configurations that in used */
     void                    *user_ctx;                  /*!< User context that will pass to the callback function */

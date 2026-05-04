@@ -258,6 +258,9 @@ void esp_os_create_recursive_mutex(FAR esp_os_recursive_mutex_t *mutex);
 
 void esp_os_lock_recursive_mutex(FAR esp_os_recursive_mutex_t *mutex);
 
+void esp_os_tick_lock_recursive_mutex(FAR esp_os_recursive_mutex_t *mutex,
+                                      uint32_t ticks);
+
 void esp_os_unlock_recursive_mutex(FAR esp_os_recursive_mutex_t *mutex);
 
 void esp_os_delete_recursive_mutex(FAR esp_os_recursive_mutex_t *mutex);

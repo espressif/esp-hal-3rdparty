@@ -745,6 +745,24 @@ void esp_os_lock_recursive_mutex(FAR esp_os_recursive_mutex_t *mutex)
 }
 
 /****************************************************************************
+ * Name: esp_os_tick_lock_recursive_mutex
+ *
+ * Description:
+ *   Lock a recursive mutex with a timeout variable
+ *
+ * Input Parameters:
+ *   mutex - Pointer to the recursive mutex to lock.
+ *   ticks - Timeout
+ *
+ ****************************************************************************/
+
+void esp_os_tick_lock_recursive_mutex(FAR esp_os_recursive_mutex_t *mutex,
+                                      uint32_t ticks)
+{
+  nxrmutex_ticklock(mutex, ticks);
+}
+
+/****************************************************************************
  * Name: esp_os_unlock_recursive_mutex
  *
  * Description:

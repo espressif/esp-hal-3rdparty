@@ -55,10 +55,8 @@ __fixdfsi = 0x4fc0079c;
 __fixsfdi = 0x4fc007a0;
 #ifndef __NuttX__
 __fixunsdfsi = 0x4fc007a4;
-#endif
 __fixunssfdi = 0x4fc007a8;
 __fixunssfsi = 0x4fc007ac;
-#ifndef __NuttX__
 __floatdidf = 0x4fc007b0;
 __floatdisf = 0x4fc007b4;
 __floatsidf = 0x4fc007b8;
