@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "freertos/FreeRTOS.h"
+#include "platform/os.h"
+#include "esp_private/critical_section.h"
 #include "esp_clk_tree.h"
 #include "esp_types.h"
 #include "esp_attr.h"
@@ -50,7 +51,7 @@ static ana_cmpr_handle_t s_ana_cmpr[SOC_ANA_CMPR_NUM] = {
 };
 
 /* Global spin lock */
-static portMUX_TYPE s_spinlock = portMUX_INITIALIZER_UNLOCKED;
+DEFINE_CRIT_SECTION_LOCK(s_spinlock);
 
 void ana_cmpr_default_intr_handler(void *usr_data)
 {
@@ -74,7 +75,7 @@ void ana_cmpr_default_intr_handler(void *usr_data)
         need_yield = cmpr_handle->cbs.on_cross(cmpr_handle, &evt_data, cmpr_handle->user_data);
     }
     if (need_yield) {
-        portYIELD_FROM_ISR();
+        OS_PORT_YIELD_FROM_ISR();
     }
 }
 
@@ -149,11 +150,11 @@ esp_err_t ana_cmpr_new_unit(const ana_cmpr_config_t *config, ana_cmpr_handle_t *
     ana_cmpr_hdl->intr_mask = analog_cmpr_ll_get_intr_mask_by_type(ana_cmpr_hdl->dev, config->cross_type);
 
     // different unit share the same interrupt register, so using a spin lock to protect it
-    portENTER_CRITICAL(&s_spinlock);
+    esp_os_enter_critical(&s_spinlock);
     // disable the interrupt by default, and clear pending status
     analog_cmpr_ll_enable_intr(ana_cmpr_hdl->dev, ANALOG_CMPR_LL_ALL_INTR_MASK(unit), false);
     analog_cmpr_ll_clear_intr(ana_cmpr_hdl->dev, ANALOG_CMPR_LL_ALL_INTR_MASK(unit));
-    portEXIT_CRITICAL(&s_spinlock);
+    esp_os_exit_critical(&s_spinlock);
 
     // GPIO configuration
     ESP_GOTO_ON_ERROR(s_ana_cmpr_init_gpio(ana_cmpr_hdl, config->ref_src == ANA_CMPR_REF_SRC_EXTERNAL), err, TAG, "failed to initialize GPIO");
@@ -209,9 +210,9 @@ esp_err_t ana_cmpr_set_internal_reference(ana_cmpr_handle_t cmpr, const ana_cmpr
     }
 
     // the underlying register may be accessed by different threads at the same time, so use spin lock to protect it
-    portENTER_CRITICAL_SAFE(&s_spinlock);
+    esp_os_enter_critical_safe(&s_spinlock);
     analog_cmpr_ll_set_internal_ref_voltage(cmpr->dev, ref_cfg->ref_volt);
-    portEXIT_CRITICAL_SAFE(&s_spinlock);
+    esp_os_exit_critical_safe(&s_spinlock);
 
     return ESP_OK;
 }
@@ -224,9 +225,9 @@ esp_err_t ana_cmpr_set_debounce(ana_cmpr_handle_t cmpr, const ana_cmpr_debounce_
     /* Transfer the time to clock cycles */
     uint32_t wait_cycle = dbc_cfg->wait_us * (cmpr->src_clk_freq_hz / 1000000);
     // the underlying register may be accessed by different threads at the same time, so use spin lock to protect it
-    portENTER_CRITICAL_SAFE(&s_spinlock);
+    esp_os_enter_critical_safe(&s_spinlock);
     analog_cmpr_ll_set_debounce_cycle(cmpr->dev, wait_cycle);
-    portEXIT_CRITICAL_SAFE(&s_spinlock);
+    esp_os_exit_critical_safe(&s_spinlock);
 
     return ESP_OK;
 }
@@ -246,10 +247,10 @@ esp_err_t ana_cmpr_set_cross_type(ana_cmpr_handle_t cmpr, ana_cmpr_cross_type_t 
         return ESP_ERR_INVALID_ARG;
     }
 
-    portENTER_CRITICAL_SAFE(&s_spinlock);
+    esp_os_enter_critical_safe(&s_spinlock);
     analog_cmpr_ll_set_intr_cross_type(cmpr->dev, cross_type);
     cmpr->intr_mask = analog_cmpr_ll_get_intr_mask_by_type(cmpr->dev, cross_type);
-    portEXIT_CRITICAL_SAFE(&s_spinlock);
+    esp_os_exit_critical_safe(&s_spinlock);
 
     return ESP_OK;
 #endif
@@ -271,9 +272,9 @@ esp_err_t ana_cmpr_register_event_callbacks(ana_cmpr_handle_t cmpr, const ana_cm
 
     if (!cmpr->intr_handle) {
         int intr_flags = ANA_CMPR_INTR_FLAG | ((cmpr->intr_priority > 0) ?  BIT(cmpr->intr_priority) : ESP_INTR_FLAG_LOWMED);
-        ESP_RETURN_ON_ERROR(esp_intr_alloc_intrstatus(ana_cmpr_periph[cmpr->unit].intr_src, intr_flags, (uint32_t)analog_cmpr_ll_get_intr_status_reg(cmpr->dev),
-                                                      cmpr->intr_mask, ana_cmpr_default_intr_handler, cmpr, &cmpr->intr_handle),
-                            TAG, "allocate interrupt failed");
+        int ret = esp_os_intr_alloc_intrstatus(ana_cmpr_periph[cmpr->unit].intr_src, intr_flags, (uint32_t)analog_cmpr_ll_get_intr_status_reg(cmpr->dev),
+                                            cmpr->intr_mask, ana_cmpr_default_intr_handler, cmpr, &cmpr->intr_handle);
+        ESP_RETURN_ON_ERROR(ret, TAG, "allocate interrupt failed");
     }
 
     /* Save the callback functions */
@@ -296,10 +297,10 @@ esp_err_t ana_cmpr_enable(ana_cmpr_handle_t cmpr)
 #endif
 
         // the underlying register may be accessed by different threads at the same time, so use spin lock to protect it
-        portENTER_CRITICAL(&s_spinlock);
+        esp_os_enter_critical(&s_spinlock);
         analog_cmpr_ll_enable_intr(cmpr->dev, cmpr->intr_mask, true);
         analog_cmpr_ll_enable(cmpr->dev, true);
-        portEXIT_CRITICAL(&s_spinlock);
+        esp_os_exit_critical(&s_spinlock);
 
         // switch the state machine to enable state
         atomic_store(&cmpr->fsm, ANA_CMPR_FSM_ENABLE);
@@ -317,10 +318,10 @@ esp_err_t ana_cmpr_disable(ana_cmpr_handle_t cmpr)
     ana_cmpr_fsm_t expected_fsm = ANA_CMPR_FSM_ENABLE;
     if (atomic_compare_exchange_strong(&cmpr->fsm, &expected_fsm, ANA_CMPR_FSM_WAIT)) {
         // the underlying register may be accessed by different threads at the same time, so use spin lock to protect it
-        portENTER_CRITICAL(&s_spinlock);
+        esp_os_enter_critical(&s_spinlock);
         analog_cmpr_ll_enable_intr(cmpr->dev, cmpr->intr_mask, false);
         analog_cmpr_ll_enable(cmpr->dev, false);
-        portEXIT_CRITICAL(&s_spinlock);
+        esp_os_exit_critical(&s_spinlock);
 
 #if CONFIG_PM_ENABLE
         if (cmpr->pm_lock) {
