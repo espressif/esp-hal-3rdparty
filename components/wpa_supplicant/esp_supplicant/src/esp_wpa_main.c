@@ -49,6 +49,10 @@ void  wpa_install_key(enum wpa_alg alg, u8 *addr, int key_idx, int set_tx,
                       u8 *seq, size_t seq_len, u8 *key, size_t key_len, enum key_flag key_flag)
 {
     esp_wifi_set_sta_key_internal(alg, addr, key_idx, set_tx, seq, seq_len, key, key_len, key_flag);
+    if (set_tx && (key_flag & KEY_FLAG_PAIRWISE))
+      {
+        esp_wifi_wpa_ptk_init_done_internal(addr);
+      }
 }
 
 int  wpa_get_key(uint8_t *ifx, int *alg, u8 *addr, int *key_idx,
