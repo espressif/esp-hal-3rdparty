@@ -149,6 +149,7 @@ typedef uint32_t esp_os_tick_type_t;
 typedef intr_handler_t esp_os_intr_handler_t;
 typedef rmutex_t esp_os_recursive_mutex_t;
 typedef mutex_t esp_os_mutex_t;
+typedef sem_t   esp_os_sem_t;
 
 /* Task management types */
 
@@ -275,6 +276,14 @@ int  esp_os_lock_mutex_timeout(FAR esp_os_mutex_t *mutex,
 int esp_os_unlock_mutex(FAR esp_os_mutex_t *mutex);
 
 void esp_os_delete_mutex(FAR esp_os_mutex_t *mutex);
+
+void esp_os_create_sem(FAR esp_os_sem_t *sem);
+
+int esp_os_wait_sem_timeout(FAR esp_os_sem_t *sem, uint32_t timeout_ticks);
+
+int esp_os_post_sem_isr(FAR esp_os_sem_t *sem, long int *task_awoken);
+
+void esp_os_destroy_sem(FAR esp_os_sem_t *sem);
 
 /* Scheduler control functions */
 

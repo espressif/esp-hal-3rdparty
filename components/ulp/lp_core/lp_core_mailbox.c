@@ -10,8 +10,7 @@
 #include "esp_attr.h"
 #include "esp_intr_alloc.h"
 #include "soc/soc_caps.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
+#include "platform/os.h"
 #include "hal/misc.h"
 #include "lp_core_mailbox.h"
 #include "ulp_lp_core_mailbox_impl_shared.h"
@@ -51,8 +50,8 @@
 
 struct lp_mailbox_t {
     lp_core_mailbox_ctx_t      mb_ctx;
-    SemaphoreHandle_t          mtx;
-    SemaphoreHandle_t          received_sem;
+    esp_os_mutex_t             mtx;
+    esp_os_sem_t               received_sem;
     intr_handle_t              intr_handle;
     lp_core_mailbox_callback_t rcv_callback;
     uint32_t                   rcv_remaining;
@@ -95,15 +94,15 @@ static inline bool mb_async_mode(lp_mailbox_t mailbox)
 static void lp_core_mailbox_intr_handler(void* arg)
 {
     lp_mailbox_t mailbox = (lp_mailbox_t) arg;
-    BaseType_t task_awoken = pdFALSE;
+    BaseType_t task_awoken = OS_FALSE;
 
     /* If we are not in asynchronous mode, simply notify the task that an interrupt arrived */
     if (!mb_async_mode(mailbox)) {
         /* Disable the interrupts for all the messages (do NOT clear them) */
         lp_core_mailbox_impl_intr_disable(mailbox->mb_ctx, ~0);
-        xSemaphoreGiveFromISR(mailbox->received_sem, &task_awoken);
-        if (task_awoken != pdFALSE) {
-            portYIELD_FROM_ISR();
+        esp_os_post_sem_isr(&mailbox->received_sem, &task_awoken);
+        if (task_awoken != OS_FALSE) {
+            OS_PORT_YIELD_FROM_ISR();
         }
     } else {
         lp_message_t received[LP_MAILBOX_RX_MSG_COUNT / 2];
@@ -172,25 +171,18 @@ esp_err_t lp_core_mailbox_init(lp_mailbox_t *mailbox, lp_mailbox_config_t *confi
         /* Mailbox has already been initialized! */
         return ESP_ERR_INVALID_STATE;
     }
-    s_mailbox.received_sem = xSemaphoreCreateBinary();
-    if (s_mailbox.received_sem == NULL) {
-        ret = ESP_ERR_NO_MEM;
-        goto err_free_dev;
-    }
-    s_mailbox.mtx = xSemaphoreCreateMutex();
-    if (s_mailbox.mtx == NULL) {
-        ret = ESP_ERR_NO_MEM;
-        goto err_free_sem;
-    }
+    esp_os_create_sem(&s_mailbox.received_sem);
+
+    esp_os_create_mutex(&s_mailbox.mtx);
     /* Allocate an interrupt for the mailbox */
 #if SOC_LP_MAILBOX_SUPPORTED
-    ret = esp_intr_alloc(ETS_MB_HP_INTR_SOURCE, MALLOC_CAP_DEFAULT,
-                         lp_core_mailbox_intr_handler, &s_mailbox,
-                         &s_mailbox.intr_handle);
+    ret = esp_os_intr_alloc(ETS_MB_HP_INTR_SOURCE, MALLOC_CAP_DEFAULT,
+                            lp_core_mailbox_intr_handler, &s_mailbox,
+                            &s_mailbox.intr_handle);
 #else
-    ret = esp_intr_alloc(ETS_PMU_INTR_SOURCE, MALLOC_CAP_DEFAULT,
-                         lp_core_mailbox_intr_handler, &s_mailbox,
-                         &s_mailbox.intr_handle);
+    ret = esp_os_intr_alloc(ETS_PMU_INTR_SOURCE, MALLOC_CAP_DEFAULT,
+                            lp_core_mailbox_intr_handler, &s_mailbox,
+                            &s_mailbox.intr_handle);
 #endif // SOC_LP_MAILBOX_SUPPORTED
     if (ret != ESP_OK) {
         goto err_free_all;
@@ -207,10 +199,6 @@ esp_err_t lp_core_mailbox_init(lp_mailbox_t *mailbox, lp_mailbox_config_t *confi
     *mailbox = &s_mailbox;
     return ESP_OK;
 err_free_all:
-    vSemaphoreDelete(s_mailbox.mtx);
-err_free_sem:
-    vSemaphoreDelete(s_mailbox.received_sem);
-err_free_dev:
     s_mailbox.mb_ctx = NULL;
     return ret;
 }
@@ -220,9 +208,9 @@ void lp_core_mailbox_deinit(lp_mailbox_t mailbox)
     if (mailbox != NULL) {
         lp_core_mailbox_impl_intr_disable(mailbox->mb_ctx, ~0);
         lp_core_mailbox_impl_intr_clear(mailbox->mb_ctx, ~0);
-        vSemaphoreDelete(mailbox->mtx);
-        vSemaphoreDelete(mailbox->received_sem);
-        esp_intr_free(mailbox->intr_handle);
+        esp_os_delete_mutex(&mailbox->mtx);
+        esp_os_destroy_sem(&mailbox->received_sem);
+        esp_os_intr_free(mailbox->intr_handle);
         /* Mark the structure as deinitialized */
         s_mailbox.mb_ctx = NULL;
     }
@@ -233,10 +221,10 @@ esp_err_t lp_core_mailbox_send(lp_mailbox_t mailbox, lp_message_t msg, TickType_
     if (mailbox == NULL) {
         return ESP_ERR_INVALID_ARG;
     }
-    xSemaphoreTake(mailbox->mtx, portMAX_DELAY);
+    esp_os_lock_mutex_timeout(&mailbox->mtx, portMAX_DELAY);
     /* Make sure there isn't already an asynchronous transaction going on */
     if (mb_async_mode(mailbox)) {
-        xSemaphoreGive(mailbox->mtx);
+        esp_os_unlock_mutex(&mailbox->mtx);
         return ESP_ERR_INVALID_STATE;
     }
     /* Get the address of the next free message */
@@ -253,11 +241,11 @@ esp_err_t lp_core_mailbox_send(lp_mailbox_t mailbox, lp_message_t msg, TickType_
     lp_core_mailbox_impl_intr_enable(mailbox->mb_ctx, BIT(msg_ack_idx));
     lp_core_mailbox_impl_set_message(mailbox->mb_ctx, msg_idx, msg);
 
-    BaseType_t res = xSemaphoreTake(mailbox->received_sem, ticks_to_wait);
-    if (res == pdFALSE) {
+    BaseType_t res = esp_os_wait_sem_timeout(&mailbox->received_sem, ticks_to_wait);
+    if (res != 0) {
         /* Timeout, disable interrupts */
         lp_core_mailbox_impl_intr_disable(mailbox->mb_ctx, BIT(msg_ack_idx) | BIT(msg_idx));
-        xSemaphoreGive(mailbox->mtx);
+        esp_os_unlock_mutex(&mailbox->mtx);
         return ESP_ERR_TIMEOUT;
     }
 
@@ -266,7 +254,7 @@ esp_err_t lp_core_mailbox_send(lp_mailbox_t mailbox, lp_message_t msg, TickType_
         lp_core_mailbox_impl_intr_clear(mailbox->mb_ctx, BIT(msg_ack_idx) | BIT(msg_idx));
     }
 
-    xSemaphoreGive(mailbox->mtx);
+    esp_os_unlock_mutex(&mailbox->mtx);
     return ESP_OK;
 }
 
@@ -275,16 +263,16 @@ esp_err_t lp_core_mailbox_send_async(lp_mailbox_t mailbox, lp_message_t msg)
     if (mailbox == NULL) {
         return ESP_ERR_INVALID_ARG;
     }
-    xSemaphoreTake(mailbox->mtx, portMAX_DELAY);
+    esp_os_lock_mutex_timeout(&mailbox->mtx, portMAX_DELAY);
     if (mb_async_mode(mailbox)) {
-        xSemaphoreGive(mailbox->mtx);
+        esp_os_unlock_mutex(&mailbox->mtx);
         return ESP_ERR_INVALID_STATE;
     }
     /* Get the address of the next free message */
     const int msg_idx = LP_MAILBOX_TX_MSG_IDX + mailbox->tx_idx;
     mailbox->tx_idx = (mailbox->tx_idx + 1) % LP_MAILBOX_TX_MSG_COUNT;
     lp_core_mailbox_impl_set_message(mailbox->mb_ctx, msg_idx, msg);
-    xSemaphoreGive(mailbox->mtx);
+    esp_os_unlock_mutex(&mailbox->mtx);
     return ESP_OK;
 }
 
@@ -293,10 +281,10 @@ esp_err_t lp_core_mailbox_receive(lp_mailbox_t mailbox, lp_message_t* msg, TickT
     if (mailbox == NULL) {
         return ESP_ERR_INVALID_ARG;
     }
-    xSemaphoreTake(mailbox->mtx, portMAX_DELAY);
+    esp_os_lock_mutex_timeout(&mailbox->mtx, portMAX_DELAY);
     /* Make sure we are not in asynchronous receive mode */
     if (mb_async_mode(mailbox)) {
-        xSemaphoreGive(mailbox->mtx);
+        esp_os_unlock_mutex(&mailbox->mtx);
         return ESP_ERR_INVALID_STATE;
     }
 
@@ -309,11 +297,11 @@ esp_err_t lp_core_mailbox_receive(lp_mailbox_t mailbox, lp_message_t* msg, TickT
         }
         /* No received message yet, enable interrupts (again) */
         lp_core_mailbox_impl_intr_enable(mailbox->mb_ctx, LP_MAILBOX_RX_MSG_MASK);
-        BaseType_t res = xSemaphoreTake(mailbox->received_sem, ticks_to_wait);
-        if (res == pdFALSE) {
+        BaseType_t res = esp_os_wait_sem_timeout(&mailbox->received_sem, ticks_to_wait);
+        if (res != 0) {
             /* Timeout, disable interrupts */
             lp_core_mailbox_impl_intr_disable(mailbox->mb_ctx, LP_MAILBOX_RX_MSG_MASK);
-            xSemaphoreGive(mailbox->mtx);
+            esp_os_unlock_mutex(&mailbox->mtx);
             return ESP_ERR_TIMEOUT;
         }
     }
@@ -324,7 +312,7 @@ esp_err_t lp_core_mailbox_receive(lp_mailbox_t mailbox, lp_message_t* msg, TickT
     /* Clear ACK messages status */
     lp_core_mailbox_impl_intr_clear(mailbox->mb_ctx, BIT(ack_idx));
 
-    xSemaphoreGive(mailbox->mtx);
+    esp_os_unlock_mutex(&mailbox->mtx);
     return ESP_OK;
 }
 
@@ -334,17 +322,17 @@ esp_err_t lp_core_mailbox_receive_async(lp_mailbox_t mailbox, uint32_t count, lp
     if (mailbox == NULL || count == 0 || cb == NULL) {
         return ESP_ERR_INVALID_ARG;
     }
-    xSemaphoreTake(mailbox->mtx, portMAX_DELAY);
+    esp_os_lock_mutex_timeout(&mailbox->mtx, portMAX_DELAY);
     /* Make sure there isn't already an asynchronous transaction going on */
     if (mb_async_mode(mailbox)) {
-        xSemaphoreGive(mailbox->mtx);
+        esp_os_unlock_mutex(&mailbox->mtx);
         return ESP_ERR_INVALID_STATE;
     }
     mailbox->rcv_callback = cb;
     mailbox->rcv_remaining = count;
     /* Enable interrupts for receive */
     lp_core_mailbox_impl_intr_enable(mailbox->mb_ctx, LP_MAILBOX_RX_MSG_MASK);
-    xSemaphoreGive(mailbox->mtx);
+    esp_os_unlock_mutex(&mailbox->mtx);
     return ESP_OK;
 }
 
@@ -353,9 +341,9 @@ esp_err_t lp_core_mailbox_receive_async_cancel(lp_mailbox_t mailbox, uint32_t* r
     if (mailbox == NULL) {
         return ESP_ERR_INVALID_ARG;
     }
-    xSemaphoreTake(mailbox->mtx, portMAX_DELAY);
+    esp_os_lock_mutex_timeout(&mailbox->mtx, portMAX_DELAY);
     if (!mb_async_mode(mailbox)) {
-        xSemaphoreGive(mailbox->mtx);
+        esp_os_unlock_mutex(&mailbox->mtx);
         return ESP_ERR_INVALID_STATE;
     }
     lp_core_mailbox_impl_intr_disable(mailbox->mb_ctx, LP_MAILBOX_RX_MSG_MASK);
@@ -363,6 +351,6 @@ esp_err_t lp_core_mailbox_receive_async_cancel(lp_mailbox_t mailbox, uint32_t* r
     if (remaining) {
         *remaining = mailbox->rcv_remaining;
     }
-    xSemaphoreGive(mailbox->mtx);
+    esp_os_unlock_mutex(&mailbox->mtx);
     return ESP_OK;
 }

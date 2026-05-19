@@ -12,7 +12,7 @@ extern "C" {
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "freertos/FreeRTOS.h" // for TickType_t
+#include "platform/os.h" // for TickType_t
 #include "esp_err.h"
 
 typedef intptr_t lp_message_t;

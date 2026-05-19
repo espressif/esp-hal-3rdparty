@@ -875,6 +875,112 @@ void esp_os_delete_mutex(FAR esp_os_mutex_t *mutex)
 }
 
 /****************************************************************************
+ * Name: esp_os_create_sem
+ *
+ * Description:
+ *   Initialize a counting semaphore with initial value 0.
+ *
+ * Input Parameters:
+ *   sem - Pointer to the semaphore to create.
+ *
+ ****************************************************************************/
+
+void esp_os_create_sem(FAR esp_os_sem_t *sem)
+{
+  nxsem_init(sem, 0, 0);
+}
+
+/****************************************************************************
+ * Name: esp_os_drain_sem
+ *
+ * Description:
+ *   Consume any pending posts on the semaphore (non-blocking).
+ *
+ * Input Parameters:
+ *   sem - Pointer to the semaphore to create.
+ *
+ ****************************************************************************/
+
+void esp_os_drain_sem(FAR esp_os_sem_t *sem)
+{
+  while (nxsem_trywait(sem) == OK)
+    {
+    }
+}
+
+/****************************************************************************
+ * Name: esp_os_wait_sem_timeout
+ *
+ * Description:
+ *   Wait for a semaphore post.  timeout_ticks of UINT32_MAX waits forever.
+ *   Returns 0 on success, non-zero on timeout or error (matches mutex lock).
+ *
+ * Input Parameters:
+ *   sem           - Pointer to the semaphore.
+ *   timeout-ticks - Timeout for wait
+ *
+ * Returned Value:
+ *   0 on success, or a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+int esp_os_wait_sem_timeout(FAR esp_os_sem_t *sem, uint32_t timeout_ticks)
+{
+  int ret;
+
+  esp_os_drain_sem(sem);
+
+  if (timeout_ticks == UINT32_MAX)
+    {
+      ret = nxsem_wait(sem);
+    }
+  else
+    {
+      ret = nxsem_tickwait(sem, timeout_ticks);
+    }
+
+  return ret == OK ? 0 : ret;
+}
+
+/****************************************************************************
+ * Name: esp_os_post_sem_isr
+ *
+ * Description:
+ *   Post a semaphore from interrupt context.
+ *
+ * Input Parameters:
+ *   sem         - Pointer to the semaphore.
+ *   task_awoken - Flag to giving the semaphore caused a task to unblock
+ *                 (unused)
+ *
+ * Returned Value:
+ *   0 on success, or a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+int esp_os_post_sem_isr(FAR esp_os_sem_t *sem, long int *task_awoken)
+{
+  UNUSED(task_awoken);
+  return nxsem_post_slow(sem);
+}
+
+/****************************************************************************
+ * Name: esp_os_destroy_sem
+ *
+ * Description:
+ *   Destroy a semaphore initialized with esp_os_create_sem().
+ *
+ * Input Parameters:
+ *   sem - Pointer to the semaphore.
+ *
+ ****************************************************************************/
+
+void esp_os_destroy_sem(FAR esp_os_sem_t *sem)
+{
+  nxsem_destroy(sem);
+}
+
+/****************************************************************************
  * Name: esp_os_scheduler_disable
  *
  * Description:
