@@ -51,7 +51,9 @@ __extendsfdf2 = 0x4fc00798;
 __ffsdi2 = 0x4fc0079c;
 __ffssi2 = 0x4fc007a0;
 __fixdfdi = 0x4fc007a4;
+#ifndef __NuttX__
 __fixdfsi = 0x4fc007a8;
+#endif
 __fixsfdi = 0x4fc007ac;
 #ifndef __NuttX__
 __fixunsdfsi = 0x4fc007b0;
