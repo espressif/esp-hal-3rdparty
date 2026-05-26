@@ -586,7 +586,10 @@ esp_err_t esp_os_queue_send(esp_os_queue_handle_t queue, FAR void *item,
 esp_err_t esp_os_queue_send_from_isr(esp_os_queue_handle_t queue,
                                      FAR void *item, FAR void *hptw)
 {
-  *(FAR int *)hptw = 0;
+  if (hptw != NULL)
+    {
+      *(FAR int *)hptw = 0;
+    }
 
   return esp_os_queue_send_generic(queue, item, 0, 0);
 }
@@ -645,7 +648,10 @@ esp_err_t esp_os_queue_receive_from_isr(esp_os_queue_handle_t queue,
         }
     }
 
-  *(FAR int *)hptw = 0;
+  if (hptw != NULL)
+    {
+      *(FAR int *)hptw = 0;
+    }
 
   ret = esp_os_queue_receive_generic(queue, item, 0);
 

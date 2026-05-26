@@ -8,7 +8,7 @@
 #include "sys/lock.h"
 #include "esp_check.h"
 #include "esp_log.h"
-#include "freertos/FreeRTOS.h"
+#include "platform/os.h"
 #include "esp_private/btbb.h"
 
 #define BTBB_ENABLE_VERSION_PRINT 1
