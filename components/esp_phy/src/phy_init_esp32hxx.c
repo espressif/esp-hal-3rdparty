@@ -5,7 +5,8 @@
  */
 
 #include "esp_attr.h"
-#include "freertos/portmacro.h"
+#include "platform/os.h"
+#include "esp_private/critical_section.h"
 #include "esp_phy_init.h"
 #include "esp_private/phy.h"
 #include "esp_timer.h"
@@ -23,7 +24,7 @@
 
 #define PHY_ENABLE_VERSION_PRINT 1
 
-static DRAM_ATTR portMUX_TYPE s_phy_int_mux = portMUX_INITIALIZER_UNLOCKED;
+DEFINE_CRIT_SECTION_LOCK_STATIC(s_phy_int_mux, DRAM_ATTR);
 
 extern void phy_version_print(void);
 static _lock_t s_phy_access_lock;
@@ -86,11 +87,11 @@ esp_err_t phy_clear_used_time(esp_phy_modem_t modem) {
 
 uint32_t IRAM_ATTR phy_enter_critical(void)
 {
-    if (xPortInIsrContext()) {
-        portENTER_CRITICAL_ISR(&s_phy_int_mux);
+    if (OS_IN_ISR()) {
+        esp_os_enter_critical_isr(&s_phy_int_mux);
 
     } else {
-        portENTER_CRITICAL(&s_phy_int_mux);
+        esp_os_enter_critical(&s_phy_int_mux);
     }
     // Interrupt level will be stored in current tcb, so always return zero.
     return 0;
@@ -99,10 +100,10 @@ uint32_t IRAM_ATTR phy_enter_critical(void)
 void IRAM_ATTR phy_exit_critical(uint32_t level)
 {
     // Param level don't need any more, ignore it.
-    if (xPortInIsrContext()) {
-        portEXIT_CRITICAL_ISR(&s_phy_int_mux);
+    if (OS_IN_ISR()) {
+        esp_os_exit_critical_isr(&s_phy_int_mux);
     } else {
-        portEXIT_CRITICAL(&s_phy_int_mux);
+        esp_os_exit_critical(&s_phy_int_mux);
     }
 }
 
