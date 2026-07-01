@@ -1098,13 +1098,27 @@ void nuttx_enter_critical(void)
 #endif
 {
   irqstate_t flags;
-  int cpu = this_cpu();
+  int cpu;
+
+  /* Interrupts may already be disabled (if this function is called in nested
+   * manner). However, there's no atomic operation that will allow us to
+   * check, thus we have to disable interrupts again anyways.
+   *
+   * However, if this is call is NOT nested (i.e., the first call to enter a
+   * critical section), we will save the previous interrupt level so that the
+   * saved level can be restored on the last call to exit the critical.
+   */
+
+  flags = up_irq_save();
+
+  cpu = this_cpu();
 
   if (g_int_flags_count[cpu] == 0)
     {
-      flags = up_irq_save();
 
-      /* First time acquiring this lock. */
+      /* If this is the first entry to a critical section. Save the old
+       * interrupt level.
+       */
 
       g_int_flags[cpu] = flags;
     }
