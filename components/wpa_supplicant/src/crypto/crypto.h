@@ -22,6 +22,15 @@
 #define CRYPTO_H
 #include "utils/common.h"
 
+#ifdef __NuttX__
+#define aes_encrypt_init esp_wpa_aes_encrypt_init
+#define aes_encrypt esp_wpa_aes_encrypt
+#define aes_encrypt_deinit esp_wpa_aes_encrypt_deinit
+#define aes_decrypt_init esp_wpa_aes_decrypt_init
+#define aes_decrypt esp_wpa_aes_decrypt
+#define aes_decrypt_deinit esp_wpa_aes_decrypt_deinit
+#endif
+
 /**
  * md4_vector - MD4 hash for data vector
  * @num_elem: Number of elements in the data vector
