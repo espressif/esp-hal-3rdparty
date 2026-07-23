@@ -50,12 +50,10 @@ __extendsfdf2 = 0x4fc0078c;
 #endif
 __ffsdi2 = 0x4fc00790;
 __ffssi2 = 0x4fc00794;
+#ifndef __NuttX__
 __fixdfdi = 0x4fc00798;
-#ifndef __NuttX__
 __fixdfsi = 0x4fc0079c;
-#endif
 __fixsfdi = 0x4fc007a0;
-#ifndef __NuttX__
 __fixunsdfsi = 0x4fc007a4;
 __fixunssfdi = 0x4fc007a8;
 __fixunssfsi = 0x4fc007ac;
