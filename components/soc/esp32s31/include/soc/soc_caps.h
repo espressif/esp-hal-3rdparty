@@ -602,8 +602,6 @@
  */
 #define SOC_PM_PMU_MIN_SLP_SLOW_CLK_CYCLE_FIXED    (1)
 
-#define SOC_PM_RETENTION_MODULE_NUM         (64)
-
 #define SOC_PM_SUPPORT_BUS_CLK_AUTO_GATE    (1)  /*!<Support hardware auto clock gating for system bus*/
 
 /*-------------------------- LP_CORE CAPS ------------------------------------*/
