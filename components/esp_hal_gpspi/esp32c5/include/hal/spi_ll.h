@@ -1220,7 +1220,6 @@ static inline uint32_t spi_ll_slave_hd_get_last_addr(spi_dev_t *hw)
     return hw->slave1.slv_last_addr;
 }
 
-#undef SPI_LL_RST_MASK
 #undef SPI_LL_UNUSED_INT_MASK
 
 /**

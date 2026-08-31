@@ -1531,7 +1531,6 @@ static inline void spi_ll_set_magic_number(spi_dev_t *hw, uint8_t magic_value)
     hw->slave.dma_seg_magic_value = magic_value;
 }
 
-#undef SPI_LL_RST_MASK
 #undef SPI_LL_UNUSED_INT_MASK
 
 /**
