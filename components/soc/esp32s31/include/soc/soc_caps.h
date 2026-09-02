@@ -697,8 +697,10 @@
 #define SOC_DEBUG_HAVE_OCD_STUB_BINS    (1)
 
 /*-------------------------- RISC-V TRACE CAPS ------------------------------*/
+#define SOC_RISCV_TRACE_PACKET_FORMAT_VER           (200) /*!< Efficient Trace v2.0 */
 #define SOC_RISCV_TRACE_HAS_CONFIG_REG              (1) /*!< Has the encoder config register */
 #define SOC_RISCV_TRACE_AHB_CONFIGURABLE            (1) /*!< AHB write master is configurable */
 #define SOC_RISCV_TRACE_FILTER_SUPPORTED            (1) /*!< Has the filter unit */
 #define SOC_RISCV_TRACE_PRIV_WIDTH                  (2U) /*!< Bits in the privilege field (privilege_width_p) */
+#define SOC_RISCV_TRACE_ECAUSE_WIDTH                (6) /*!< Bits in the exception cause field (ecause_width_p) */
 #define SOC_RISCV_TRACE_MEM_SUPPORT_PSRAM           (1) /*!< Encoder AHB master can reach external PSRAM */

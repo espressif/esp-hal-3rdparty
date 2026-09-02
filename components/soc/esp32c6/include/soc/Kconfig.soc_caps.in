@@ -1359,6 +1359,14 @@ config SOC_DEBUG_HAVE_OCD_STUB_BINS
     bool
     default y
 
+config SOC_RISCV_TRACE_PACKET_FORMAT_VER
+    int
+    default 100
+
 config SOC_RISCV_TRACE_PRIV_WIDTH
     int
     default 1
+
+config SOC_RISCV_TRACE_ECAUSE_WIDTH
+    int
+    default 5
