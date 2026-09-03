@@ -689,7 +689,7 @@ static tBTA_AG_PEER_CODEC bta_ag_parse_bac(tBTA_AG_SCB *p_scb, char *p_s)
             case UUID_CODEC_CVSD:
                 retval |= BTA_AG_CODEC_CVSD;
                 break;
-
+#if (BTM_WBS_INCLUDED == TRUE)
             case UUID_CODEC_MSBC:
                 retval |= BTA_AG_CODEC_MSBC;
                 break;
@@ -697,7 +697,7 @@ static tBTA_AG_PEER_CODEC bta_ag_parse_bac(tBTA_AG_SCB *p_scb, char *p_s)
             case UUID_CODEC_LC3:
                 retval |= BTA_AG_CODEC_LC3;
                 break;
-
+#endif
             default:
                 APPL_TRACE_ERROR("Unknown Codec UUID(%d) received", uuid_codec);
                 break;
@@ -1223,7 +1223,7 @@ void bta_ag_at_hfp_cback(tBTA_AG_SCB *p_scb, UINT16 cmd, UINT8 arg_type,
                 case UUID_CODEC_CVSD:
                     codec_type = BTA_AG_CODEC_CVSD;
                     break;
-
+#if (BTM_WBS_INCLUDED == TRUE)
                 case UUID_CODEC_MSBC:
                     codec_type = BTA_AG_CODEC_MSBC;
                     break;
@@ -1231,7 +1231,7 @@ void bta_ag_at_hfp_cback(tBTA_AG_SCB *p_scb, UINT16 cmd, UINT8 arg_type,
                 case UUID_CODEC_LC3:
                     codec_type = BTA_AG_CODEC_LC3;
                     break;
-
+#endif
                 default:
                     APPL_TRACE_ERROR("Unknown codec_uuid %d", int_arg);
                     codec_type = 0xFFFF;
@@ -1698,7 +1698,7 @@ void bta_ag_send_bcs(tBTA_AG_SCB *p_scb, tBTA_AG_DATA *p_data)
             case BTA_AG_CODEC_CVSD:
                 codec_uuid = UUID_CODEC_CVSD;
                 break;
-
+#if (BTM_WBS_INCLUDED == TRUE)
             case BTA_AG_CODEC_MSBC:
                 codec_uuid = UUID_CODEC_MSBC;
                 break;
@@ -1706,7 +1706,7 @@ void bta_ag_send_bcs(tBTA_AG_SCB *p_scb, tBTA_AG_DATA *p_data)
             case BTA_AG_CODEC_LC3:
                 codec_uuid = UUID_CODEC_LC3;
                 break;
-
+#endif
             default:
                 APPL_TRACE_ERROR("bta_ag_send_bcs: unknown codec %d, use CVSD", p_scb->sco_codec);
                 codec_uuid = UUID_CODEC_CVSD;
