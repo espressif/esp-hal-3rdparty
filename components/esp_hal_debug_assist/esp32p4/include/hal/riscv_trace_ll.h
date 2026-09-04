@@ -118,6 +118,11 @@ static inline void riscv_trace_ll_set_mem_loop(trace_dev_t *hw, bool loop)
     hw->trigger.mem_loop = loop;
 }
 
+static inline bool riscv_trace_ll_get_mem_loop(trace_dev_t *hw)
+{
+    return hw->trigger.mem_loop;
+}
+
 static inline void riscv_trace_ll_set_restart_ena(trace_dev_t *hw, bool enable)
 {
     hw->trigger.restart_ena = enable;
@@ -130,6 +135,11 @@ static inline void riscv_trace_ll_set_restart_ena(trace_dev_t *hw, bool enable)
 static inline void riscv_trace_ll_set_full_address(trace_dev_t *hw, bool full)
 {
     hw->config.full_address = full;
+}
+
+static inline bool riscv_trace_ll_get_full_address(trace_dev_t *hw)
+{
+    return hw->config.full_address;
 }
 
 static inline void riscv_trace_ll_set_stall_ena(trace_dev_t *hw, bool enable)
@@ -168,9 +178,19 @@ static inline void riscv_trace_ll_set_resync_mode(trace_dev_t *hw, uint32_t mode
     hw->resync_prolonged.resync_mode = mode;
 }
 
+static inline uint32_t riscv_trace_ll_get_resync_mode(trace_dev_t *hw)
+{
+    return hw->resync_prolonged.resync_mode;
+}
+
 static inline void riscv_trace_ll_set_resync_threshold(trace_dev_t *hw, uint32_t threshold)
 {
     hw->resync_prolonged.resync_prolonged = threshold;
+}
+
+static inline uint32_t riscv_trace_ll_get_resync_threshold(trace_dev_t *hw)
+{
+    return hw->resync_prolonged.resync_prolonged;
 }
 
 /*---------------------------------------------------------------------------

@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "soc/soc_caps.h"
 #include "hal/riscv_trace_types.h"
 
 #ifdef __cplusplus
@@ -40,10 +41,10 @@ typedef struct {
 
 /** @brief One comparator of the filter unit (raw register values). */
 typedef struct {
-    uint32_t input;                /*!< Compared input: 0 = iaddr, 1 = tval */
-    uint32_t function;             /*!< Compare function: 0 ==, 1 !=, 2 <, 3 <=, 4 >, 5 >= */
+    uint32_t input;                /*!< Compared input (0 = iaddr, 1 = tval) */
+    uint32_t function;             /*!< Compare function (0 ==, 1 !=, 2 <, 3 <=, 4 >, 5 >=) */
     uint32_t match_value;          /*!< 32-bit value compared against the input */
-    bool notify;                   /*!< Emit a packet reporting the address that caused the match */
+    bool notify;                   /*!< Send a packet reporting the address that caused the match */
 } riscv_trace_hal_comparator_t;
 
 /** @brief Filter (trace qualifier) configuration. */
@@ -54,7 +55,7 @@ typedef struct {
     bool match_ecause;             /*!< Match from an exception cause (match_ecause) */
     bool match_interrupt;          /*!< Match from an interrupt trap (match_interrupt) */
     uint32_t privilege;            /*!< match_choice_privilege (riscv_trace_priv_t) */
-    bool interrupt_itype2;         /*!< match_value_interrupt: true = itype 2, false = itype 1 */
+    bool interrupt_itype2;         /*!< match_value_interrupt (true = itype 2, false = itype 1) */
     uint32_t ecause;               /*!< match_choice_ecause (6-bit exception cause code) */
     riscv_trace_hal_comparator_t primary;   /*!< Primary comparator */
     riscv_trace_hal_comparator_t secondary; /*!< Secondary comparator */
@@ -101,6 +102,20 @@ bool riscv_trace_hal_fifo_is_overflowed(uint32_t intr_status);
 
 /** @brief Reset the hardware write pointer and clear interrupts before a new capture. */
 void riscv_trace_hal_prepare_capture(riscv_trace_hal_context_t *ctx);
+
+/** @brief Read back the LOOP-vs-STOP bit of the trace memory configuration. */
+bool riscv_trace_hal_get_mem_loop(riscv_trace_hal_context_t *ctx);
+
+#if SOC_RISCV_TRACE_HAS_CONFIG_REG
+/** @brief Read back whether the encoder is in full-address mode (vs delta). Only on targets with the config register. */
+bool riscv_trace_hal_get_full_address(riscv_trace_hal_context_t *ctx);
+#endif
+
+/** @brief Read back the resynchronization mode (RISCV_TRACE_RESYNC_*). */
+uint32_t riscv_trace_hal_get_resync_mode(riscv_trace_hal_context_t *ctx);
+
+/** @brief Read back the resynchronization counter threshold from the hardware. */
+uint32_t riscv_trace_hal_get_resync_threshold(riscv_trace_hal_context_t *ctx);
 
 /** @brief Apply a filter (trace qualifier) configuration. Set before starting a capture. */
 void riscv_trace_hal_set_filter(riscv_trace_hal_context_t *ctx, const riscv_trace_hal_filter_config_t *config);
