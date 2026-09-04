@@ -215,9 +215,9 @@ static inline void spi_ll_master_init(spi_dev_t *hw)
     hw->clk_gate.mst_clk_sel = 1;
 
     hw->dma_conf.val = 0;
-    hw->dma_conf.tx_seg_trans_clr_en = 1;
-    hw->dma_conf.rx_seg_trans_clr_en = 1;
-    hw->dma_conf.dma_seg_trans_en = 0;
+    hw->dma_conf.slv_tx_seg_trans_clr_en = 1;
+    hw->dma_conf.slv_rx_seg_trans_clr_en = 1;
+    hw->dma_conf.dma_slv_seg_trans_en = 0;
 }
 
 /**
@@ -242,7 +242,7 @@ static inline void spi_ll_slave_init(spi_dev_t *hw)
 
     // Configure DMA In-Link to not be terminated when transaction bit counter exceeds
     hw->dma_conf.rx_eof_en = 0;
-    hw->dma_conf.dma_seg_trans_en = 0;
+    hw->dma_conf.dma_slv_seg_trans_en = 0;
 
     //Disable unneeded ints
     hw->dma_int_ena.val &= ~SPI_LL_UNUSED_INT_MASK;
@@ -299,7 +299,7 @@ static inline void spi_ll_apply_config(spi_dev_t *hw)
  */
 static inline bool spi_ll_usr_is_done(spi_dev_t *hw)
 {
-    return hw->dma_int_raw.trans_done;
+    return hw->dma_int_raw.trans_done_int_raw;
 }
 
 /**
@@ -390,7 +390,7 @@ static inline void spi_ll_dma_rx_fifo_reset(spi_dev_t *hw)
  */
 static inline void spi_ll_infifo_full_clr(spi_dev_t *hw)
 {
-    hw->dma_int_clr.infifo_full_err = 1;
+    hw->dma_int_clr.dma_infifo_full_err_int_clr = 1;
 }
 
 /**
@@ -400,7 +400,7 @@ static inline void spi_ll_infifo_full_clr(spi_dev_t *hw)
  */
 static inline void spi_ll_outfifo_empty_clr(spi_dev_t *hw)
 {
-    hw->dma_int_clr.outfifo_empty_err = 1;
+    hw->dma_int_clr.dma_outfifo_empty_err_int_clr = 1;
 }
 
 /*------------------------------------------------------------------------------
@@ -692,7 +692,7 @@ static inline void spi_ll_master_set_line_mode(spi_dev_t *hw, spi_line_mode_t li
  */
 static inline void spi_ll_slave_set_seg_mode(spi_dev_t *hw, bool seg_trans)
 {
-    hw->dma_conf.dma_seg_trans_en = seg_trans;
+    hw->dma_conf.dma_slv_seg_trans_en = seg_trans;
 }
 
 /**
@@ -1043,11 +1043,11 @@ static inline void spi_ll_set_address(spi_dev_t *hw, uint64_t addr, int addrlen,
         */
         addr = HAL_SWAP32(addr);
         //otherwise only addr register is sent
-        hw->addr = addr;
+        hw->addr.val = addr;
     } else {
         // shift the address to MSB of addr register.
         // output address will be sent from MSB to LSB of addr register
-        hw->addr = addr << (32 - addrlen);
+        hw->addr.val = addr << (32 - addrlen);
     }
 }
 
@@ -1124,7 +1124,7 @@ static inline void spi_ll_enable_mosi(spi_dev_t *hw, int enable)
  */
 static inline uint32_t spi_ll_slave_get_rcv_bitlen(spi_dev_t *hw)
 {
-    return hw->slave1.data_bitlen;
+    return hw->slave1.slv_data_bitlen;
 }
 
 /*------------------------------------------------------------------------------
@@ -1133,18 +1133,18 @@ static inline uint32_t spi_ll_slave_get_rcv_bitlen(spi_dev_t *hw)
 //helper macros to generate code for each interrupts
 #define FOR_EACH_ITEM(op, list) do { list(op) } while(0)
 #define INTR_LIST(item)    \
-    item(SPI_LL_INTR_TRANS_DONE,    dma_int_ena.trans_done,         dma_int_raw.trans_done,         dma_int_clr.trans_done,         dma_int_set.trans_done_int_set) \
-    item(SPI_LL_INTR_IN_FULL,       dma_int_ena.infifo_full_err,    dma_int_raw.infifo_full_err,    dma_int_clr.infifo_full_err,    dma_int_set.infifo_full_err_int_set) \
-    item(SPI_LL_INTR_OUT_EMPTY,     dma_int_ena.outfifo_empty_err,  dma_int_raw.outfifo_empty_err,  dma_int_clr.outfifo_empty_err,  dma_int_set.outfifo_empty_err_int_set) \
-    item(SPI_LL_INTR_RDBUF,         dma_int_ena.rd_buf_done,        dma_int_raw.rd_buf_done,        dma_int_clr.rd_buf_done,        dma_int_set.rd_buf_done_int_set) \
-    item(SPI_LL_INTR_WRBUF,         dma_int_ena.wr_buf_done,        dma_int_raw.wr_buf_done,        dma_int_clr.wr_buf_done,        dma_int_set.wr_buf_done_int_set) \
-    item(SPI_LL_INTR_RDDMA,         dma_int_ena.rd_dma_done,        dma_int_raw.rd_dma_done,        dma_int_clr.rd_dma_done,        dma_int_set.rd_dma_done_int_set) \
-    item(SPI_LL_INTR_WRDMA,         dma_int_ena.wr_dma_done,        dma_int_raw.wr_dma_done,        dma_int_clr.wr_dma_done,        dma_int_set.wr_dma_done_int_set) \
-    item(SPI_LL_INTR_SEG_DONE,      dma_int_ena.dma_seg_trans_done, dma_int_raw.dma_seg_trans_done, dma_int_clr.dma_seg_trans_done, dma_int_set.dma_seg_trans_done_int_set) \
-    item(SPI_LL_INTR_CMD7,          dma_int_ena.cmd7,               dma_int_raw.cmd7,               dma_int_clr.cmd7,               dma_int_set.cmd7_int_set) \
-    item(SPI_LL_INTR_CMD8,          dma_int_ena.cmd8,               dma_int_raw.cmd8,               dma_int_clr.cmd8,               dma_int_set.cmd8_int_set) \
-    item(SPI_LL_INTR_CMD9,          dma_int_ena.cmd9,               dma_int_raw.cmd9,               dma_int_clr.cmd9,               dma_int_set.cmd9_int_set) \
-    item(SPI_LL_INTR_CMDA,          dma_int_ena.cmda,               dma_int_raw.cmda,               dma_int_clr.cmda,               dma_int_set.cmda_int_set)
+    item(SPI_LL_INTR_TRANS_DONE,    dma_int_ena.trans_done_int_ena,             dma_int_raw.trans_done_int_raw,             dma_int_clr.trans_done_int_clr,             dma_int_set.trans_done_int_set) \
+    item(SPI_LL_INTR_IN_FULL,       dma_int_ena.dma_infifo_full_err_int_ena,    dma_int_raw.dma_infifo_full_err_int_raw,    dma_int_clr.dma_infifo_full_err_int_clr,    dma_int_set.dma_infifo_full_err_int_set) \
+    item(SPI_LL_INTR_OUT_EMPTY,     dma_int_ena.dma_outfifo_empty_err_int_ena,  dma_int_raw.dma_outfifo_empty_err_int_raw,  dma_int_clr.dma_outfifo_empty_err_int_clr,  dma_int_set.dma_outfifo_empty_err_int_set) \
+    item(SPI_LL_INTR_RDBUF,         dma_int_ena.slv_rd_buf_done_int_ena,        dma_int_raw.slv_rd_buf_done_int_raw,        dma_int_clr.slv_rd_buf_done_int_clr,        dma_int_set.slv_rd_buf_done_int_set) \
+    item(SPI_LL_INTR_WRBUF,         dma_int_ena.slv_wr_buf_done_int_ena,        dma_int_raw.slv_wr_buf_done_int_raw,        dma_int_clr.slv_wr_buf_done_int_clr,        dma_int_set.slv_wr_buf_done_int_set) \
+    item(SPI_LL_INTR_RDDMA,         dma_int_ena.slv_rd_dma_done_int_ena,        dma_int_raw.slv_rd_dma_done_int_raw,        dma_int_clr.slv_rd_dma_done_int_clr,        dma_int_set.slv_rd_dma_done_int_set) \
+    item(SPI_LL_INTR_WRDMA,         dma_int_ena.slv_wr_dma_done_int_ena,        dma_int_raw.slv_wr_dma_done_int_raw,        dma_int_clr.slv_wr_dma_done_int_clr,        dma_int_set.slv_wr_dma_done_int_set) \
+    item(SPI_LL_INTR_SEG_DONE,      dma_int_ena.dma_seg_trans_done_int_ena,     dma_int_raw.dma_seg_trans_done_int_raw,     dma_int_clr.dma_seg_trans_done_int_clr,     dma_int_set.dma_seg_trans_done_int_set) \
+    item(SPI_LL_INTR_CMD7,          dma_int_ena.slv_cmd7_int_ena,               dma_int_raw.slv_cmd7_int_raw,               dma_int_clr.slv_cmd7_int_clr,               dma_int_set.slv_cmd7_int_set) \
+    item(SPI_LL_INTR_CMD8,          dma_int_ena.slv_cmd8_int_ena,               dma_int_raw.slv_cmd8_int_raw,               dma_int_clr.slv_cmd8_int_clr,               dma_int_set.slv_cmd8_int_set) \
+    item(SPI_LL_INTR_CMD9,          dma_int_ena.slv_cmd9_int_ena,               dma_int_raw.slv_cmd9_int_raw,               dma_int_clr.slv_cmd9_int_clr,               dma_int_set.slv_cmd9_int_set) \
+    item(SPI_LL_INTR_CMDA,          dma_int_ena.slv_cmda_int_ena,               dma_int_raw.slv_cmda_int_raw,               dma_int_clr.slv_cmda_int_clr,               dma_int_set.slv_cmda_int_set)
 
 static inline void spi_ll_enable_intr(spi_dev_t *hw, spi_ll_intr_t intr_mask)
 {
@@ -1192,7 +1192,7 @@ static inline bool spi_ll_get_intr(spi_dev_t *hw, spi_ll_intr_t intr_mask)
  */
 static inline void spi_ll_disable_int(spi_dev_t *hw)
 {
-    hw->dma_int_ena.trans_done = 0;
+    hw->dma_int_ena.trans_done_int_ena = 0;
 }
 
 /**
@@ -1202,7 +1202,7 @@ static inline void spi_ll_disable_int(spi_dev_t *hw)
  */
 static inline void spi_ll_clear_int_stat(spi_dev_t *hw)
 {
-    hw->dma_int_clr.trans_done = 1;
+    hw->dma_int_clr.trans_done_int_clr = 1;
 }
 
 /**
@@ -1222,7 +1222,7 @@ static inline void spi_ll_set_int_stat(spi_dev_t *hw)
  */
 static inline void spi_ll_enable_int(spi_dev_t *hw)
 {
-    hw->dma_int_ena.trans_done = 1;
+    hw->dma_int_ena.trans_done_int_ena = 1;
 }
 
 /*------------------------------------------------------------------------------
@@ -1230,20 +1230,20 @@ static inline void spi_ll_enable_int(spi_dev_t *hw)
  *----------------------------------------------------------------------------*/
 static inline void spi_ll_slave_hd_set_len_cond(spi_dev_t *hw, spi_ll_trans_len_cond_t cond_mask)
 {
-    hw->slave.rdbuf_bitlen_en = (cond_mask & SPI_LL_TRANS_LEN_COND_RDBUF) ? 1 : 0;
-    hw->slave.wrbuf_bitlen_en = (cond_mask & SPI_LL_TRANS_LEN_COND_WRBUF) ? 1 : 0;
-    hw->slave.rddma_bitlen_en = (cond_mask & SPI_LL_TRANS_LEN_COND_RDDMA) ? 1 : 0;
-    hw->slave.wrdma_bitlen_en = (cond_mask & SPI_LL_TRANS_LEN_COND_WRDMA) ? 1 : 0;
+    hw->slave.slv_rdbuf_bitlen_en = (cond_mask & SPI_LL_TRANS_LEN_COND_RDBUF) ? 1 : 0;
+    hw->slave.slv_wrbuf_bitlen_en = (cond_mask & SPI_LL_TRANS_LEN_COND_WRBUF) ? 1 : 0;
+    hw->slave.slv_rddma_bitlen_en = (cond_mask & SPI_LL_TRANS_LEN_COND_RDDMA) ? 1 : 0;
+    hw->slave.slv_wrdma_bitlen_en = (cond_mask & SPI_LL_TRANS_LEN_COND_WRDMA) ? 1 : 0;
 }
 
 static inline int spi_ll_slave_get_rx_byte_len(spi_dev_t *hw)
 {
-    return hw->slave1.data_bitlen / 8;
+    return hw->slave1.slv_data_bitlen / 8;
 }
 
 static inline uint32_t spi_ll_slave_hd_get_last_addr(spi_dev_t *hw)
 {
-    return hw->slave1.last_addr;
+    return hw->slave1.slv_last_addr;
 }
 
 /*------------------------------------------------------------------------------
@@ -1535,7 +1535,7 @@ __attribute__((always_inline))
 static inline void spi_ll_init_conf_buffer(spi_dev_t *hw, uint32_t *conf_buffer)
 {
     conf_buffer[SPI_LL_CONF_BITMAP_POS] = 0x7FFF | (SPI_LL_SCT_MAGIC_NUMBER << 28);
-    conf_buffer[SPI_LL_ADDR_REG_POS + SPI_LL_CONF_BUFFER_OFFSET] = hw->addr;
+    conf_buffer[SPI_LL_ADDR_REG_POS + SPI_LL_CONF_BUFFER_OFFSET] = hw->addr.val;
     conf_buffer[SPI_LL_CTRL_REG_POS + SPI_LL_CONF_BUFFER_OFFSET] = hw->ctrl.val;
     conf_buffer[SPI_LL_CLOCK_REG_POS + SPI_LL_CONF_BUFFER_OFFSET] = hw->clock.val;
     conf_buffer[SPI_LL_USER_REG_POS + SPI_LL_CONF_BUFFER_OFFSET] = hw->user.val;
@@ -1573,7 +1573,6 @@ static inline void spi_ll_set_magic_number(spi_dev_t *hw, uint8_t magic_value)
     hw->slave.dma_seg_magic_value = magic_value;
 }
 
-#undef SPI_LL_RST_MASK
 #undef SPI_LL_UNUSED_INT_MASK
 
 /**

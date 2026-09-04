@@ -1597,6 +1597,8 @@ static inline int spi_ll_get_slave_hd_dummy_bits(spi_line_mode_t line_mode)
     return 8;
 }
 
+#undef SPI_LL_UNUSED_INT_MASK
+
 #ifdef __cplusplus
 }
 #endif

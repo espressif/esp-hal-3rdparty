@@ -384,8 +384,8 @@ static inline void spi_ll_dma_rx_fifo_reset(spi_dev_t *hw)
  */
 static inline void spi_ll_infifo_full_clr(spi_dev_t *hw)
 {
-    hw->dma_conf.infifo_full_clr = 1;
-    hw->dma_conf.infifo_full_clr = 0;
+    hw->dma_conf.dma_infifo_full_clr = 1;
+    hw->dma_conf.dma_infifo_full_clr = 0;
 }
 
 /**
@@ -395,8 +395,8 @@ static inline void spi_ll_infifo_full_clr(spi_dev_t *hw)
  */
 static inline void spi_ll_outfifo_empty_clr(spi_dev_t *hw)
 {
-    hw->dma_conf.outfifo_empty_clr = 1;
-    hw->dma_conf.outfifo_empty_clr = 0;
+    hw->dma_conf.dma_outfifo_empty_clr = 1;
+    hw->dma_conf.dma_outfifo_empty_clr = 0;
 }
 
 /*------------------------------------------------------------------------------
@@ -670,7 +670,7 @@ static inline void spi_ll_master_set_line_mode(spi_dev_t *hw, spi_line_mode_t li
 
 static inline void spi_ll_slave_set_seg_mode(spi_dev_t *hw, bool seg_trans)
 {
-    hw->dma_conf.dma_seg_trans_en = seg_trans;
+    hw->dma_conf.dma_slv_seg_trans_en = seg_trans;
 }
 
 /**
@@ -930,7 +930,7 @@ static inline void spi_ll_master_set_cs_setup(spi_dev_t *hw, uint8_t setup)
  */
 static inline void spi_ll_slave_set_seg_en(spi_dev_t *hw, bool en)
 {
-    hw->dma_conf.dma_seg_trans_en = en;
+    hw->dma_conf.dma_slv_seg_trans_en = en;
 }
 
 /*------------------------------------------------------------------------------
@@ -944,7 +944,7 @@ static inline void spi_ll_slave_set_seg_en(spi_dev_t *hw, bool en)
  */
 static inline void spi_ll_set_miso_bitlen(spi_dev_t *hw, size_t bitlen)
 {
-    hw->miso_dlen.usr_miso_bit_len = bitlen - 1;
+    hw->miso_dlen.usr_miso_dbitlen = bitlen - 1;
 }
 
 /**
@@ -955,7 +955,7 @@ static inline void spi_ll_set_miso_bitlen(spi_dev_t *hw, size_t bitlen)
  */
 static inline void spi_ll_set_mosi_bitlen(spi_dev_t *hw, size_t bitlen)
 {
-    hw->mosi_dlen.usr_mosi_bit_len = bitlen - 1;
+    hw->mosi_dlen.usr_mosi_dbitlen = bitlen - 1;
 }
 
 /**
@@ -1042,11 +1042,11 @@ static inline void spi_ll_set_address(spi_dev_t *hw, uint64_t addr, int addrlen,
         */
         addr = HAL_SWAP32(addr);
         //otherwise only addr register is sent
-        hw->addr = addr;
+        hw->addr.val = addr;
     } else {
         // shift the address to MSB of addr register.
         // output address will be sent from MSB to LSB of addr register
-        hw->addr = addr << (32 - addrlen);
+        hw->addr.val = addr << (32 - addrlen);
     }
 }
 
@@ -1116,7 +1116,7 @@ static inline void spi_ll_slave_reset(spi_dev_t *hw)
  */
 static inline uint32_t spi_ll_slave_get_rcv_bitlen(spi_dev_t *hw)
 {
-    return hw->slv_rd_byte.data_bytelen * 8;
+    return hw->slv_rd_byte.slv_data_bytelen * 8;
 }
 
 /*------------------------------------------------------------------------------
@@ -1126,21 +1126,21 @@ static inline uint32_t spi_ll_slave_get_rcv_bitlen(spi_dev_t *hw)
 #define FOR_EACH_ITEM(op, list) do { list(op) } while(0)
 #define INTR_LIST(item)    \
     item(SPI_LL_INTR_TRANS_DONE,    slave.int_trans_done_en,        slave.trans_done,               slave.trans_done=0) \
-    item(SPI_LL_INTR_RDBUF,         slave.int_rd_buf_done_en,       slv_rdbuf_dlen.rd_buf_done,     slv_rdbuf_dlen.rd_buf_done=0) \
-    item(SPI_LL_INTR_WRBUF,         slave.int_wr_buf_done_en,       slv_wrbuf_dlen.wr_buf_done,     slv_wrbuf_dlen.wr_buf_done=0) \
-    item(SPI_LL_INTR_RDDMA,         slave.int_rd_dma_done_en,       slv_rd_byte.rd_dma_done,        slv_rd_byte.rd_dma_done=0) \
-    item(SPI_LL_INTR_WRDMA,         slave.int_wr_dma_done_en,       slave1.wr_dma_done,             slave1.wr_dma_done=0) \
+    item(SPI_LL_INTR_RDBUF,         slave.int_rd_buf_done_en,       slv_rdbuf_dlen.slv_rd_buf_done,     slv_rdbuf_dlen.slv_rd_buf_done=0) \
+    item(SPI_LL_INTR_WRBUF,         slave.int_wr_buf_done_en,       slv_wrbuf_dlen.slv_wr_buf_done,     slv_wrbuf_dlen.slv_wr_buf_done=0) \
+    item(SPI_LL_INTR_RDDMA,         slave.int_rd_dma_done_en,       slv_rd_byte.slv_rd_dma_done,        slv_rd_byte.slv_rd_dma_done=0) \
+    item(SPI_LL_INTR_WRDMA,         slave.int_wr_dma_done_en,       slave1.slv_wr_dma_done,             slave1.slv_wr_dma_done=0) \
     item(SPI_LL_INTR_SEG_DONE,      slave.int_dma_seg_trans_en,     hold.dma_seg_trans_done,        hold.dma_seg_trans_done=0) \
-    item(SPI_LL_INTR_IN_SUC_EOF,    dma_int_ena.in_suc_eof,         dma_int_raw.in_suc_eof,         dma_int_clr.in_suc_eof=1) \
-    item(SPI_LL_INTR_OUT_EOF,       dma_int_ena.out_eof,            dma_int_raw.out_eof,            dma_int_clr.out_eof=1) \
-    item(SPI_LL_INTR_OUT_TOTAL_EOF, dma_int_ena.out_total_eof,      dma_int_raw.out_total_eof,      dma_int_clr.out_total_eof=1) \
-    item(SPI_LL_INTR_IN_FULL,       dma_int_ena.infifo_full_err,    dma_int_raw.infifo_full_err,    dma_int_clr.infifo_full_err=1) \
-    item(SPI_LL_INTR_OUT_EMPTY,     dma_int_ena.outfifo_empty_err,  dma_int_raw.outfifo_empty_err,  dma_int_clr.outfifo_empty_err=1) \
-    item(SPI_LL_INTR_CMD7,          dma_int_ena.cmd7,               dma_int_raw.cmd7,               dma_int_clr.cmd7=1) \
-    item(SPI_LL_INTR_CMD8,          dma_int_ena.cmd8,               dma_int_raw.cmd8,               dma_int_clr.cmd8=1) \
-    item(SPI_LL_INTR_CMD9,          dma_int_ena.cmd9,               dma_int_raw.cmd9,               dma_int_clr.cmd9=1) \
-    item(SPI_LL_INTR_CMDA,          dma_int_ena.cmda,               dma_int_raw.cmda,               dma_int_clr.cmda=1) \
-    item(SPI_LL_INTR_OUT_DONE,      dma_int_ena.out_done,           dma_int_raw.out_done,           dma_int_clr.out_done=1)
+    item(SPI_LL_INTR_IN_SUC_EOF,    dma_int_ena.in_suc_eof_int_ena,         dma_int_raw.in_suc_eof_int_raw,         dma_int_clr.in_suc_eof_int_clr=1) \
+    item(SPI_LL_INTR_OUT_EOF,       dma_int_ena.out_eof_int_ena,            dma_int_raw.out_eof_int_raw,            dma_int_clr.out_eof_int_clr=1) \
+    item(SPI_LL_INTR_OUT_TOTAL_EOF, dma_int_ena.out_total_eof_int_ena,      dma_int_raw.out_total_eof_int_raw,      dma_int_clr.out_total_eof_int_clr=1) \
+    item(SPI_LL_INTR_IN_FULL,       dma_int_ena.infifo_full_err_int_ena,    dma_int_raw.infifo_full_err_int_raw,    dma_int_clr.infifo_full_err_int_clr=1) \
+    item(SPI_LL_INTR_OUT_EMPTY,     dma_int_ena.outfifo_empty_err_int_ena,  dma_int_raw.outfifo_empty_err_int_raw,  dma_int_clr.outfifo_empty_err_int_clr=1) \
+    item(SPI_LL_INTR_CMD7,          dma_int_ena.slv_cmd7_int_ena,               dma_int_raw.slv_cmd7_int_raw,               dma_int_clr.slv_cmd7_int_clr=1) \
+    item(SPI_LL_INTR_CMD8,          dma_int_ena.slv_cmd8_int_ena,               dma_int_raw.slv_cmd8_int_raw,               dma_int_clr.slv_cmd8_int_clr=1) \
+    item(SPI_LL_INTR_CMD9,          dma_int_ena.slv_cmd9_int_ena,               dma_int_raw.slv_cmd9_int_raw,               dma_int_clr.slv_cmd9_int_clr=1) \
+    item(SPI_LL_INTR_CMDA,          dma_int_ena.slv_cmda_int_ena,               dma_int_raw.slv_cmda_int_raw,               dma_int_clr.slv_cmda_int_clr=1) \
+    item(SPI_LL_INTR_OUT_DONE,      dma_int_ena.out_done_int_ena,           dma_int_raw.out_done_int_raw,           dma_int_clr.out_done_int_clr=1)
 
 __attribute__((always_inline))
 static inline void spi_ll_enable_intr(spi_dev_t *hw, spi_ll_intr_t intr_mask)
@@ -1230,20 +1230,20 @@ static inline void spi_ll_enable_int(spi_dev_t *hw)
  *----------------------------------------------------------------------------*/
 static inline void spi_ll_slave_hd_set_len_cond(spi_dev_t *hw, spi_ll_trans_len_cond_t cond_mask)
 {
-    hw->slv_rd_byte.rdbuf_bytelen_en = (cond_mask & SPI_LL_TRANS_LEN_COND_RDBUF) ? 1 : 0;
-    hw->slv_rd_byte.wrbuf_bytelen_en = (cond_mask & SPI_LL_TRANS_LEN_COND_WRBUF) ? 1 : 0;
-    hw->slv_rd_byte.rddma_bytelen_en = (cond_mask & SPI_LL_TRANS_LEN_COND_RDDMA) ? 1 : 0;
-    hw->slv_rd_byte.wrdma_bytelen_en = (cond_mask & SPI_LL_TRANS_LEN_COND_WRDMA) ? 1 : 0;
+    hw->slv_rd_byte.slv_rdbuf_bytelen_en = (cond_mask & SPI_LL_TRANS_LEN_COND_RDBUF) ? 1 : 0;
+    hw->slv_rd_byte.slv_wrbuf_bytelen_en = (cond_mask & SPI_LL_TRANS_LEN_COND_WRBUF) ? 1 : 0;
+    hw->slv_rd_byte.slv_rddma_bytelen_en = (cond_mask & SPI_LL_TRANS_LEN_COND_RDDMA) ? 1 : 0;
+    hw->slv_rd_byte.slv_wrdma_bytelen_en = (cond_mask & SPI_LL_TRANS_LEN_COND_WRDMA) ? 1 : 0;
 }
 
 static inline int spi_ll_slave_get_rx_byte_len(spi_dev_t *hw)
 {
-    return hw->slv_rd_byte.data_bytelen;
+    return hw->slv_rd_byte.slv_data_bytelen;
 }
 
 static inline uint32_t spi_ll_slave_hd_get_last_addr(spi_dev_t *hw)
 {
-    return HAL_FORCE_READ_U32_REG_FIELD(hw->slave1, last_addr);
+    return HAL_FORCE_READ_U32_REG_FIELD(hw->slave1, slv_last_addr);
 }
 
 /*------------------------------------------------------------------------------
@@ -1343,8 +1343,8 @@ static inline void spi_ll_dma_rx_reset(spi_dma_dev_t *dma_in, uint32_t channel)
 __attribute__((always_inline))
 static inline void spi_ll_dma_rx_start(spi_dma_dev_t *dma_in, uint32_t channel, void *addr)
 {
-    dma_in->dma_in_link.addr = (int) addr & 0xFFFFF;
-    dma_in->dma_in_link.start = 1;
+    dma_in->dma_in_link.inlink_addr = (int) addr & 0xFFFFF;
+    dma_in->dma_in_link.inlink_start = 1;
 }
 
 /**
@@ -1355,7 +1355,7 @@ static inline void spi_ll_dma_rx_start(spi_dma_dev_t *dma_in, uint32_t channel, 
  */
 static inline void spi_ll_dma_rx_stop(spi_dma_dev_t *dma_in, uint32_t channel)
 {
-    dma_in->dma_in_link.stop = 1;
+    dma_in->dma_in_link.inlink_stop = 1;
 }
 
 /**
@@ -1393,7 +1393,7 @@ __attribute__((always_inline))
 static inline uint32_t spi_ll_dma_get_in_suc_eof_desc_addr(spi_dma_dev_t *dma_in, uint32_t channel)
 {
     ESP_STATIC_ANALYZER_CHECK(!dma_in, -1);
-    return dma_in->dma_in_suc_eof_des_addr;
+    return dma_in->in_suc_eof_des_addr.val;
 }
 
 /**
@@ -1435,8 +1435,8 @@ static inline void spi_ll_dma_tx_reset(spi_dma_dev_t *dma_out, uint32_t channel)
 __attribute__((always_inline))
 static inline void spi_ll_dma_tx_start(spi_dma_dev_t *dma_out, uint32_t channel, void *addr)
 {
-    dma_out->dma_out_link.addr = (int) addr & 0xFFFFF;
-    dma_out->dma_out_link.start = 1;
+    dma_out->dma_out_link.outlink_addr = (int) addr & 0xFFFFF;
+    dma_out->dma_out_link.outlink_start = 1;
 }
 
 /**
@@ -1447,7 +1447,7 @@ static inline void spi_ll_dma_tx_start(spi_dma_dev_t *dma_out, uint32_t channel,
  */
 static inline void spi_ll_dma_tx_stop(spi_dma_dev_t *dma_out, uint32_t channel)
 {
-    dma_out->dma_out_link.stop = 1;
+    dma_out->dma_out_link.outlink_stop = 1;
 }
 
 /**
@@ -1509,17 +1509,17 @@ __attribute__((always_inline))
 static inline uint32_t spi_ll_dma_get_out_eof_desc_addr(spi_dma_dev_t *dma_out, uint32_t channel)
 {
     ESP_STATIC_ANALYZER_CHECK(!dma_out, -1);
-    return dma_out->dma_out_eof_des_addr;
+    return dma_out->out_eof_des_addr.val;
 }
 
 static inline void spi_ll_dma_rx_restart(spi_dma_dev_t *dma_in, uint32_t channel)
 {
-    dma_in->dma_in_link.restart = 1;
+    dma_in->dma_in_link.inlink_restart = 1;
 }
 
 static inline void spi_ll_dma_tx_restart(spi_dma_dev_t *dma_out, uint32_t channel)
 {
-    dma_out->dma_out_link.restart = 1;
+    dma_out->dma_out_link.outlink_restart = 1;
 }
 
 static inline void spi_ll_dma_rx_disable(spi_dma_dev_t *dma_in)
@@ -1534,7 +1534,7 @@ static inline void spi_ll_dma_tx_disable(spi_dma_dev_t *dma_out)
 
 static inline bool spi_ll_tx_get_empty_err(spi_dev_t *hw)
 {
-    return hw->dma_int_raw.outfifo_empty_err;
+    return hw->dma_int_raw.outfifo_empty_err_int_raw;
 }
 
 /*------------------------------------------------------------------------------
@@ -1861,7 +1861,7 @@ static inline void spi_ll_init_conf_buffer(spi_dev_t *hw, uint32_t *conf_buffer)
 {
     conf_buffer[SPI_LL_CONF_BITMAP_POS] = 0x7FFFFFF | (SPI_LL_SCT_MAGIC_NUMBER << 28);
     conf_buffer[SPI_LL_CMD_REG_POS + SPI_LL_CONF_BUFFER_OFFSET] = hw->cmd.val;
-    conf_buffer[SPI_LL_ADDR_REG_POS + SPI_LL_CONF_BUFFER_OFFSET] = hw->addr;
+    conf_buffer[SPI_LL_ADDR_REG_POS + SPI_LL_CONF_BUFFER_OFFSET] = hw->addr.val;
     conf_buffer[SPI_LL_CTRL_REG_POS + SPI_LL_CONF_BUFFER_OFFSET] = hw->ctrl.val;
     conf_buffer[SPI_LL_CTRL1_REG_POS + SPI_LL_CONF_BUFFER_OFFSET] = hw->ctrl1.val;
     conf_buffer[SPI_LL_CTRL2_REG_POS + SPI_LL_CONF_BUFFER_OFFSET] = hw->ctrl2.val;
@@ -1911,7 +1911,6 @@ static inline void spi_ll_set_magic_number(spi_dev_t *hw, uint8_t magic_value)
     hw->slv_rd_byte.dma_seg_magic_value = magic_value;
 }
 
-#undef SPI_LL_RST_MASK
 #undef SPI_LL_UNUSED_INT_MASK
 
 /**
