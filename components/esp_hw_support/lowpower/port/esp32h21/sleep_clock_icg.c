@@ -42,7 +42,7 @@ static int16_t s_sleep_clock_icg_refs[ESP_SLEEP_CLOCK_MAX];
 
 #define RETENTION_COMMON     PMU_CLK_ICGS( REGDMA, HPCORE ) | RETENTION_SYS_CLK
 
-static const uint32_t s_retention_module_retention_clocks[SLEEP_RETENTION_MODULE_MAX + 1] = {
+static const uint32_t s_retention_module_retention_clocks[SLEEP_RETENTION_MODULE_MAX] = {
     [SLEEP_RETENTION_MODULE_NULL]           = 0,
     [SLEEP_RETENTION_MODULE_CLOCK_SYSTEM]   = RETENTION_COMMON,
     [SLEEP_RETENTION_MODULE_SYS_PERIPH]     = RETENTION_COMMON | PMU_CLK_ICGS( IOMUX, SYSTIMER, SEC, MSPI ) | RETENTION_CONSOLE_UART,
@@ -85,7 +85,7 @@ void sleep_clock_icg_retention_clock_config(sleep_retention_module_bitmap_t *mod
     /* Check if the last word holds bit above MODULE_MAX. */
     assert(!module_bitmap->bitmap[SLEEP_RETENTION_MODULE_BITMAP_SZ - 1] ||
            ((31 - __builtin_clz(module_bitmap->bitmap[SLEEP_RETENTION_MODULE_BITMAP_SZ - 1])) +
-            ((SLEEP_RETENTION_MODULE_BITMAP_SZ - 1) << 5)) <= SLEEP_RETENTION_MODULE_MAX);
+            ((SLEEP_RETENTION_MODULE_BITMAP_SZ - 1) << 5)) < SLEEP_RETENTION_MODULE_MAX);
 
     uint32_t clocks_mask = 0;
     sleep_retention_module_t module = 0;
