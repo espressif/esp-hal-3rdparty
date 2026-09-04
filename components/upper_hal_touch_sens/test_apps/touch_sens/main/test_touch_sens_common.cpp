@@ -13,6 +13,17 @@
 #include "esp_log.h"
 #include "esp_attr.h"
 #include "esp_heap_caps.h"
+#include "test_helper.h"
+#include "esp_sleep.h"
+
+#if SOC_LP_CORE_SUPPORTED
+#include "ulp_lp_core.h"
+#elif SOC_RISCV_COPROC_SUPPORTED
+#include "ulp_riscv.h"
+#elif SOC_ULP_FSM_SUPPORTED
+#include "ulp.h"
+#include "ulp_main.h"
+#endif
 
 /**************************** Configurations ****************************/
 
@@ -97,26 +108,6 @@ static bool TEST_TCH_IRAM_ATTR s_test_touch_on_inactive_callback(touch_sensor_ha
 }
 
 /**************************** Helper Functions ****************************/
-
-static void s_test_touch_simulate_touch(touch_channel_handle_t touch_chan, bool active)
-{
-#if CONFIG_IDF_TARGET_ESP32S31
-    /* ESP32-S31 has no internal capacitor, emulate touch by changing charging cycles. */
-    for (int i = 0; i < TOUCH_SAMPLE_CFG_NUM; i++) {
-        uint32_t charge_times = s_sample_cfg[i].charge_times;
-        if (active) {
-            charge_times += charge_times >> 1;  // 1.5x
-        }
-        touch_ll_set_charge_times(i, charge_times);
-    }
-#elif SOC_TOUCH_SENSOR_VERSION <= 2
-    touch_chan_info_t chan_info = {};
-    touch_sensor_get_channel_info(touch_chan, &chan_info);
-    touch_ll_set_charge_speed(chan_info.chan_id, active ? TOUCH_CHARGE_SPEED_4 : TOUCH_CHARGE_SPEED_7);
-#elif SOC_TOUCH_SENSOR_VERSION == 3
-    touch_ll_set_internal_capacitor(active ? 0x7f : 0);
-#endif
-}
 
 static void s_test_touch_do_initial_scanning(touch_sensor_handle_t touch, int scan_times)
 {
@@ -261,13 +252,13 @@ TEST_CASE("touch_sens_active_inactive_test", "[touch]")
         // Read data before touched
         s_test_touch_log_data(touch_chan, "Data Before");
         // Simulate touch
-        s_test_touch_simulate_touch(touch_chan, true);
+        test_touch_simulate_touch(chan_ids[0], true);
         vTaskDelay(pdMS_TO_TICKS(100));
 
         // Read data after touched
         s_test_touch_log_data(touch_chan, "Data After ");
         // Simulate release
-        s_test_touch_simulate_touch(touch_chan, false);
+        test_touch_simulate_touch(chan_ids[0], false);
         vTaskDelay(pdMS_TO_TICKS(100));
     }
     printf("\n");
@@ -322,3 +313,104 @@ TEST_CASE("touch_sens_current_meas_channel_test", "[touch]")
     TEST_ESP_OK(touch_sensor_del_controller(touch));
 }
 #endif  // SOC_TOUCH_SENSOR_VERSION > 1
+
+/**
+ * @note ESP32-P4 + sleep + PSRAM + O0 optimization can cause SPM overflow.
+ *       Therefore, disable the sleep test when iram_safe is enabled.
+ */
+#if SOC_ULP_SUPPORTED && !(CONFIG_TOUCH_ISR_IRAM_SAFE && SOC_IS(ESP32P4))
+extern const uint8_t ulp_main_bin_start[] asm("_binary_ulp_main_bin_start");
+extern const uint8_t ulp_main_bin_end[] asm("_binary_ulp_main_bin_end");
+
+#define TEST_ULP_WAKEUP_PERIOD_US            (1 * 1000 * 1000)
+
+/**
+ * @note The ULP start APIs (ulp_xxx_run) start a timer to trigger ULP execution periodically,
+ *       but do not guarantee whether the ULP will run once immediately. Therefore, each ULP
+ *       program includes logic to skip the first run, ensuring that the touch event is simulated
+ *       only after entering sleep.
+ */
+static void s_test_touch_start_ulp(void)
+{
+#if SOC_LP_CORE_SUPPORTED
+    TEST_ESP_OK(ulp_lp_core_load_binary(ulp_main_bin_start, ulp_main_bin_end - ulp_main_bin_start));
+    ulp_lp_core_cfg_t cfg = {};
+    cfg.wakeup_source = ULP_LP_CORE_WAKEUP_SOURCE_LP_TIMER;
+    cfg.lp_timer_sleep_duration_us = TEST_ULP_WAKEUP_PERIOD_US;
+    TEST_ESP_OK(ulp_lp_core_run(&cfg));
+#elif SOC_RISCV_COPROC_SUPPORTED
+    TEST_ESP_OK(ulp_riscv_load_binary(ulp_main_bin_start, ulp_main_bin_end - ulp_main_bin_start));
+    TEST_ESP_OK(ulp_set_wakeup_period(0, TEST_ULP_WAKEUP_PERIOD_US));
+    TEST_ESP_OK(ulp_riscv_run());
+#elif SOC_ULP_FSM_SUPPORTED
+    TEST_ESP_OK(ulp_load_binary(0, ulp_main_bin_start, (ulp_main_bin_end - ulp_main_bin_start) / sizeof(uint32_t)));
+    TEST_ESP_OK(ulp_set_wakeup_period(0, TEST_ULP_WAKEUP_PERIOD_US));
+    TEST_ESP_OK(ulp_run(&ulp_entry - RTC_SLOW_MEM));
+#else
+#error "No supported ULP"
+#endif
+}
+
+TEST_CASE("touch_sens_light_sleep_wakeup_test", "[touch]")
+{
+    test_touch_fixture_t *fixture = (test_touch_fixture_t *)alloca(
+                                        sizeof(test_touch_fixture_t) + sizeof(touch_channel_handle_t) * 2);
+    const uint32_t chan_ids[] = {TEST_TOUCH_WAKEUP_CHANNEL, TEST_TOUCH_WAKEUP_CHANNEL + 1};
+    test_touch_cb_data_t cb_data = {};
+    s_test_touch_fixture_init(fixture, 2, chan_ids, &cb_data);
+    touch_sensor_handle_t touch = fixture->sensor;
+
+#if SOC_TOUCH_SENSOR_VERSION == 3
+    /**
+     * @note For TOUCH_SENSOR_VERSION == 3, since we cannot simulate an isolated trigger on a single channel,
+     *       the thresholds for all other channels are raised to the maximum to prevent them from being triggered.
+     */
+    touch_channel_config_t inactive_cfg;
+    for (int i = 0; i < TOUCH_SAMPLE_CFG_NUM; i++) {
+        inactive_cfg.active_thresh[i] = TOUCH_LL_ACTIVE_THRESH_MAX;
+    }
+    TEST_ESP_OK(touch_sensor_reconfig_channel(fixture->channels[1], &inactive_cfg));
+#endif
+
+    touch_sleep_config_t sleep_cfg = {};
+    sleep_cfg.slp_wakeup_lvl = TOUCH_LIGHT_SLEEP_WAKEUP;
+    TEST_ESP_OK(touch_sensor_config_sleep_wakeup(touch, &sleep_cfg));
+    TEST_ESP_OK(touch_sensor_enable(touch));
+    TEST_ESP_OK(touch_sensor_start_continuous_scanning(touch));
+
+    /* Set up the ULP to simulate touch wake-up */
+    s_test_touch_start_ulp();
+
+    /* Enter light sleep */
+    TEST_ESP_OK(esp_light_sleep_start());
+    /* Wakeup from sleep */
+    uint32_t wakeup_causes = esp_sleep_get_wakeup_causes();
+
+    if (wakeup_causes & BIT(ESP_SLEEP_WAKEUP_TOUCHPAD)) {
+        printf("wakeup by touchpad\n");
+    } else {
+        printf("wakeup by other causes: %" PRIu32 "\n", wakeup_causes);
+        TEST_FAIL();
+    }
+
+#if SOC_TOUCH_SENSOR_VERSION == 1
+    printf("hardware active interrupt count: %d\n", cb_data.hw_active_count);
+    TEST_ASSERT_GREATER_OR_EQUAL(1, cb_data.hw_active_count);
+#else
+    TEST_ASSERT_EQUAL(1, cb_data.active_count);
+#endif
+    for (int cnt = 0; cb_data.inactive_count != cb_data.active_count; cnt++) {
+        if (cnt > 100) {
+            TEST_FAIL_MESSAGE("timeout waiting for inactive callback");
+        }
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+
+    TEST_ESP_OK(touch_sensor_stop_continuous_scanning(touch));
+    TEST_ESP_OK(touch_sensor_disable(touch));
+    TEST_ESP_OK(touch_sensor_config_sleep_wakeup(touch, NULL));
+    TEST_ESP_OK(touch_sensor_del_channel(fixture->channels[0]));
+    TEST_ESP_OK(touch_sensor_del_channel(fixture->channels[1]));
+    TEST_ESP_OK(touch_sensor_del_controller(touch));
+}
+#endif  // SOC_ULP_SUPPORTED && !(CONFIG_TOUCH_ISR_IRAM_SAFE && SOC_IS(ESP32P4))
