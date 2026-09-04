@@ -493,10 +493,12 @@ static void bta_hf_client_handle_ciev(UINT32 index, UINT32 value)
 static tBTM_SCO_CODEC_TYPE bta_hf_client_hfp_codec_id_to_btm(UINT32 hfp_codec_id)
 {
     switch (hfp_codec_id) {
+#if (BTM_WBS_INCLUDED == TRUE)
     case UUID_CODEC_MSBC:
         return BTM_SCO_CODEC_MSBC;
     case UUID_CODEC_LC3:
         return BTM_SCO_CODEC_LC3;
+#endif
     case UUID_CODEC_CVSD:
         return BTM_SCO_CODEC_CVSD;
     default:
@@ -512,10 +514,12 @@ static tBTM_SCO_CODEC_TYPE bta_hf_client_hfp_codec_id_to_btm(UINT32 hfp_codec_id
 static UINT32 bta_hf_client_btm_codec_to_hfp_id(tBTM_SCO_CODEC_TYPE btm_codec)
 {
     switch (btm_codec) {
+#if (BTM_WBS_INCLUDED == TRUE)
     case BTM_SCO_CODEC_MSBC:
         return UUID_CODEC_MSBC;
     case BTM_SCO_CODEC_LC3:
         return UUID_CODEC_LC3;
+#endif
     case BTM_SCO_CODEC_CVSD:
     default:
         return UUID_CODEC_CVSD;
