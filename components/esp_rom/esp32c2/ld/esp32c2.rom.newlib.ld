@@ -24,9 +24,11 @@
 _isatty_r = 0x400004b4;
 strdup = 0x40000510;
 strndup = 0x40000534;
+#ifndef  __NuttX__
 rand_r = 0x4000056c;
 rand = 0x40000570;
 srand = 0x40000574;
+#endif
 atoi = 0x40000580;
 atol = 0x40000584;
 strtol = 0x40000588;
@@ -59,10 +61,12 @@ _wctomb_r = 0x4000064c;
 __ascii_wctomb = 0x40000650;
 _mbtowc_r = 0x40000654;
 __ascii_mbtowc = 0x40000658;
+#ifndef  __NuttX__
 puts = 0x4000065c;
 putc = 0x40000660;
 putchar = 0x40000664;
 __errno = 0x40000670;
+#endif
 toupper = 0x400004ec;
 tolower = 0x400004f0;
 isalnum = 0x400004bc;
