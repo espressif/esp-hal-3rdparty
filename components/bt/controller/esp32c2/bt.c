@@ -20,7 +20,7 @@
 #include "nimble/nimble_port.h"
 #endif // CONFIG_BT_NIMBLE_ENABLED
 
-#include "nimble/nimble_port_freertos.h"
+#include "nimble/nimble_port_os.h"
 
 #ifdef ESP_PLATFORM
 #include "esp_log.h"
@@ -53,8 +53,7 @@
 #endif // CONFIG_FREERTOS_USE_TICKLESS_IDLE
 #include "esp_private/esp_modem_clock.h"
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+#include "platform/os.h"
 
 #include "esp_private/periph_ctrl.h"
 #include "esp_private/esp_clk.h"
@@ -160,7 +159,7 @@ extern void esp_unregister_ext_funcs (void);
 extern int esp_ble_ll_set_public_addr(const uint8_t *addr);
 extern int esp_register_npl_funcs (struct npl_funcs_t *p_npl_func);
 extern void esp_unregister_npl_funcs (void);
-extern void npl_freertos_mempool_deinit(void);
+extern void npl_os_mempool_deinit(void);
 extern void bt_bb_v2_init_cmplx(uint8_t i);
 extern int os_msys_buf_alloc(void);
 extern uint32_t r_os_cputime_get32(void);
@@ -628,12 +627,12 @@ static void coex_schm_status_bit_clear_wrapper(uint32_t type, uint32_t status)
 
 static int task_create_wrapper(void *task_func, const char *name, uint32_t stack_depth, void *param, uint32_t prio, void *task_handle, uint32_t core_id)
 {
-    return (uint32_t)xTaskCreatePinnedToCore(task_func, name, stack_depth, param, prio, task_handle, (core_id < CONFIG_FREERTOS_NUMBER_OF_CORES ? core_id : tskNO_AFFINITY));
+    return (uint32_t)esp_os_create_task_pinned_to_core(task_func, name, stack_depth, param, prio, task_handle, (core_id < CONFIG_FREERTOS_NUMBER_OF_CORES ? core_id : tskNO_AFFINITY));
 }
 
 static void task_delete_wrapper(void *task_handle)
 {
-    vTaskDelete(task_handle);
+    esp_os_task_delete((esp_os_task_handle_t)(uintptr_t)task_handle);
 }
 
 static int esp_ecc_gen_key_pair(uint8_t *pub, uint8_t *priv)
@@ -658,9 +657,9 @@ static int esp_ecc_gen_dh_key(const uint8_t *peer_pub_key_x, const uint8_t *peer
 static int esp_intr_alloc_wrapper(int source, int flags, intr_handler_t handler, void *arg, void **ret_handle_in)
 {
 #if CONFIG_BT_CTRL_RUN_IN_FLASH_ONLY
-    int rc = esp_intr_alloc(source, flags, handler, arg, (intr_handle_t *)ret_handle_in);
+    int rc = esp_os_intr_alloc(source, flags, handler, arg, (intr_handle_t *)ret_handle_in);
 #else
-    int rc = esp_intr_alloc(source, flags | ESP_INTR_FLAG_IRAM, handler, arg, (intr_handle_t *)ret_handle_in);
+    int rc = esp_os_intr_alloc(source, flags | ESP_INTR_FLAG_IRAM, handler, arg, (intr_handle_t *)ret_handle_in);
 #endif
 
     return rc;
@@ -669,7 +668,7 @@ static int esp_intr_alloc_wrapper(int source, int flags, intr_handler_t handler,
 static int esp_intr_free_wrapper(void **ret_handle)
 {
     int rc = 0;
-    rc = esp_intr_free((intr_handle_t) * ret_handle);
+    rc = esp_os_intr_free((intr_handle_t) * ret_handle);
     *ret_handle = NULL;
     return rc;
 }
@@ -927,8 +926,8 @@ esp_err_t esp_bt_controller_init(esp_bt_controller_config_t *cfg)
 #endif //!CONFIG_BT_CTRL_RUN_IN_FLASH_ONLY
 
     /* Initialize the function pointers for OS porting */
-    npl_freertos_funcs_init();
-    struct npl_funcs_t *p_npl_funcs = npl_freertos_funcs_get();
+    npl_os_funcs_init();
+    struct npl_funcs_t *p_npl_funcs = npl_os_funcs_get();
     if (!p_npl_funcs) {
         ESP_LOGW(NIMBLE_PORT_LOG_TAG, "npl functions get failed");
         return ESP_ERR_INVALID_ARG;
@@ -941,8 +940,8 @@ esp_err_t esp_bt_controller_init(esp_bt_controller_config_t *cfg)
     }
 
     ble_get_npl_element_info(cfg, &npl_info);
-    npl_freertos_set_controller_npl_info(&npl_info);
-    if (npl_freertos_mempool_init() != 0) {
+    npl_os_set_controller_npl_info(&npl_info);
+    if (npl_os_mempool_init() != 0) {
         ESP_LOGW(NIMBLE_PORT_LOG_TAG, "npl mempool init failed");
         ret = ESP_ERR_INVALID_ARG;
         goto free_mem;
@@ -1048,9 +1047,9 @@ modem_deint:
 #endif // CONFIG_BT_NIMBLE_ENABLED
 free_mem:
     os_msys_buf_free();
-    npl_freertos_mempool_deinit();
+    npl_os_mempool_deinit();
     esp_unregister_npl_funcs();
-    npl_freertos_funcs_deinit();
+    npl_os_funcs_deinit();
     esp_unregister_ext_funcs();
     return ret;
 }
@@ -1083,9 +1082,9 @@ esp_err_t esp_bt_controller_deinit(void)
     esp_unregister_ext_funcs();
 
     /* De-initialize npl functions */
-    npl_freertos_funcs_deinit();
+    npl_os_funcs_deinit();
 
-    npl_freertos_mempool_deinit();
+    npl_os_mempool_deinit();
 
     esp_phy_modem_deinit();
 
