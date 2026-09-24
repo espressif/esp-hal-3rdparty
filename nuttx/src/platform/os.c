@@ -379,10 +379,22 @@ static int isr_adapter_func(int irq, FAR void *context, FAR void *arg)
 
 esp_err_t esp_os_intr_free(intr_handle_t handle)
 {
-  FAR esp_os_intr_handle_t *intr_handle =
-    (FAR esp_os_intr_handle_t *)handle;
-  int irq = intr_handle->irq;
-  int cpuint = esp_get_cpuint(this_cpu(), irq);
+  int irq;
+  int cpuint;
+
+  irq = esp_get_irq(this_cpu(), handle);
+
+  if (irq < 0)
+    {
+      return ESP_ERR_INVALID_ARG;
+    }
+
+  cpuint = esp_get_cpuint(this_cpu(), irq);
+
+  if (cpuint < 0)
+    {
+      return ESP_ERR_INVALID_STATE;
+    }
 
   esp_teardown_irq(ESP_IRQ2SOURCE(irq), cpuint);
 

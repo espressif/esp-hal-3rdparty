@@ -137,13 +137,6 @@ struct irq_adpt
   FAR void *arg;                     /* Interrupt private data. */
 };
 
-struct esp_os_intr_handle_t
-{
-  FAR intr_handle_t *intr_handle;
-  int irq;
-};
-
-typedef struct esp_os_intr_handle_t esp_os_intr_handle_t;
 typedef FAR struct mq_adpt *esp_os_queue_handle_t;
 typedef uint32_t esp_os_tick_type_t;
 typedef intr_handler_t esp_os_intr_handler_t;
