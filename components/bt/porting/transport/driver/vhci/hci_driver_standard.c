@@ -62,13 +62,19 @@ hci_driver_vhci_controller_tx(hci_driver_data_type_t data_type, uint8_t *data, u
 static int
 hci_driver_vhci_host_tx(hci_driver_data_type_t data_type, uint8_t *data, uint32_t length)
 {
+    int rc;
     uint8_t *cmd;
     struct os_mbuf *om;
 
     if (data_type == HCI_DRIVER_TYPE_ACL) {
         om = os_msys_get_pkthdr(length, ESP_HCI_INTERNAL_ACL_MBUF_LEADINGSPCAE);
         assert(om);
-        assert(os_mbuf_append(om, &data[1], length - 1) == 0);
+        rc = os_mbuf_append(om, &data[1], length - 1);
+        assert(rc == 0);
+        if (rc != 0) {
+            os_mbuf_free_chain(om);
+            return rc;
+        }
         data = (uint8_t *)om;
     } else if (data_type == HCI_DRIVER_TYPE_CMD) {
         cmd = r_ble_hci_trans_buf_alloc(ESP_HCI_INTERNAL_BUF_CMD);
