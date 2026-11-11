@@ -21,10 +21,12 @@ strndup = 0x400013ec;
 rand = 0x400014a0;
 srand = 0x400014ac;
 #endif
+#ifndef __NuttX__
 atoi = 0x400014d0;
 atol = 0x400014dc;
 strtol = 0x400014e8;
 strtoul = 0x400014f4;
+#endif
 PROVIDE( fflush = 0x40001500 );
 PROVIDE( _fflush_r = 0x4000150c );
 PROVIDE( _fwalk = 0x40001518 );
