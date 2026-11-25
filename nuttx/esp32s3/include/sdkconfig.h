@@ -1035,6 +1035,15 @@
 #  define CONFIG_ESP_CONSOLE_UART_NUM            -1
 #  define CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG     1
 #  define CONFIG_ESP_CONSOLE_ROM_SERIAL_PORT_NUM CONFIG_ESP_ROM_USB_SERIAL_DEVICE_NUM
+#else
+/* No serial console (e.g. CONFIG_NO_SERIAL_CONSOLE): same as ESP-IDF's
+ * CONFIG_ESP_CONSOLE_NONE.  -1 is the "no console" value the HAL already
+ * tests for (clk.c: ROM_SERIAL_PORT_NUM >= 0, sleep_uart.c: UART_NUM != -1).
+ */
+
+#  define CONFIG_ESP_CONSOLE_NONE                1
+#  define CONFIG_ESP_CONSOLE_UART_NUM            -1
+#  define CONFIG_ESP_CONSOLE_ROM_SERIAL_PORT_NUM -1
 #endif
 
 #define CONFIG_ESP_CONSOLE_UART_BAUDRATE     115200
